@@ -13,13 +13,18 @@
                 <br/><h2><a style='text-decoration:none;' ng-click="showmore('{{task.Instruction}}')">请联系健康专员建立计划</a></h2>
             </ion-item>
             <ion-item ng-repeat="task in taskdetaillist | orderBy : 'Status'" ng-if=(task.Code!="TF0002") class="item item-thumbnail-left item-icon-right" >
-                <img ng-src="img/icon/TF0000.png"/>
+                <img ng-src="img/icon/{{task.ParentCode}}.png"/>
                 <a class="button button-full button-small button-clear icon-right button-assertive" style="text-align:left">
                     <h2>{{task.Name}}<span ng-if=(task.Code=="TF0001")>、脉搏</span></h2>
                     <i class="icon ion-heart" style="font-size:17px;" ng-if=(task.Status==1)>已完成</i>
                 </a>
-                <h2 ng-if=(task.ParentCode!="TA0000")><a style='text-decoration:none;' ng-click="showmore('{{task.Instruction}}')">{{task.Instruction}}</a></h2>
-                <a style='text-decoration:none;' href="{{task.go}}" ng-click="{{task.click}}('{{task.Code}}')" ng-if=(task.go!=''&&task.click!='')><i class="icon ion-chevron-right"></i></a>
+                <a class="button button-small button-clear icon-right button-assertive" style="text-align:left" style='text-decoration:none;' ng-click="showmore('{{task.Instruction}}')" ng-if=(task.ParentCode!="TA0000")>
+                    <h2>{{task.Instruction}}</h2>
+                </a>
+                <a style='text-decoration:none;' href="{{task.go}}" ng-click="{{task.click}}('{{task.Code}}')" ng-if=(task.go!=''&&task.click!='')>
+                    <i class="icon ion-chevron-right" style="background-color:rgb(211, 253, 226);padding-left: 5%; padding-right: 4%; margin-right: -3%;
+"></i>
+                </a>
                 <ion-option-button class="button-assertive" ng-click="done({{task.index}})">完成</ion-option-button>
                 <ion-option-button class="button-positive" ng-click="openModal()">添加提醒</ion-option-button>
             </ion-item>
