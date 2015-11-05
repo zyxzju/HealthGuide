@@ -441,36 +441,6 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
 //侧边提醒
 .controller('SlidePageCtrl', ['$scope', '$ionicHistory', '$timeout', '$ionicModal', '$ionicSideMenuDelegate', '$http','NotificationService','$ionicListDelegate','PlanInfo','extraInfo','$ionicPopup', '$state', 'Storage',
    function($scope, $ionicHistory, $timeout, $ionicModal, $ionicSideMenuDelegate, $http,NotificationService,$ionicListDelegate,PlanInfo,extraInfo, $ionicPopup,$state,Storage) {
-      $scope.text = 'Hello World!';
-       ionic.DomUtil.ready(function(){
-          $scope.getexecutingplan();
-       });
-      $scope.getexecutingplan = function()
-      {
-        console.log("1");var get = {
-          PatientId:Storage.get("UID"),
-          PlanNo:'NULL',
-          Module:'M1',
-          Status:'3'
-        }
-        PlanInfo.GetExecutingPlan(get).then(function(s){
-          // console.log(s[0]);
-          if((s!=null)&&(s!=""))
-          {
-            $scope.unTaskList=false;
-            extraInfo.PlanNo(s[0]);
-            data.PlanNo=s[0].PlanNo;
-            get();
-          }
-          else
-          {
-            $scope.unTaskList=true;
-          }
-        },function(e){
-          console.log(e);
-        })
-      }
-      
       ////获取任务列表数据
       // $http.get('testdata/tasklist.json').success(function(data){
       //  $scope.tasklist = data;
@@ -487,6 +457,14 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
       }
       $scope.lastviewtitle = $ionicHistory.backTitle();
       ////////////设置提醒/////////////
+      $scope.checkalert = '';
+      $scope.alerttitlecheck = function(c)
+      {
+         console.log('title change');
+         if(c) $scope.checkalert='required';
+         else  $scope.checkalert='';
+         console.log($scope.checkalert);
+      }
       $ionicModal.fromTemplateUrl('partials/other/addalert.html', {
         scope: $scope,
         animation: 'slide-in-up'
@@ -575,6 +553,7 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
       //退出账号
 
        $scope.signoutConfirm = function(a){
+        $scope.toggleProjects();
         if(a=="logout"){
           var myPopup = $ionicPopup.show({
             template: '<center>确定要退出登录吗?</center>',
@@ -615,62 +594,67 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
   function($scope,$ionicModal,$timeout,$http,TaskInfo,extraInfo,Storage,$ionicLoading,PlanInfo) {
   //extraInfo.PlanNo().PlanNo'PLAN20151029'
   //$scope.getexecutingplan();
-   var data={"ParentCode":"T","PlanNo":"","Date":"NOW","PatientId":Storage.get("UID")};
-   var get = {
-          PatientId:Storage.get("UID"),
-          PlanNo:'NULL',
-          Module:'M1',
-          Status:'3'
-        }
-        PlanInfo.GetExecutingPlan(get).then(function(s){
-          // console.log(s[0]);
-          if((s!=null)&&(s!=""))
-          {
-            $scope.unTaskList=false;
-            extraInfo.PlanNo(s[0]);
-            data.PlanNo=s[0].PlanNo;
-            get();
-          }
-          else
-          {
-            $scope.unTaskList=true;
-          }
-        },function(e){
-          console.log(e);
-        })
+  var data={"ParentCode":"T","PlanNo":"","Date":"NOW","PatientId":Storage.get("UID")};
+  var getep = {
+    PatientId:Storage.get("UID"),
+    PlanNo:'NULL',
+    Module:'M1',
+    Status:'3'
+  }
+  var getexecutingplan = function()
+  {
+    PlanInfo.GetExecutingPlan(getep).then(function(s){
+      console.log(s[0]);
+      if((s!=null)&&(s!=""))
+      {
+        $scope.unTaskList=false;
+        extraInfo.PlanNo(s[0]);
+        data.PlanNo=s[0].PlanNo;
+        gettasklist();
+      }
+      else
+      {
+        console.log("getexecutingplan err");
+        $scope.unTaskList=true;
+        $scope.$broadcast('scroll.refreshComplete');
+        showrefreshresult('刷新成功');
+      }
+    },function(e){
+      console.log(e);
+      $scope.unTaskList=true;
+      $scope.$broadcast('scroll.refreshComplete');
+      showrefreshresult('刷新失败');
 
- 
-  // ionic.DomUtil.ready(function(){
-  //   get();
-  // });
-  $scope.doRefresh = function() {
-    $scope.getexecutingplan();
-    data={"ParentCode":"T","PlanNo":extraInfo.PlanNo().PlanNo,"Date":"NOW","PatientId":Storage.get("UID")};
-    get();
-    var refreshstatus='刷新失败'
-    extraInfo.refreshstatus()=='刷新成功'?refreshstatus='刷新成功':refreshstatus;
+    })
+  }
+  var gettasklist = function()
+  {
+    TaskInfo.GetTasklist(data).then(function(s){
+      console.log(s);
+      $scope.$broadcast('scroll.refreshComplete');
+      $scope.tasklist = s;
+      showrefreshresult('刷新成功');
+    },function(e){
+      console.log(e);
+      $scope.$broadcast('scroll.refreshComplete');
+      showrefreshresult('刷新失败');
+    });
+  }
+  var showrefreshresult = function(refreshstatus)
+  {
     $ionicLoading.show({
       template: refreshstatus,
       noBackdrop: true,
       duration: 700
     });
   }
-  var get = function()
-  {
-    TaskInfo.GetTasklist(data).then(function(s){
-      console.log(s);
-      $scope.$broadcast('scroll.refreshComplete');
-      $scope.tasklist = s;
-      extraInfo.refreshstatus('刷新成功');
-    },function(e){
-      console.log(e);
-      $scope.$broadcast('scroll.refreshComplete');
-      extraInfo.refreshstatus('刷新失败');
-    });
+  getexecutingplan();
+  $scope.doRefresh = function() {
+    getexecutingplan();
+  }
     // $http.get('testdata/tasklist.json').success(function(data){
     //  $scope.tasklist = TaskInfo.insertstate(data);
     // })
-  }
 }])
 
 //任务详细
@@ -714,7 +698,6 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
     getlist();
   })
   $scope.doRefresh = function() {
-    $scope.getexecutingplan();
     data={"ParentCode":$stateParams.tl,"PlanNo":extraInfo.PlanNo().PlanNo,"Date":"NOW","PatientId":Storage.get("UID")};
     detail={"ParentCode":'',"PlanNo":extraInfo.PlanNo().PlanNo,"Date":"NOW","PatientId":Storage.get("UID")};
     getlist();
