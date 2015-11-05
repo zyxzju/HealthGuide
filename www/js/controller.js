@@ -2015,7 +2015,7 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
 
 .controller('ChatDetailCtrl' ,function($scope, $http, $stateParams, $resource, MessageInfo, $ionicScrollDelegate, CONFIG, Storage,Data) 
 {
-    console.log($stateParams.tt);
+    //console.log($stateParams.tt);
     $scope.Dialog = {};
     var paraArry = $stateParams.tt.split('&');
     $scope.DoctorId = paraArry[0];
@@ -2162,7 +2162,7 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
         }
     }
 
-
+    $scope.Dialog.SMSbottom = "44px";
     $scope.$on('taResize', function(e, ta) {
         //console.log('taResize');
         if (!ta) return;
@@ -2177,7 +2177,7 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
         newFooterHeight = (newFooterHeight > 44) ? newFooterHeight : 44;        
         footerBar.style.height = newFooterHeight + 'px';
         scroller.style.bottom = newFooterHeight + 'px'; 
-        
+        $scope.Dialog.SMSbottom = newFooterHeight + 'px';
     });
 
      // this keeps the keyboard open on a device only after sending a message, it is non obtrusive
