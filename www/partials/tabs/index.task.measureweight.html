@@ -1,0 +1,32 @@
+<ion-view view-title="测量体重">
+	<ion-content scroll="false">
+		<form name="myForm">
+			<div class="list list-inset">
+				<label class="item item-input">
+					<span class="input-label">身高/厘米
+						<span class="error" ng-show=(hcheck=='required') style="color:red;">*必填项目</span>
+						<span class="error" ng-show='myForm.mw_h.$error.max' style="color:red;">*输入异常</span>
+					</span>
+					<input type="number" name='mw_h' ng-model='BMI.height' required max='300' ng-change="check_h(myForm.mw_h.$error.required)">
+				</label>
+				<label class="item item-input">
+					<span class="input-label">体重/千克
+						<span class="error" ng-show=(wcheck=='required') style="color:red;">*必填项目</span>
+						<span class="error" ng-show='myForm.mw_w.$error.max' style="color:red;" >*输入异常</span>
+					</span>
+					<input type="number" name='mw_w' ng-model='BMI.weight' required max='300' ng-change="check_w(myForm.mw_w.$error.required)">
+				</label>
+				<label class="item item-input" ng-if=(BMI.BMI&&myForm.$valid)>
+					<span>
+						BMI = {{(BMI.BMI*10000).toFixed(2)}}<br/>
+						{{BMI.result}}
+					</span>
+				</label>
+			</div>
+			<div class="button-bar padding">
+				<a class="button button-positive button-outline" ng-click="mathbmi(myForm.$valid)">测量BMI</a>
+				<a class="button button-positive button-outline" ng-click="saveWH(myForm.$valid)">保存</a>
+			</div>
+		</form>
+	</ion-content>
+</ion-view>

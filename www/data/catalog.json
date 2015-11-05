@@ -1,0 +1,27 @@
+[
+	{
+		"catalog":"个人信息",
+		"catalogID":"personalInfo",
+		"url":"img/icon/personalInfo.png"
+	},
+	{
+		"catalog":"所有提醒",
+		"catalogID":"alert",
+		"url":"img/icon/clock.png"
+	},
+	{
+		"catalog":"我的二维码",
+		"catalogID":"myQrcode",
+		"url":"img/icon/accountbind.png"
+	},
+	{
+		"catalog":"修改密码",
+		"catalogID":"changepassword",
+		"url":"img/icon/password.png"
+	},
+	{
+		"catalog":"退出当前账号",
+		"catalogID":"logout",
+		"url":"img/icon/singout.png"
+	}
+]
