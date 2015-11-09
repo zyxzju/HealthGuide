@@ -1919,8 +1919,8 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
        $scope.doRefresh = function() {
          $scope.show_recordList = false;
          $scope.show_button = true;
-         $scope.status="加载更多";
-         $scope.others="已加载完毕，没有更多数据了";
+         $scope.status="加载更多";  //这句话可删除
+         $scope.others="已加载完毕，没有更多数据了"; 
           getlist();
          $scope.Signs_all.Skip = $scope.Signs_all.UnitCount;//跳过的条数
         }
