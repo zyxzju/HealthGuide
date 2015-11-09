@@ -1775,6 +1775,8 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
 .controller('recordListcontroller', ['$scope', '$cordovaDatePicker','$http','VitalInfo','$ionicLoading','Storage',
     function($scope, $cordovaDatePicker,$http, VitalInfo,$ionicLoading, Storage) {
      $scope.status="加载更多";
+     $scope.others="此时间段没有数据"
+     $scope.show_button = true;
      $scope.show_recordList = false;
      var UserId=Storage.get("UID");
      var setstate;
@@ -1787,46 +1789,17 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
      if(mm<=9)mm="0"+mm;
      var yyyy=myDate.getFullYear();
      var EndDate=yyyy.toString()+mm.toString()+dd.toString();
-     //console.log(EndDate);
      var StartDate =yyyy.toString()+mm.toString()+db.toString();
+     $scope.StartDate=yyyy+'-'+mm+'-'+db;
+     $scope.EndDate=yyyy+'-'+mm+'-'+dd;
          Storage.set("StartDate",StartDate );
          StartDate =Storage.get("StartDate");
          Storage.set("EndDate",EndDate );
          EndDate =Storage.get("EndDate");
-      var VitalSigns = function (UserId,StartDate,EndDate) {
-      var promise = VitalInfo.VitalSigns(UserId,StartDate,EndDate);  
-      promise.then(function(data) {  // 调用承诺API获取数据 .resolve
-
-         $scope.SignDetailByDs_all = data;
-         var t=$scope.SignDetailByDs_all.length;
-         $scope.SignDetailByDs=[];
-         if($scope.SignDetailByDs_all.length>=15)
-         {
-            for(var i=0;i<15;i++)
-            {
-             
-               $scope.SignDetailByDs[i]=$scope.SignDetailByDs_all[t-i]
-            }
-         }else $scope.SignDetailByDs=$scope.SignDetailByDs_all;
-         console.log($scope.SignDetailByDs);
-         if($scope.SignDetailByDs.StartDate==null){
-               $scope.StartDate=yyyy+'-'+mm+'-'+db;//yyyy+'-'+mm+'-'+dd;
-             } 
-             if($scope.SignDetailByDs.EndDate==null){
-               $scope.EndDate=yyyy+'-'+mm+'-'+dd;
-             }
-          if((data !="")&&(data !=null)){
-             $scope.show_recordList = false;   
-           } 
-           else{
-            $scope.show_recordList = true ;
-           } 
-          }, function(data) {  // 处理错误 .reject  
-           
-          });//promise end
-        }
-
-        VitalSigns(UserId,StartDate,EndDate); //运行函数
+         $scope.$watch('$viewContentLoaded', function() {  
+         VitalSigns(0);
+        
+    }); 
          // 设置日期
         // 日历
         $scope.setStart = function(){
@@ -1840,24 +1813,27 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
             console.log('No date selected');
           } else {
             $scope.datepickerObject.inputDate=val;
-            var dd=val.getDate();
+            dd=val.getDate();
             if(dd<=9)dd="0"+dd;
-            var mm=val.getMonth()+1;
+            db=val.getDate();
+            if(db<=9)db="0"+db;
+            mm=val.getMonth()+1;
             if(mm<=9)mm="0"+mm;
-            var yyyy=val.getFullYear();
+            yyyy=val.getFullYear();
             var date=yyyy.toString()+'-'+mm.toString()+'-'+dd.toString();
             var dateuser=parseInt(yyyy.toString()+mm.toString()+dd.toString());
-           if(setstate==0){
+           if(setstate==0)
+           {
             $scope.StartDate=date;
-             console.log($scope.StartDate);
              Storage.set("StartDate",dateuser )
              StartDate =Storage.get("StartDate")
-             }else if(setstate==1){
+           }else if(setstate==1)
+           {
               Storage.set("EndDate",dateuser )
               EndDate =Storage.get("EndDate")
               if(EndDate>=StartDate)
               {
-             $scope.EndDate=date;
+                $scope.EndDate=date;
               }
               else{
                 $scope.EndDate=date;
@@ -1894,78 +1870,66 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
             datePickerCallback(val);
           }
         };  
-          $scope.doRefresh = function() {
-          getlist();
-        }
-         var getlist = function()
-        {
-         VitalInfo.VitalSigns(UserId,StartDate,EndDate).then(function(data){ 
-         $scope.status="加载更多";
-         $scope.SignDetailByDs_all = data;
-         var t=$scope.SignDetailByDs_all.length; 
-         $scope.SignDetailByDs=[];
-         if($scope.SignDetailByDs_all.length>=15)
-         {
-            for(var i=0;i<15;i++)
+      $scope.Signs_all = {};
+     $scope.Signs_all.list=[];
+     $scope.Signs_all.UnitCount = 10;//每次点击加载的条数
+     $scope.Signs_all.Skip = $scope.Signs_all.UnitCount;//跳过的条数
+      console.log($scope.Signs_all.Skip);
+      $scope.loadMore = function(){
+          $scope.show_button = true;
+          $scope.show_recordList = false;
+          VitalSigns($scope.Signs_all.Skip);
+          $scope.Signs_all.Skip = $scope.Signs_all.Skip + $scope.Signs_all.UnitCount;
+          $scope.status="加载更多";
+      }
+       function VitalSigns(skip)
+       {
+        console.log($scope.Signs_all.list.length);
+         var promise = VitalInfo.VitalSigns(UserId,StartDate,EndDate,$scope.Signs_all.UnitCount,skip); 
+         promise.then(function(data)
+        { 
+            if(data.length > 0)
             {
-               $scope.SignDetailByDs[i]=$scope.SignDetailByDs_all[t-i];
-             }
-
-          }else $scope.SignDetailByDs=$scope.SignDetailByDs_all;
-
-          if((data !="")&&(data !=null)){
-             $scope.show_recordList = false;   
-                } 
-          else{
-                $scope.show_recordList = true ;
-               }   
-          $scope.$broadcast('scroll.refreshComplete');
-          setTimeout(function(){$ionicLoading.hide();},500);
-           }, function(data) {  // 处理错误 .reject  
-           });//pr
-         }
-         $scope.loadMore = function(){
-         var l=$scope.SignDetailByDs.length;
-         $scope.status="加载更多";
-         var  l= $scope.SignDetailByDs.length;
-         var all_l=$scope.SignDetailByDs_all.length;
-         var t=$scope.SignDetailByDs_all.length; 
-            if(all_l>l)
-            {
-              if(all_l-l>15)
-              {
-                for(var i=0;i<15;i++)
+                var NewData=data;//data.reverse(); //倒序
+                if($scope.Signs_all.list)
                 {
-                  $scope.SignDetailByDs[l+i]=$scope.SignDetailByDs_all[t-l-i];
+                    $scope.Signs_all.list = NewData.concat($scope.Signs_all.list);
                 }
-                console.log($scope.SignDetailByDs.length);
-              }else{
-                for(var i=0;i<all_l-l;i++)
+                else
                 {
-                  $scope.SignDetailByDs[l+i]=$scope.SignDetailByDs_all[t-l-i];
+                    $scope.Signs_all.list = NewData;
                 }
-              }
-             
-           
-               $scope.$broadcast('scroll.refreshComplete');
             }else{
+              // $scope.show_button = false;
+              $scope.show_recordList = true;
+              $scope.show_button = false;
               $scope.status="已加载完毕";
+              $scope.others="已加载完毕，没有更多数据了";
               $ionicLoading.show({
                 template: '没有更多了',
                 duration:700
               });
-           }
-     }
-      //监视进入页面
-      $scope.$on('$ionicView.enter', function() {   //$viewContentLoaded
-          //console.log("enter graphView") ;
-          if(Storage.get('recordListRefresh')=='1') //任务完成或插入体征则刷新
-          {
-            init_recordList();
-            Storage.set('recordListRefresh','0');
-          }  
-      });
-
+              
+            }
+           $scope.$broadcast('scroll.refreshComplete');
+          },function(data) {   
+        });      
+            }
+    
+       $scope.doRefresh = function() {
+         $scope.show_recordList = false;
+         $scope.show_button = true;
+         $scope.status="加载更多";
+         $scope.others="已加载完毕，没有更多数据了";
+          getlist();
+         $scope.Signs_all.Skip = $scope.Signs_all.UnitCount;//跳过的条数
+        }
+         var getlist = function()
+        { 
+           $scope.Signs_all.list = "";
+           VitalSigns(0);
+        }
+    
   }])
 
 // --------我的专员-苟玲----------------

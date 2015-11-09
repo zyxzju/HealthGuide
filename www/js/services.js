@@ -763,9 +763,9 @@ angular.module('zjubme.services', ['ionic','ngResource'])
     return deferred.promise;
   };
 
-  self.VitalSigns = function (UserId,StartDate,EndDate) {
+  self.VitalSigns = function (UserId,StartDate,EndDate,top,skip) {
     var deferred = $q.defer();
-    Data.VitalInfo.VitalSigns({UserId:UserId,StartDate:StartDate,EndDate:EndDate}, function (data, headers) {
+    Data.VitalInfo.VitalSigns({UserId:UserId,StartDate:StartDate,EndDate:EndDate,$top:top,$skip:skip}, function (data, headers) {
       deferred.resolve(data);
       }, function (err) {
       deferred.reject(err);
