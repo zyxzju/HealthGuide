@@ -133,7 +133,7 @@ angular.module('zjubme.services', ['ionic','ngResource'])
         UID:{method:'GET',params:{route:'UID',Type:'@Type',Name:'@Name'},timeout:10000},
         Activition:{method:'POST',params:{route:'Activition'},timeout:10000},
         Roles:{method:'GET',params:{route:'Roles',UserId:'@UserId'},timeout:10000,isArray:true},
-        GetHealthCoachListByPatient: {method:'Get', isArray: true, params:{route: 'GetHealthCoachListByPatient'},timeout: 10000},
+        HealthCoaches: {method:'Get', isArray: true, params:{route: 'HealthCoaches'},timeout: 10000},
         GetPatBasicInfo: {method:'GET', params:{route:'@UserId'}, timeout:10000},
         GetPatientDetailInfo: {method:'GET', params:{route:'@UserId'}, timeout:10000},
         SetPatBasicInfo: {method:'POST', params:{route:'BasicInfo'}, timeout:10000},
@@ -251,7 +251,7 @@ angular.module('zjubme.services', ['ionic','ngResource'])
 
   self.GetHealthCoachListByPatient = function (PatientId, CategoryCode) {
       var deferred = $q.defer();
-      Data.Users.GetHealthCoachListByPatient({PatientId:PatientId, CategoryCode:CategoryCode}, function (data, headers) {
+      Data.Users.HealthCoaches({PatientId:PatientId}, function (data, headers) {
         deferred.resolve(data);
       }, function (err) {
       deferred.reject(err);
