@@ -1339,7 +1339,7 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
               $scope.showGraph=true;
               $scope.RemainingDays=data[0].RemainingDays;
               $scope.ProgressRate=data[0].ProgressRate;
-              $scope.PlanCompliance==data[0].PlanCompliance;
+              $scope.PlanCompliance=data[0].PlanCompliance;
               $scope.vitalInfo =$scope.options[0];//体征下拉框 默认收缩压   
               PlanNo=data[0].PlanNo;
               StartDate =data[0].StartDate; 
