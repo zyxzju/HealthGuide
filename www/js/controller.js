@@ -1947,8 +1947,7 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
     $scope.GetHealthCoachListByPatient = function()
     {
         var PatientId = Storage.get("UID");
-        var CategoryCode = "M1";
-        var promise = Users.GetHealthCoachListByPatient(PatientId, CategoryCode);  
+        var promise = Users.GetHealthCoachListByPatient(PatientId);  
         promise.then(function(data) {  
 
             $scope.contactList.list = data;console.log($scope.contactList.list); 
@@ -2013,7 +2012,7 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
         // 目前好像不存在userid不对的情况，都会返回一个结果
       });  
 
-    $scope.Dialog.DisplayOnes; //显示的消息
+    $scope.Dialog.DisplayOnes=new Array(); //显示的消息
     $scope.Dialog.UnitCount = 9;//每次点击加载的条数
     $scope.Dialog.Skip = $scope.Dialog.UnitCount;//跳过的条数
     //加载更多
