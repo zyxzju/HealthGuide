@@ -211,6 +211,13 @@ angular.module('zjubme.services', ['ionic','ngResource'])
           getMaxSortNo:{method:'GET',params:{route:'GetMaxSortNo',UserId:'@UserId'},timeout:10000} 
       })
     };
+    var Dict = function () {
+    return $resource(CONFIG.baseUrl + ':path/:route', {path:'Dict'},
+      {
+        GetInsuranceType: {method:'GET', isArray:true, params:{route: 'GetInsuranceType'}, timeout: 10000},
+        GetTypeList:{method:'GET', isArray:true, params:{route: 'Type/Category'}, timeout: 10000}
+       });
+    };
     
     serve.abort = function ($scope) {
     abort.resolve();
@@ -223,6 +230,7 @@ angular.module('zjubme.services', ['ionic','ngResource'])
       serve.TaskInfo = TaskInfo();
       serve.PlanInfo = PlanInfo();
       serve.RiskInfo = RiskInfo();
+      serve.Dict = Dict();
       }, 0, 1);
     };
     serve.Users = Users();
@@ -232,6 +240,7 @@ angular.module('zjubme.services', ['ionic','ngResource'])
     serve.TaskInfo = TaskInfo();
     serve.PlanInfo = PlanInfo();
     serve.RiskInfo = RiskInfo();
+    serve.Dict = Dict();
     return serve;
 }])
 
