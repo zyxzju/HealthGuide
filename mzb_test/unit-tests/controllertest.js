@@ -33,5 +33,16 @@ describe('\nTests for "controllers"', function(){
       		expect(scope.save(false));
       		expect(scope.checkalert).toEqual("required");
    		});
+   		beforeEach(function(){
+			scope.closeModal = function()
+	        {
+	        	console.log(123)
+	        }
+	        scope.flag='update';
+		});
+   		it('when', function() {
+   			expect(scope.save(true));
+   			expect(scope.flag).toBe('save');
+   		});
 	});
 });
