@@ -530,13 +530,13 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
           if($scope.flag=='update')
           {
             $scope.flag='save';
-            // NotificationService.update($scope.alertcontent);
+            NotificationService.update($scope.alertcontent);
             $scope.alertlist = NotificationService.get();
             $scope.closeModal();
           }else{
             // console.log('save');
             // console.log($scope.alertcontent);
-            // NotificationService.save($scope.alertcontent);
+            NotificationService.save($scope.alertcontent);
             $scope.alertlist = NotificationService.get();
             // console.log($scope.alertlist);
             $scope.closeModal();
