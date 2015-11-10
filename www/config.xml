@@ -42,8 +42,8 @@
   <preference name="AndroidPersistentFileLocation" value="Compatibility" />
   <preference name="AutoHideSplashScreen" value="false"/>
   
-  <gap:plugin name="cn.jpush.phonegap.JPushPlugin" source="npm"/>
-  <gap:plugin name="com.ionic.keyboard" source="npm"/>
+<!--   <gap:plugin name="cn.jpush.phonegap.JPushPlugin" source="npm"/> -->
+  <gap:plugin name="ionic-plugin-keyboard" source="npm"/>
   <gap:plugin name="cordova-plugin-bluetooth-serial" source="npm"/>
   <gap:plugin name="cordova-plugin-camera" source="npm" />
   <gap:plugin name="cordova-plugin-console" source="npm" />
@@ -53,9 +53,11 @@
   <gap:plugin name="cordova-plugin-file-transfer" source="npm" />
   <gap:plugin name="cordova-plugin-splashscreen" source="npm" />
   <gap:plugin name="cordova-plugin-whitelist" source="npm" gap:platform="android" />
-  <gap:plugin name="de.appplant.cordova.plugin.local-notification" source="npm" />
-  <gap:plugin name="org.apache.cordova.inappbrowser" source="npm" />
-
+  <!-- <gap:plugin name="de.appplant.cordova.plugin.local-notification" source="npm" />
+  <gap:plugin name="org.apache.cordova.inappbrowser" source="npm" /> -->
+  <gap:plugin name="cordova-plugin-local-notifications" source="npm" />
+  <gap:plugin name="cordova-plugin-inappbrowser" source="npm" />
+  
   <feature name="StatusBar">
     <param name="ios-package" value="CDVStatusBar" onload="true"/>
   </feature>
