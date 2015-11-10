@@ -1775,6 +1775,8 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
 .controller('recordListcontroller', ['$scope', '$cordovaDatePicker','$http','VitalInfo','$ionicLoading','Storage',
     function($scope, $cordovaDatePicker,$http, VitalInfo,$ionicLoading, Storage) {
      $scope.status="加载更多";
+     $scope.others="此时间段没有数据"
+     $scope.show_button = true;
      $scope.show_recordList = false;
      var UserId=Storage.get("UID");
      var setstate;
@@ -1787,46 +1789,17 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
      if(mm<=9)mm="0"+mm;
      var yyyy=myDate.getFullYear();
      var EndDate=yyyy.toString()+mm.toString()+dd.toString();
-     //console.log(EndDate);
      var StartDate =yyyy.toString()+mm.toString()+db.toString();
+     $scope.StartDate=yyyy+'-'+mm+'-'+db;
+     $scope.EndDate=yyyy+'-'+mm+'-'+dd;
          Storage.set("StartDate",StartDate );
          StartDate =Storage.get("StartDate");
          Storage.set("EndDate",EndDate );
          EndDate =Storage.get("EndDate");
-      var VitalSigns = function (UserId,StartDate,EndDate) {
-      var promise = VitalInfo.VitalSigns(UserId,StartDate,EndDate);  
-      promise.then(function(data) {  // 调用承诺API获取数据 .resolve
-
-         $scope.SignDetailByDs_all = data;
-         var t=$scope.SignDetailByDs_all.length;
-         $scope.SignDetailByDs=[];
-         if($scope.SignDetailByDs_all.length>=15)
-         {
-            for(var i=0;i<15;i++)
-            {
-             
-               $scope.SignDetailByDs[i]=$scope.SignDetailByDs_all[t-i]
-            }
-         }else $scope.SignDetailByDs=$scope.SignDetailByDs_all;
-         console.log($scope.SignDetailByDs);
-         if($scope.SignDetailByDs.StartDate==null){
-               $scope.StartDate=yyyy+'-'+mm+'-'+db;//yyyy+'-'+mm+'-'+dd;
-             } 
-             if($scope.SignDetailByDs.EndDate==null){
-               $scope.EndDate=yyyy+'-'+mm+'-'+dd;
-             }
-          if((data !="")&&(data !=null)){
-             $scope.show_recordList = false;   
-           } 
-           else{
-            $scope.show_recordList = true ;
-           } 
-          }, function(data) {  // 处理错误 .reject  
-           
-          });//promise end
-        }
-
-        VitalSigns(UserId,StartDate,EndDate); //运行函数
+         $scope.$watch('$viewContentLoaded', function() {  
+         VitalSigns(0);
+        
+    }); 
          // 设置日期
         // 日历
         $scope.setStart = function(){
@@ -1840,24 +1813,27 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
             console.log('No date selected');
           } else {
             $scope.datepickerObject.inputDate=val;
-            var dd=val.getDate();
+            dd=val.getDate();
             if(dd<=9)dd="0"+dd;
-            var mm=val.getMonth()+1;
+            db=val.getDate();
+            if(db<=9)db="0"+db;
+            mm=val.getMonth()+1;
             if(mm<=9)mm="0"+mm;
-            var yyyy=val.getFullYear();
+            yyyy=val.getFullYear();
             var date=yyyy.toString()+'-'+mm.toString()+'-'+dd.toString();
             var dateuser=parseInt(yyyy.toString()+mm.toString()+dd.toString());
-           if(setstate==0){
+           if(setstate==0)
+           {
             $scope.StartDate=date;
-             console.log($scope.StartDate);
              Storage.set("StartDate",dateuser )
              StartDate =Storage.get("StartDate")
-             }else if(setstate==1){
+           }else if(setstate==1)
+           {
               Storage.set("EndDate",dateuser )
               EndDate =Storage.get("EndDate")
               if(EndDate>=StartDate)
               {
-             $scope.EndDate=date;
+                $scope.EndDate=date;
               }
               else{
                 $scope.EndDate=date;
@@ -1894,78 +1870,66 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
             datePickerCallback(val);
           }
         };  
-          $scope.doRefresh = function() {
-          getlist();
-        }
-         var getlist = function()
-        {
-         VitalInfo.VitalSigns(UserId,StartDate,EndDate).then(function(data){ 
-         $scope.status="加载更多";
-         $scope.SignDetailByDs_all = data;
-         var t=$scope.SignDetailByDs_all.length; 
-         $scope.SignDetailByDs=[];
-         if($scope.SignDetailByDs_all.length>=15)
-         {
-            for(var i=0;i<15;i++)
+      $scope.Signs_all = {};
+     $scope.Signs_all.list=[];
+     $scope.Signs_all.UnitCount = 10;//每次点击加载的条数
+     $scope.Signs_all.Skip = $scope.Signs_all.UnitCount;//跳过的条数
+      console.log($scope.Signs_all.Skip);
+      $scope.loadMore = function(){
+          $scope.show_button = true;
+          $scope.show_recordList = false;
+          VitalSigns($scope.Signs_all.Skip);
+          $scope.Signs_all.Skip = $scope.Signs_all.Skip + $scope.Signs_all.UnitCount;
+          $scope.status="加载更多";
+      }
+       function VitalSigns(skip)
+       {
+        console.log($scope.Signs_all.list.length);
+         var promise = VitalInfo.VitalSigns(UserId,StartDate,EndDate,$scope.Signs_all.UnitCount,skip); 
+         promise.then(function(data)
+        { 
+            if(data.length > 0)
             {
-               $scope.SignDetailByDs[i]=$scope.SignDetailByDs_all[t-i];
-             }
-
-          }else $scope.SignDetailByDs=$scope.SignDetailByDs_all;
-
-          if((data !="")&&(data !=null)){
-             $scope.show_recordList = false;   
-                } 
-          else{
-                $scope.show_recordList = true ;
-               }   
-          $scope.$broadcast('scroll.refreshComplete');
-          setTimeout(function(){$ionicLoading.hide();},500);
-           }, function(data) {  // 处理错误 .reject  
-           });//pr
-         }
-         $scope.loadMore = function(){
-         var l=$scope.SignDetailByDs.length;
-         $scope.status="加载更多";
-         var  l= $scope.SignDetailByDs.length;
-         var all_l=$scope.SignDetailByDs_all.length;
-         var t=$scope.SignDetailByDs_all.length; 
-            if(all_l>l)
-            {
-              if(all_l-l>15)
-              {
-                for(var i=0;i<15;i++)
+                var NewData=data;//data.reverse(); //倒序
+                if($scope.Signs_all.list)
                 {
-                  $scope.SignDetailByDs[l+i]=$scope.SignDetailByDs_all[t-l-i];
+                    $scope.Signs_all.list = NewData.concat($scope.Signs_all.list);
                 }
-                console.log($scope.SignDetailByDs.length);
-              }else{
-                for(var i=0;i<all_l-l;i++)
+                else
                 {
-                  $scope.SignDetailByDs[l+i]=$scope.SignDetailByDs_all[t-l-i];
+                    $scope.Signs_all.list = NewData;
                 }
-              }
-             
-           
-               $scope.$broadcast('scroll.refreshComplete');
             }else{
+              // $scope.show_button = false;
+              $scope.show_recordList = true;
+              $scope.show_button = false;
               $scope.status="已加载完毕";
+              $scope.others="已加载完毕，没有更多数据了";
               $ionicLoading.show({
                 template: '没有更多了',
                 duration:700
               });
-           }
-     }
-      //监视进入页面
-      $scope.$on('$ionicView.enter', function() {   //$viewContentLoaded
-          //console.log("enter graphView") ;
-          if(Storage.get('recordListRefresh')=='1') //任务完成或插入体征则刷新
-          {
-            init_recordList();
-            Storage.set('recordListRefresh','0');
-          }  
-      });
-
+              
+            }
+           $scope.$broadcast('scroll.refreshComplete');
+          },function(data) {   
+        });      
+            }
+    
+       $scope.doRefresh = function() {
+         $scope.show_recordList = false;
+         $scope.show_button = true;
+         $scope.status="加载更多";
+         $scope.others="已加载完毕，没有更多数据了";
+          getlist();
+         $scope.Signs_all.Skip = $scope.Signs_all.UnitCount;//跳过的条数
+        }
+         var getlist = function()
+        { 
+           $scope.Signs_all.list = "";
+           VitalSigns(0);
+        }
+    
   }])
 
 // --------我的专员-苟玲----------------
@@ -1983,8 +1947,7 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
     $scope.GetHealthCoachListByPatient = function()
     {
         var PatientId = Storage.get("UID");
-        var CategoryCode = "M1";
-        var promise = Users.GetHealthCoachListByPatient(PatientId, CategoryCode);  
+        var promise = Users.GetHealthCoachListByPatient(PatientId);  
         promise.then(function(data) {  
 
             $scope.contactList.list = data;console.log($scope.contactList.list); 
@@ -2049,7 +2012,7 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
         // 目前好像不存在userid不对的情况，都会返回一个结果
       });  
 
-    $scope.Dialog.DisplayOnes; //显示的消息
+    $scope.Dialog.DisplayOnes=new Array(); //显示的消息
     $scope.Dialog.UnitCount = 9;//每次点击加载的条数
     $scope.Dialog.Skip = $scope.Dialog.UnitCount;//跳过的条数
     //加载更多
@@ -3085,17 +3048,27 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
       $scope.isShown4 = function() {
         return show4;
       };   
-      // // 获取医保类型
-      // $scope.InsuranceTypes = {}; // 初始化
-      // Data.Dict.GetInsuranceType({}, 
-      //       function (success) {
-      //         // console.log(success);
-      //         $scope.InsuranceTypes = success;  
-      //         // console.log($scope.InsuranceTypes); 
-      //       }, 
-      //       function (err) {
-      //         // 目前好像不存在userid不对的情况，都会返回一个结果
-      //       }); 
+      // 获取医保类型
+      $scope.InsuranceTypes = {}; // 初始化
+      Data.Dict.GetInsuranceType({}, 
+            function (success) {
+              $scope.InsuranceTypes = success;  
+              // console.log($scope.InsuranceTypes); 
+      }); 
+      // 获取血型类型
+      $scope.BloodTypes = {}; // 初始化
+      Data.Dict.GetTypeList({Category:"AboBloodType"}, 
+            function (success) {
+              $scope.BloodTypes = success;  
+              // console.log($scope.BloodTypes); 
+      }); 
+      // 获取医保类型
+      $scope.Genders = {}; // 初始化
+      Data.Dict.GetTypeList({Category:"SexType"}, 
+            function (success) {
+              $scope.Genders = success;  
+              // console.log($scope.Genders); 
+      }); 
       // 首先定义基本/详细信息数组    
       $scope.BasicInfo ={};
       $scope.BasicDtlInfo ={};
@@ -3114,15 +3087,24 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
                           Data.Users.GetPatientDetailInfo({route:urltemp2}, 
                             function (success, headers) {
                               $scope.BasicDtlInfo = success;
-                              //console.log(success);
-                              //console.log($scope.BasicDtlInfo.PhotoAddress);
-                              // console.log($scope.BasicDtlInfo); 
+                              // console.log(success.Birthday);
+                              // 将string转化成number(Int型数据)
+                              $scope.BasicDtlInfo.Height = parseInt(success.Height);
+                              $scope.BasicDtlInfo.Weight = parseInt(success.Weight);
+                              $scope.BasicDtlInfo.IDNo = parseInt(success.IDNo);
+                              $scope.BasicDtlInfo.PhoneNumber = parseInt(success.PhoneNumber);
+                              $scope.BasicDtlInfo.EmergencyContactPhoneNumber = parseInt(success.EmergencyContactPhoneNumber);
+                              // 读入头像
                               if( ($scope.BasicDtlInfo.PhotoAddress=="") || ($scope.BasicDtlInfo.PhotoAddress==null)){
                                 $scope.imgurl = "img/DefaultAvatar.jpg";
                               } 
-                                else{
-                                  $scope.imgurl = CONFIG.ImageAddressIP + CONFIG.ImageAddressFile + "/" + $scope.BasicDtlInfo.PhotoAddress;
-                                };
+                              else{
+                                $scope.imgurl = CONFIG.ImageAddressIP + CONFIG.ImageAddressFile + "/" + $scope.BasicDtlInfo.PhotoAddress;
+                              };
+                              // 防止生日在注册时服务器挂掉？？？这次怎么不管用了？？
+                              // if ((success.Birthday == null) || (success.Birthday == "")) {
+                              //   $scope.BasicInfo.Birthday = "请输入您的出生日期";
+                              // };
                           }); // 详细信息读入完成 
           }); // 基本信息读入完成
        setTimeout(function(){$ionicLoading.hide();},400);
@@ -3171,152 +3153,185 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
           datePickerCallback(val);
         }
       };  
+       //////////////////////////////////////////////////////////////////////////
+      $scope.change = function(d)
+      {
+        console.log(d);
+      }
+      //////////////////////////////////////////////////////////////////////////
       // 修改信息后的保存
-      $scope.refresh = function(){
-        // 基本信息的修改
-        Data.Users.SetPatBasicInfo({UserId:$scope.BasicInfo.UserId,
-                                    UserName:$scope.BasicInfo.UserName,
-                                    Birthday:$scope.BasicInfo.Birthday,
-                                    Gender:$scope.BasicInfo.Gender,
-                                    BloodType:$scope.BasicInfo.BloodType,
-                                    IDNo:$scope.BasicInfo.IDNo,
-                                    DoctorId:$scope.BasicInfo.DoctorId,
-                                    InsuranceType:$scope.BasicInfo.InsuranceType,
-                                    InvalidFlag:"9",
-                                    piUserId:"sample string 10",
-                                    piTerminalName:"sample string 11",
-                                    piTerminalIP:"sample string 12",
-                                    piDeviceType:"13"}, 
-            function (success, headers) {
-              if (success.result="数据插入成功") {
-                  // 详细信息的修改
-                  Data.Users.PostPatBasicInfoDetail([{Patient: $scope.BasicDtlInfo.UserId,
-                                                      CategoryCode: "BodySigns",
-                                                      ItemCode: "Height",
-                                                      ItemSeq: "1",
-                                                      Value: $scope.BasicDtlInfo.Height,
-                                                      Description: "",
-                                                      SortNo:"1",
-                                                      revUserId: $scope.BasicDtlInfo.UserId,
-                                                      TerminalName: "sample string 9",
-                                                      TerminalIP: "sample string 10",
-                                                      DeviceType: "11"
-                                                    },
-                                                    { Patient: $scope.BasicDtlInfo.UserId,
-                                                      CategoryCode: "BodySigns",
-                                                      ItemCode: "Weight",
-                                                      ItemSeq: "1",
-                                                      Value: $scope.BasicDtlInfo.Weight,
-                                                      Description: "",
-                                                      SortNo:"1",
-                                                      revUserId: $scope.BasicDtlInfo.UserId,
-                                                      TerminalName: "sample string 9",
-                                                      TerminalIP: "sample string 10",
-                                                      DeviceType: "11"
-                                                    },
-                                                    { Patient:  $scope.BasicDtlInfo.UserId,
-                                                      CategoryCode: "Contact",
-                                                      ItemCode: "Contact001_1",
-                                                      ItemSeq: "1",
-                                                      Value: $scope.BasicDtlInfo.IDNo,
-                                                      Description: "",
-                                                      SortNo:"1",
-                                                      revUserId: $scope.BasicDtlInfo.UserId,
-                                                      TerminalName: "sample string 9",
-                                                      TerminalIP: "sample string 10",
-                                                      DeviceType: "11"
-                                                    },
-                                                    { Patient:  $scope.BasicDtlInfo.UserId,
-                                                      CategoryCode: "Contact",
-                                                      ItemCode: "Contact001_3",
-                                                      ItemSeq: "1",
-                                                      Value:$scope.BasicDtlInfo.Nationality,
-                                                      Description: "",
-                                                      SortNo:"1",
-                                                      revUserId: $scope.BasicDtlInfo.UserId,
-                                                      TerminalName: "sample string 9",
-                                                      TerminalIP: "sample string 10",
-                                                      DeviceType: "11"
-                                                    },
-                                                    { Patient:  $scope.BasicDtlInfo.UserId,
-                                                      CategoryCode: "Contact",
-                                                      ItemCode: "Contact001_2",
-                                                      ItemSeq: "1",
-                                                      Value:$scope.BasicDtlInfo.Occupation,
-                                                      Description: "",
-                                                      SortNo:"1",
-                                                      revUserId: $scope.BasicDtlInfo.UserId,
-                                                      TerminalName: "sample string 9",
-                                                      TerminalIP: "sample string 10",
-                                                      DeviceType: "11"
-                                                    },
-                                                    { Patient: $scope.BasicDtlInfo.UserId,
-                                                      CategoryCode: "Contact",
-                                                      ItemCode: "Contact002_1",
-                                                      ItemSeq: "1",
-                                                      Value: $scope.BasicDtlInfo.PhoneNumber,
-                                                      Description: "",
-                                                      SortNo:"1",
-                                                      revUserId: $scope.BasicDtlInfo.UserId,
-                                                      TerminalName: "sample string 9",
-                                                      TerminalIP: "sample string 10",
-                                                      DeviceType: "11"
-                                                    },
-                                                    { Patient: $scope.BasicDtlInfo.UserId,
-                                                      CategoryCode: "Contact",
-                                                      ItemCode: "Contact002_2",
-                                                      ItemSeq: "1",
-                                                      Value: $scope.BasicDtlInfo.HomeAddress,
-                                                      Description: "",
-                                                      SortNo:"1",
-                                                      revUserId: $scope.BasicDtlInfo.UserId,
-                                                      TerminalName: "sample string 9",
-                                                      TerminalIP: "sample string 10",
-                                                      DeviceType: "11"
-                                                    },
-                                                    { Patient: $scope.BasicDtlInfo.UserId,
-                                                      CategoryCode: "Contact",
-                                                      ItemCode: "Contact002_3",
-                                                      ItemSeq: "1",
-                                                      Value: $scope.BasicDtlInfo.EmergencyContact,
-                                                      Description: "",
-                                                      SortNo:"1",
-                                                      revUserId: $scope.BasicDtlInfo.UserId,
-                                                      TerminalName: "sample string 9",
-                                                      TerminalIP: "sample string 10",
-                                                      DeviceType: "11"
-                                                    },
-                                                    { Patient: $scope.BasicDtlInfo.UserId,
-                                                      CategoryCode: "Contact",
-                                                      ItemCode: "Contact002_4",
-                                                      ItemSeq: "1",
-                                                      Value: $scope.BasicDtlInfo.EmergencyContactPhoneNumber,
-                                                      Description: "",
-                                                      SortNo:"1",
-                                                      revUserId: $scope.BasicDtlInfo.UserId,
-                                                      TerminalName: "sample string 9",
-                                                      TerminalIP: "sample string 10",
-                                                      DeviceType: "11"
-                                                    }],
-                                                  function (success, headers) {
-                                                    if (success.result="数据插入成功") {
-                                                      console.log("数据插入成功");
-                                                      // state.go和再次调用函数都可以
-                                                      // $state.go('sideMenu.personalInfo');
-                                                      init_personalInfo();
-                                                      // location.reload(); 这种刷新方法会使返回键失效
-                                                      $ionicLoading.show({
-                                                         template: '保存成功',
-                                                         duration:1000
-                                                        });
-                                                    };
-                                                  });
-              }// if语句结束，即详细信息的修改结束
-        });// 基本信息的修改结束
-
+      $scope.SaveInfo = function(a,b,c){
+        console.log(a);
+        if (a == true){
+          $ionicLoading.show({
+           template: '保存失败,请输入正确的身份证号',
+           duration:1000
+          });
+        }
+        else if(b == true){
+          $ionicLoading.show({
+           template: '保存失败,请输入正确的联系电话',
+           duration:1000
+          });
+        }
+        else if(c == true){
+          $ionicLoading.show({
+           template: '保存失败,请输入正确的紧急联系人电话',
+           duration:1000
+          });
+        }
+        else{
+          // 考虑到时序的问题，中间值必须在SaveInfo内赋值
+          var temp_SetPatBasicInfo = {UserId:$scope.BasicInfo.UserId,
+                                      UserName:$scope.BasicInfo.UserName,
+                                      Birthday:$scope.BasicInfo.Birthday,
+                                      Gender:$scope.BasicInfo.Gender,
+                                      BloodType:$scope.BasicInfo.BloodType,
+                                      IDNo:$scope.BasicInfo.IDNo,
+                                      DoctorId:$scope.BasicInfo.DoctorId,
+                                      InsuranceType:$scope.BasicInfo.InsuranceType,
+                                      InvalidFlag:"9",
+                                      piUserId:"sample string 10",
+                                      piTerminalName:"sample string 11",
+                                      piTerminalIP:"sample string 12",
+                                      piDeviceType:"13" };
+          var temp_PostPatBasicInfoDetail = [{Patient: $scope.BasicDtlInfo.UserId,
+                                            CategoryCode: "BodySigns",
+                                            ItemCode: "Height",
+                                            ItemSeq: "1",
+                                            Value: $scope.BasicDtlInfo.Height,
+                                            Description: "",
+                                            SortNo:"1",
+                                            revUserId: $scope.BasicDtlInfo.UserId,
+                                            TerminalName: "sample string 9",
+                                            TerminalIP: "sample string 10",
+                                            DeviceType: "11"
+                                          },
+                                          { Patient: $scope.BasicDtlInfo.UserId,
+                                            CategoryCode: "BodySigns",
+                                            ItemCode: "Weight",
+                                            ItemSeq: "1",
+                                            Value: $scope.BasicDtlInfo.Weight,
+                                            Description: "",
+                                            SortNo:"1",
+                                            revUserId: $scope.BasicDtlInfo.UserId,
+                                            TerminalName: "sample string 9",
+                                            TerminalIP: "sample string 10",
+                                            DeviceType: "11"
+                                          },
+                                          { Patient:  $scope.BasicDtlInfo.UserId,
+                                            CategoryCode: "Contact",
+                                            ItemCode: "Contact001_1",
+                                            ItemSeq: "1",
+                                            Value: $scope.BasicDtlInfo.IDNo,
+                                            Description: "",
+                                            SortNo:"1",
+                                            revUserId: $scope.BasicDtlInfo.UserId,
+                                            TerminalName: "sample string 9",
+                                            TerminalIP: "sample string 10",
+                                            DeviceType: "11"
+                                          },
+                                          { Patient:  $scope.BasicDtlInfo.UserId,
+                                            CategoryCode: "Contact",
+                                            ItemCode: "Contact001_3",
+                                            ItemSeq: "1",
+                                            Value:$scope.BasicDtlInfo.Nationality,
+                                            Description: "",
+                                            SortNo:"1",
+                                            revUserId: $scope.BasicDtlInfo.UserId,
+                                            TerminalName: "sample string 9",
+                                            TerminalIP: "sample string 10",
+                                            DeviceType: "11"
+                                          },
+                                          { Patient:  $scope.BasicDtlInfo.UserId,
+                                            CategoryCode: "Contact",
+                                            ItemCode: "Contact001_2",
+                                            ItemSeq: "1",
+                                            Value:$scope.BasicDtlInfo.Occupation,
+                                            Description: "",
+                                            SortNo:"1",
+                                            revUserId: $scope.BasicDtlInfo.UserId,
+                                            TerminalName: "sample string 9",
+                                            TerminalIP: "sample string 10",
+                                            DeviceType: "11"
+                                          },
+                                          { Patient: $scope.BasicDtlInfo.UserId,
+                                            CategoryCode: "Contact",
+                                            ItemCode: "Contact002_1",
+                                            ItemSeq: "1",
+                                            Value: $scope.BasicDtlInfo.PhoneNumber,
+                                            Description: "",
+                                            SortNo:"1",
+                                            revUserId: $scope.BasicDtlInfo.UserId,
+                                            TerminalName: "sample string 9",
+                                            TerminalIP: "sample string 10",
+                                            DeviceType: "11"
+                                          },
+                                          { Patient: $scope.BasicDtlInfo.UserId,
+                                            CategoryCode: "Contact",
+                                            ItemCode: "Contact002_2",
+                                            ItemSeq: "1",
+                                            Value: $scope.BasicDtlInfo.HomeAddress,
+                                            Description: "",
+                                            SortNo:"1",
+                                            revUserId: $scope.BasicDtlInfo.UserId,
+                                            TerminalName: "sample string 9",
+                                            TerminalIP: "sample string 10",
+                                            DeviceType: "11"
+                                          },
+                                          { Patient: $scope.BasicDtlInfo.UserId,
+                                            CategoryCode: "Contact",
+                                            ItemCode: "Contact002_3",
+                                            ItemSeq: "1",
+                                            Value: $scope.BasicDtlInfo.EmergencyContact,
+                                            Description: "",
+                                            SortNo:"1",
+                                            revUserId: $scope.BasicDtlInfo.UserId,
+                                            TerminalName: "sample string 9",
+                                            TerminalIP: "sample string 10",
+                                            DeviceType: "11"
+                                          },
+                                          { Patient: $scope.BasicDtlInfo.UserId,
+                                            CategoryCode: "Contact",
+                                            ItemCode: "Contact002_4",
+                                            ItemSeq: "1",
+                                            Value: $scope.BasicDtlInfo.EmergencyContactPhoneNumber,
+                                            Description: "",
+                                            SortNo:"1",
+                                            revUserId: $scope.BasicDtlInfo.UserId,
+                                            TerminalName: "sample string 9",
+                                            TerminalIP: "sample string 10",
+                                            DeviceType: "11"
+                                          }];
+          // 基本信息的修改
+          Data.Users.SetPatBasicInfo(temp_SetPatBasicInfo, 
+              function (success, headers) {
+                if (success.result="数据插入成功") {
+                    // 详细信息的修改
+                    Data.Users.PostPatBasicInfoDetail(temp_PostPatBasicInfoDetail,
+                                                    function (success, headers) {
+                                                      if (success.result="数据插入成功") {
+                                                        console.log("数据插入成功");
+                                                        // state.go和再次调用函数都可以
+                                                        // $state.go('sideMenu.personalInfo');
+                                                        init_personalInfo();
+                                                        // location.reload(); 这种刷新方法会使返回键失效
+                                                        $ionicLoading.show({
+                                                           template: '保存成功',
+                                                           duration:1000
+                                                          });
+                                                      };
+                                                    });
+                }// if语句结束，即详细信息的修改结束
+              },// 数据插入成功的function结束
+              function (err) {
+                    console.log(err);
+              }// 数据插入失败的function结束
+          );// 基本信息的修改结束
+        };// if语句结束
       };// 点击事件的定义结束
 
-      //-----------------上传头像----------------
+      //-----------------------上传头像---------------------
       // ionicPopover functions 弹出框的预定义
         //--------------------------------------------
         // .fromTemplateUrl() method
@@ -3352,46 +3367,49 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
       $scope.onClickCameraCancel = function(){
         $scope.closePopover();
       };
+      // 上传照片并将照片读入页面-------------------------
+      var photo_upload_display = function(imgURI){
+        // 给照片的名字加上时间戳
+        var temp_photoaddress = UserId + "_" + new Date().getTime() + ".jpg";
+        // 存入服务器
+        Camera.uploadPicture(imgURI, temp_photoaddress).then(function(r){
+            // 将图片的名字（UserId）插入详细信息中的PhotoAddress
+            Data.Users.PostPatBasicInfoDetail([{Patient: UserId,
+                                                CategoryCode: "Contact",
+                                                ItemCode: "Contact001_4",
+                                                ItemSeq: "1",
+                                                Value: temp_photoaddress,
+                                                Description: "",
+                                                SortNo:"1",
+                                                revUserId: UserId,
+                                                TerminalName: "sample string 9",
+                                                TerminalIP: "sample string 10",
+                                                DeviceType: "11"
+                                              }],
+                                              function (success, headers) {
+                                                if (success.result="数据插入成功") { 
+                                                  // Camera.downloadPicture();
+                                                  init_personalInfo();
+                                                };
+                                              });// 重新读入照片结束
+        }) // 上传照片结束
+      };
+
       // 相册键的点击事件---------------------------------
       $scope.onClickCameraPhotos = function(){        
        // console.log("选个照片"); 
        $scope.choosePhotos();
        $scope.closePopover();
-      };
-
+      };      
       $scope.choosePhotos = function() {
        Camera.getPictureFromPhotos().then(function(data) {
           // data里存的是图像的地址
           // console.log(data);
-          $scope.imgURI = data; 
-          // 存入服务器
-          var temp_photoaddress = UserId + "_" + new Date().getTime() + ".jpg";
-          Camera.uploadPicture($scope.imgURI, temp_photoaddress).then(function(r){
-              // 将图片的名字（UserId）插入详细信息中的PhotoAddress
-              // 给照片的名字加上时间戳
-              console.log(temp_photoaddress);
-              Data.Users.PostPatBasicInfoDetail([{Patient: UserId,
-                                                  CategoryCode: "Contact",
-                                                  ItemCode: "Contact001_4",
-                                                  ItemSeq: "1",
-                                                  Value: temp_photoaddress,
-                                                  Description: "",
-                                                  SortNo:"1",
-                                                  revUserId: UserId,
-                                                  TerminalName: "sample string 9",
-                                                  TerminalIP: "sample string 10",
-                                                  DeviceType: "11"
-                                                }],
-                                                function (success, headers) {
-                                                  if (success.result="数据插入成功") { 
-                                                    // Camera.downloadPicture();
-                                                    init_personalInfo();
-                                                  };
-                                                });
-          }) // 上传照片结束
+          var imgURI = data; 
+          photo_upload_display(imgURI);
         }, function(err) {
           // console.err(err);
-          $scope.imgURI = undefined;
+          var imgURI = undefined;
         });// 从相册获取照片结束
       }; // function结束
       // 照相机的点击事件----------------------------------
@@ -3404,36 +3422,11 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
        Camera.getPicture().then(function(data) {
           // data里存的是图像的地址
           // console.log(data);
-          $scope.imgURI = data;
-          var temp_photoaddress = UserId + "_" + new Date().getTime() + ".jpg";
-          // 存入服务器
-          Camera.uploadPicture($scope.imgURI, temp_photoaddress).then(function(r){
-              // 将图片的名字（UserId）插入详细信息中的PhotoAddress
-              
-              // 给照片的名字加上时间戳
-              console.log(temp_photoaddress);
-              Data.Users.PostPatBasicInfoDetail([{Patient: UserId,
-                                                  CategoryCode: "Contact",
-                                                  ItemCode: "Contact001_4",
-                                                  ItemSeq: "1",
-                                                  Value: temp_photoaddress,
-                                                  Description: "",
-                                                  SortNo:"1",
-                                                  revUserId: UserId,
-                                                  TerminalName: "sample string 9",
-                                                  TerminalIP: "sample string 10",
-                                                  DeviceType: "11"
-                                                }],
-                                                function (success, headers) {
-                                                  if (success.result="数据插入成功") { 
-                                                    // Camera.downloadPicture();
-                                                    init_personalInfo();
-                                                  };
-                                                });
-          }) // 上传照片结束 
+          var imgURI = data;
+          photo_upload_display(imgURI);
         }, function(err) {
             // console.err(err);
-            $scope.imgURI = undefined;
+            var imgURI = undefined;
         })// 照相结束
       }; // function结束
 
