@@ -460,10 +460,10 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
       $scope.checkalert = '';
       $scope.alerttitlecheck = function(c)
       {
-         console.log('title change');
+         // console.log('title change');
          if(c) $scope.checkalert='required';
          else  $scope.checkalert='';
-         console.log($scope.checkalert);
+         // console.log($scope.checkalert);
       }
       $ionicModal.fromTemplateUrl('partials/other/addalert.html', {
         scope: $scope,
@@ -526,19 +526,19 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
       {
         if(c)
         {
-          console.log($scope.flag);
+          // console.log($scope.flag);
           if($scope.flag=='update')
           {
             $scope.flag='save';
-            // NotificationService.update($scope.alertcontent);
+            NotificationService.update($scope.alertcontent);
             $scope.alertlist = NotificationService.get();
             $scope.closeModal();
           }else{
-            console.log('save');
-            console.log($scope.alertcontent);
-            // NotificationService.save($scope.alertcontent);
+            // console.log('save');
+            // console.log($scope.alertcontent);
+            NotificationService.save($scope.alertcontent);
             $scope.alertlist = NotificationService.get();
-            console.log($scope.alertlist);
+            // console.log($scope.alertlist);
             $scope.closeModal();
           }
         }else $scope.checkalert = 'required';
