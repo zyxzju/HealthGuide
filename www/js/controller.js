@@ -530,13 +530,13 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
           if($scope.flag=='update')
           {
             $scope.flag='save';
-            // NotificationService.update($scope.alertcontent);
+            NotificationService.update($scope.alertcontent);
             $scope.alertlist = NotificationService.get();
             $scope.closeModal();
           }else{
             // console.log('save');
             // console.log($scope.alertcontent);
-            // NotificationService.save($scope.alertcontent);
+            NotificationService.save($scope.alertcontent);
             $scope.alertlist = NotificationService.get();
             // console.log($scope.alertlist);
             $scope.closeModal();
@@ -1339,7 +1339,7 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
               $scope.showGraph=true;
               $scope.RemainingDays=data[0].RemainingDays;
               $scope.ProgressRate=data[0].ProgressRate;
-              $scope.PlanCompliance==data[0].PlanCompliance;
+              $scope.PlanCompliance=data[0].PlanCompliance;
               $scope.vitalInfo =$scope.options[0];//体征下拉框 默认收缩压   
               PlanNo=data[0].PlanNo;
               StartDate =data[0].StartDate; 
