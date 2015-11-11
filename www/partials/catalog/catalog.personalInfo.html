@@ -5,9 +5,10 @@
   </ion-nav-buttons>
     
   <ion-content>
+   <form name="Info">
     <ion-item style="border:none; text-align:center" >
          <img ng-src="{{imgurl}}" name="Photo" ng-click="onClickCamera($event)" style="border-radius:50%; height:30%; width:30%" />
-         <h2>{{BasicInfo.UserId}}</h2>
+         <h2>{{BasicInfo.UserName}}</h2> <h2>{{BasicInfo.UserId}}</h2> 
     </ion-item>
     <!-- 上传照片的弹出框 -->
     <script id="my-popover.html" type="text/ng-template">
@@ -47,46 +48,39 @@
       </ion-item> 
             <!-- <ion-item class="item-accordion" ng-show="isShown1()"> -->
       <ion-item class="item-accordion">
-        <div class="row">
+        <!-- <div class="row">
           <div class="col">
             <span class="input-label">姓名</span> 
           </div>  
           <div class="col col-67" style="width:100%">
           <input class="item-input-wrapper" type="text" ng-model="BasicInfo.UserName" placeholder="请输入您的姓名" style="width:100%">
           </div>
-        </div>
+        </div> -->
         <div class="row">
           <div class="col" style="width:100%">
             <span class="input-label">性别</span> 
           </div>  
           <div class="col col-67">
-            <!-- <ion-radio ng-model="BasicInfo.Gender" ng-value="1">男</ion-radio>
-            <ion-radio ng-model="BasicInfo.Gender" ng-value="2">女</ion-radio>
-            <ion-radio ng-model="BasicInfo.Gender" ng-value="3">其他</ion-radio> -->
-            <label><input type="radio" name="Gender" ng-model="BasicInfo.Gender" value="1" />  男</label>
+            <!-- <label><input type="radio" name="Gender" ng-model="BasicInfo.Gender" value="1" />  男</label>
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
             <label><input type="radio" name="Gender" ng-model="BasicInfo.Gender" value="2"/>  女</label>
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            <label><input type="radio" name="Gender" ng-model="BasicInfo.Gender" value="3" />  其他</label>
-            <!-- &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            <label><input type="radio" name="Gender" ng-model="BasicInfo.Gender" value="4" />  未知</label> -->
+            <label><input type="radio" name="Gender" ng-model="BasicInfo.Gender" value="3" />  其他</label> -->
+            <select ng-model="BasicInfo.Gender" ng-options="Gender.Type as Gender.Name for Gender in Genders" style="width:100%">
+              <!-- <option value="">请选择</option> -->
+            </select>
           </div>
         </div>
         <div class="row">
           <div class="col">
             <span class="input-label">出生日期</span> 
           </div>  
-          <div class="col col-67" style="width:100%;background:#f4f4f4;height:34px">
-             <!-- <a class="item" href="#"> -->
+          <div class="col col-67" style="width:100%;background:#f4f4f4;height:34px;">
                <ionic-datepicker input-obj="datepickerObject">
-               <!-- <div> -->
-                <!-- <span>生日</span> -->
                 <span style="text-align:left width:100% height:100%">
                 {{BasicInfo.Birthday}}
                 </span>
-               <!-- </div> -->
                </ionic-datepicker>
-             <!-- </a> -->
           </div>
         </div>
         <div class="row">
@@ -94,35 +88,9 @@
             <span class="input-label">医保类型</span> 
           </div>  
           <div class="col col-67" style="width:100%">
-             <select ng-model="BasicInfo.InsuranceType" style="width:100%">
-              <!-- <select ng-model="BasicInfo.InsuranceType" ng-options="InsuranceType.Name for InsuranceType in InsuranceTypes" style="width:100%"> -->
-              <!-- <option>as InsuranceType.value group by InsuranceType.Name </option> -->
-              <option value="1">医保</option>
-              <option value="2">免费</option>
-              <option value="3">包干</option>
-              <option value="4">军半费</option>
-              <option value="5">基本医保</option>
-              <option value="6">大病统筹</option>
-              <option value="7">公费医疗</option>
-              <option value="8">中青医保</option>
-              <option value="9">其他医保</option>
-              <option value="A">自费</option>
-              <option value="B">公费</option>
-              <option value="C">贵宾</option>
-              <option value="D">其他</option>
-              <option value="E">老年无业</option>
-              <option value="F">儿童医保</option>
-              <option value="G">停用</option>
-              <option value="H">离休医保</option>
-              <option value="I">医疗照顾</option>
-              <option value="J">外地医保</option>
-              <option value="K">合作医疗</option>
-              <option value="L">慈善儿童</option>
-              <option value="M">不孕不育</option>
-              <option value="N">军休干部</option>
-              <option value="Z">军队医改</option>
-             </select>
-          <!-- <input class="item-input-wrapper" type="text" ng-model="BasicInfo.InsuranceTypeText" placeholder="请选择您的医保类型" style="width:408px"> -->
+              <select ng-model="BasicInfo.InsuranceType" ng-options="InsuranceType.Code as InsuranceType.Name for InsuranceType in InsuranceTypes" style="width:100%">
+              <!-- <option value="">-请选择-</option> -->
+              </select>
           </div>
         </div>
       </ion-item>
@@ -140,12 +108,8 @@
             <span class="input-label">血型</span> 
           </div>  
           <div class="col col-67" style="width:100%">
-            <select ng-model="BasicInfo.BloodType" style="width:100%">
-              <option value="1">A型</option>
-              <option value="2">B型</option>
-              <option value="3">O型</option>
-              <option value="4">AB型</option>
-              <option value="5">其他</option>
+            <select ng-model="BasicInfo.BloodType" ng-options="BloodType.Type as BloodType.Name for BloodType in BloodTypes" style="width:100%">
+              <!-- <option value="">-请选择-</option> -->
             </select>
           </div>
         </div>
@@ -154,7 +118,7 @@
             <span class="input-label">身高(cm)</span> 
           </div>  
           <div class="col col-67" style="width:100%">
-          <input class="item-input-wrapper" type="text" ng-model="BasicDtlInfo.Height" placeholder="请输入您的身高" style="width:100%">
+          <input class="item-input-wrapper" type="number" ng-model="BasicDtlInfo.Height" placeholder="请输入您的身高" style="width:100%">
           </div>
         </div>
         <div class="row">
@@ -162,7 +126,7 @@
             <span class="input-label">体重(kg)</span> 
           </div>  
           <div class="col col-67" style="width:100%">
-          <input class="item-input-wrapper" type="text" ng-model="BasicDtlInfo.Weight" placeholder="请输入您的体重" style="width:100%">
+          <input class="item-input-wrapper" type="number" ng-model="BasicDtlInfo.Weight" placeholder="请输入您的体重" style="width:100%">
           </div>
         </div>
       </ion-item>
@@ -175,30 +139,35 @@
          身份信息
       </ion-item> 
       <ion-item class="item-accordion" ng-show="isShown3()">
-        <div class="row">
-          <div class="col">
-            <span class="input-label">身份证号码</span> 
-          </div>  
-          <div class="col col-67" style="width:100%">
-          <input class="item-input-wrapper" type="text" ng-model="BasicDtlInfo.IDNo" ng-pattern="/^[0-9A-Za-z_]{1,19}$/" placeholder="请输入您的身份证号码" style="width:100%">
+       <!--  <form name="IDInfo"> -->
+          <div class="row">
+            <div class="col">
+              <span class="input-label">身份证号码
+                <!-- <span class="error" ng-show="Info.IDNo.$error.pattern" style="color:red">*请输入正确的身份证号</span> -->
+                <span class="error" ng-show="Info.IDNo.$error.pattern" style="color:red"></span>
+              </span> 
+            </div>  
+            <div class="col col-67" style="width:100%">
+            <input class="item-input-wrapper" type="number" name="IDNo" ng-model="BasicDtlInfo.IDNo" ng-pattern="/(^\d{15}$)|(^\d{18}$)|(^\d{17}(\d|X|x)$)/" placeholder="请输入您的身份证号码" style="width:100%" ng-change='change(Info.IDNo.$error.pattern)'>
+            </div>
           </div>
-        </div>
-        <div class="row">
-          <div class="col">
-            <span class="input-label">国籍</span> 
-          </div>  
-          <div class="col col-67" style="width:100%">
-          <input class="item-input-wrapper" type="text" ng-model="BasicDtlInfo.Nationality" placeholder="请输入您的国籍" style="width:100%">
+          <div class="row">
+            <div class="col">
+              <span class="input-label">国籍</span> 
+            </div>  
+            <div class="col col-67" style="width:100%">
+            <input class="item-input-wrapper" type="text" ng-model="BasicDtlInfo.Nationality" placeholder="请输入您的国籍" style="width:100%" >
+            </div>
           </div>
-        </div>
-        <div class="row">
-          <div class="col">
-            <span class="input-label">职业</span> 
-          </div>  
-          <div class="col col-67" style="width:100%">
-          <input class="item-input-wrapper" type="text" ng-model="BasicDtlInfo.Occupation" placeholder="请输入您的职业" style="width:100%">
+          <div class="row">
+            <div class="col">
+              <span class="input-label">职业</span> 
+            </div>  
+            <div class="col col-67" style="width:100%">
+            <input class="item-input-wrapper" type="text" ng-model="BasicDtlInfo.Occupation" placeholder="请输入您的职业" style="width:100%">
+            </div>
           </div>
-        </div>
+        <!-- </form> -->
       </ion-item>
      </div>
 
@@ -209,12 +178,16 @@
          联系信息
       </ion-item> 
       <ion-item class="item-accordion" ng-show="isShown4()">
+      <!-- <form name="ContactInfo"> -->
         <div class="row">
           <div class="col">
-            <span class="input-label">联系电话</span> 
+            <span class="input-label">联系电话
+              <!-- <span class="error" ng-show="Info.PhoneNumber.$error.pattern" style="color:red">*请输入正确的手机号码</span> -->
+              <span class="error" ng-show="Info.PhoneNumber.$error.pattern" style="color:red"></span>
+            </span> 
           </div>  
           <div class="col col-67" style="width:100%">
-          <input class="item-input-wrapper" type="text" ng-model="BasicDtlInfo.PhoneNumber" ng-pattern="/^[0-9A-Za-z_]{1,19}$/" placeholder="请输入您的联系电话" style="width:100%">
+          <input class="item-input-wrapper" type="number" name="PhoneNumber" ng-model="BasicDtlInfo.PhoneNumber" ng-pattern="/^(13[0-9]|15[0|3|6|7|8|9]|18[8|9])\d{8}$/" placeholder="请输入您的联系电话" style="width:100%" ng-change='change(Info.PhoneNumber.$error.pattern)'>
           </div>
         </div>
         <div class="row">
@@ -235,12 +208,16 @@
         </div>
         <div class="row">
           <div class="col col-33">
-            <span class="input-label">紧急联系人电话</span> 
+            <span class="input-label">紧急联系人电话
+              <!-- <span class="error" ng-show="Info.ECPhoneNumber.$error.pattern" style="color:red">*请输入正确的手机号码</span> -->
+              <span class="error" ng-show="Info.ECPhoneNumber.$error.pattern" style="color:red"></span>
+            </span> 
           </div>  
           <div class="col col-offset-10" style="width:100%">
-          <input  class="item-input-wrapper" type="text" ng-model="BasicDtlInfo.EmergencyContactPhoneNumber" ng-pattern="/^[0-9A-Za-z_]{1,19}$/" placeholder="请输入您的紧急联系人电话" style="width:100%">
+          <input  class="item-input-wrapper" type="number" name="ECPhoneNumber" ng-model="BasicDtlInfo.EmergencyContactPhoneNumber" ng-pattern="/^(13[0-9]|15[0|3|6|7|8|9]|18[8|9])\d{8}$/" placeholder="请输入您的紧急联系人电话" style="width:100%" ng-change='change(Info.ECPhoneNumber.$error.pattern)'>
           </div>
         </div>
+        <!-- </form> -->
       </ion-item>
      </div>
     </ion-list>
@@ -251,8 +228,9 @@
       </div>
       <div class="col col-25"> -->
       <div>
-         <button ng-click='refresh()' class="button button-block button-calm" style=" width:80%;margin-left:10% ">保存</button>
+         <button ng-click='SaveInfo(Info.IDNo.$error.pattern, Info.PhoneNumber.$error.pattern, Info.ECPhoneNumber.$error.pattern)' class="button button-block button-calm" style=" width:80%;margin-left:10% ">保存</button>
       </div>
+      </form>
     <!-- </div> -->
   </ion-content>
 </ion-view>

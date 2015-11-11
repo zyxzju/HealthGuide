@@ -133,7 +133,7 @@ angular.module('zjubme.services', ['ionic','ngResource'])
         UID:{method:'GET',params:{route:'UID',Type:'@Type',Name:'@Name'},timeout:10000},
         Activition:{method:'POST',params:{route:'Activition'},timeout:10000},
         Roles:{method:'GET',params:{route:'Roles',UserId:'@UserId'},timeout:10000,isArray:true},
-        GetHealthCoachListByPatient: {method:'Get', isArray: true, params:{route: 'GetHealthCoachListByPatient'},timeout: 10000},
+        HealthCoaches: {method:'Get', isArray: true, params:{route: 'HealthCoaches'},timeout: 10000},
         GetPatBasicInfo: {method:'GET', params:{route:'@UserId'}, timeout:10000},
         GetPatientDetailInfo: {method:'GET', params:{route:'@UserId'}, timeout:10000},
         SetPatBasicInfo: {method:'POST', params:{route:'BasicInfo'}, timeout:10000},
@@ -211,6 +211,13 @@ angular.module('zjubme.services', ['ionic','ngResource'])
           getMaxSortNo:{method:'GET',params:{route:'GetMaxSortNo',UserId:'@UserId'},timeout:10000} 
       })
     };
+    var Dict = function () {
+    return $resource(CONFIG.baseUrl + ':path/:route', {path:'Dict'},
+      {
+        GetInsuranceType: {method:'GET', isArray:true, params:{route: 'GetInsuranceType'}, timeout: 10000},
+        GetTypeList:{method:'GET', isArray:true, params:{route: 'Type/Category'}, timeout: 10000}
+       });
+    };
     
     serve.abort = function ($scope) {
     abort.resolve();
@@ -223,6 +230,7 @@ angular.module('zjubme.services', ['ionic','ngResource'])
       serve.TaskInfo = TaskInfo();
       serve.PlanInfo = PlanInfo();
       serve.RiskInfo = RiskInfo();
+      serve.Dict = Dict();
       }, 0, 1);
     };
     serve.Users = Users();
@@ -232,6 +240,7 @@ angular.module('zjubme.services', ['ionic','ngResource'])
     serve.TaskInfo = TaskInfo();
     serve.PlanInfo = PlanInfo();
     serve.RiskInfo = RiskInfo();
+    serve.Dict = Dict();
     return serve;
 }])
 
@@ -242,7 +251,7 @@ angular.module('zjubme.services', ['ionic','ngResource'])
 
   self.GetHealthCoachListByPatient = function (PatientId, CategoryCode) {
       var deferred = $q.defer();
-      Data.Users.GetHealthCoachListByPatient({PatientId:PatientId, CategoryCode:CategoryCode}, function (data, headers) {
+      Data.Users.HealthCoaches({PatientId:PatientId}, function (data, headers) {
         deferred.resolve(data);
       }, function (err) {
       deferred.reject(err);
@@ -754,9 +763,9 @@ angular.module('zjubme.services', ['ionic','ngResource'])
     return deferred.promise;
   };
 
-  self.VitalSigns = function (UserId,StartDate,EndDate) {
+  self.VitalSigns = function (UserId,StartDate,EndDate,top,skip) {
     var deferred = $q.defer();
-    Data.VitalInfo.VitalSigns({UserId:UserId,StartDate:StartDate,EndDate:EndDate}, function (data, headers) {
+    Data.VitalInfo.VitalSigns({UserId:UserId,StartDate:StartDate,EndDate:EndDate,$top:top,$skip:skip}, function (data, headers) {
       deferred.resolve(data);
       }, function (err) {
       deferred.reject(err);
