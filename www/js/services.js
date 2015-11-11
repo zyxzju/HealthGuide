@@ -172,7 +172,7 @@ angular.module('zjubme.services', ['ionic','ngResource'])
         return $resource(CONFIG.baseUrl + ':path/:route', {path:'PlanInfo'},
           {
               Plan: {method:'GET', params:{route: 'Plan'},timeout: 10000, isArray:true},
-              PlanInfoChart: {method:'GET', params:{route: 'PlanInfoChart', $top:"7", $orderby:"Date"},timeout: 10000, isArray:true},                
+              PlanInfoChart: {method:'GET', params:{route: 'PlanInfoChart'},timeout: 10000, isArray:true},                
               Target: {method:'GET', params:{route: 'Target'},timeout: 10000},
               PlanInfoChartDtl: {method:'GET', params:{route: 'PlanInfoChartDtl'},timeout: 10000, isArray:true},
               GetExecutingPlan: {method:'GET', isArray:true ,params:{route: 'Plan'},timeout: 10000}        
@@ -889,8 +889,8 @@ angular.module('zjubme.services', ['ionic','ngResource'])
   var self = this;
   self.PlanInfoChart = function (UserId,PlanNo,StartDate,EndDate,ItemType,ItemCode) {
     var deferred = $q.defer();
-    Data.PlanInfo.PlanInfoChart({UserId:UserId,PlanNo:PlanNo,StartDate:StartDate, EndDate:EndDate, ItemType:ItemType, ItemCode:ItemCode}, function (data, headers) {
-      deferred.resolve(data);
+    Data.PlanInfo.PlanInfoChart({UserId:UserId,PlanNo:PlanNo,StartDate:StartDate, EndDate:EndDate, ItemType:ItemType, ItemCode:ItemCode, $orderby:"Date desc", $top:7}, function (data, headers) {
+      deferred.resolve(data.reverse());
     }, function (err) {
       deferred.reject(err);
     });
