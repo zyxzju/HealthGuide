@@ -1441,7 +1441,7 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
                 PlanInfo.Target(PlanNo, ItemType, ItemCode).then(function(data) { 
                   //console.log(data);
                     if((data.Origin!=null)&&(data.Value!=null)){
-                       $scope.orignalValue='初始值：'+data.Origin+data.Unit;
+                       //$scope.orignalValue='初始值：'+data.Origin+data.Unit;
                        $scope.targetValue='目标值：'+data.Value+data.Unit;
                      }
                      else
