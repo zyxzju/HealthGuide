@@ -1,4 +1,4 @@
-<ion-view view-title="评论" hide-nav-bar="true">
+<ion-view view-title="评论" hide-nav-bar="true" cache-view="false">
   <ion-content>
     <div class="bar bar-calm item-input-inset">
      <button class="button button-icon icon ion-ios-arrow-left" ng-click="nvGoback()">返回</button> 
@@ -11,6 +11,17 @@
 .ionic_ratings .read_only {
   pointer-events:none;
 }</style>
+
+  <div class="list list-inset">
+    <div class="item item-divider"> 选择模块
+    </div>   
+    <ion-radio ng-repeat="item in modouleList"
+               ng-value="item.value"
+               ng-model="comment.selectedModoule">
+      {{ item.text }}
+    </ion-radio>
+  </div>
+
 <div class="list list-inset">
   <div class="item item-divider"> 评分</div> 
 <div class="item"><ionic-ratings ratingsobj='ratingsObject'></ionic-ratings> </div>
@@ -19,7 +30,7 @@
     <div class="list list-inset">
       <div class="item item-divider"> 评论</div> 
       <label class="item item-input"><i class="icon ion-android-create placeholder-icon"></i>
-        <textarea placeholder="说说您对该专员的评价，至少15个字哦" rows="3" ng-model="comment.commentContent"></textarea>
+        <textarea placeholder="说说您对该专员的评价，至少10个字哦" rows="3" ng-model="comment.commentContent"></textarea>
       </label>
     </div>
 
