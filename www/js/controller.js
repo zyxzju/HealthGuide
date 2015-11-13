@@ -1939,25 +1939,55 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
     
     $scope.chatImgUrl=CONFIG.ImageAddressIP + CONFIG.ImageAddressFile+'/';
     $scope.contactList = {};
-    $scope.contactList.list;
+    $scope.contactList.list = new Array();
 
-     $scope.$watch('$viewContentLoaded', function() {  
-          $scope.GetHealthCoachListByPatient();
+    $scope.$watch('$viewContentLoaded', function() {  
+        $scope.GetHealthCoachListByPatient();
     }); 
     $scope.GetHealthCoachListByPatient = function()
     {
         var PatientId = Storage.get("UID");
         var promise = Users.GetHealthCoachListByPatient(PatientId);  
-        promise.then(function(data) {  
-
-            $scope.contactList.list = data;console.log($scope.contactList.list); 
-            for(var i=0;i<$scope.contactList.list.length;i++){
-               if(($scope.contactList.list[i].imageURL=="")||($scope.contactList.list[i].imageURL==null)){
-                $scope.contactList.list[i].imageURL="img/DefaultAvatar.jpg";
-              }
-              else{ $scope.contactList.list[i].imageURL=CONFIG.ImageAddressIP + CONFIG.ImageAddressFile+'/'+$scope.contactList.list[i].imageURL;
-              }
-            }
+        promise.then(function(data) { 
+            if (data.length > 0)
+            {
+                for (var i = 0; i < data.length - 1; i++)
+                {
+                    data[i].module = data[i].module.substr(0, data[i].module.length - 2)
+                    var indexList = new Array();
+                    for (var j = i + 1; j < data.length; j++)
+                    {
+                        if (data[i].HealthCoachID == data[j].HealthCoachID)
+                        {
+                            data[i].module += "/" + data[j].module.substr(0, data[j].module.length - 2);
+                            indexList.push(j - 1);
+                        }
+                    }
+                    data[i].module = "模块：" + data[i].module;
+                    if (indexList.length > 0)
+                    {
+                        indexList[0] += 1;
+                        for (var k = 0; k < indexList.length; k++)
+                        {
+                            data.splice(indexList[k], 1);
+                        }
+                    } 
+                }
+                $scope.contactList.list = data;
+                console.log($scope.contactList.list); 
+                for(var i=0;i<$scope.contactList.list.length;i++)
+                {
+                    if(($scope.contactList.list[i].imageURL=="")||($scope.contactList.list[i].imageURL==null))
+                    {
+                        $scope.contactList.list[i].imageURL="img/DefaultAvatar.jpg";
+                    }
+                    else
+                    { 
+                        $scope.contactList.list[i].imageURL=CONFIG.ImageAddressIP + CONFIG.ImageAddressFile+'/'+$scope.contactList.list[i].imageURL;
+                    }
+                }
+            } 
+            
             $scope.$broadcast('scroll.refreshComplete');
         }, function(data) {  
         });      
