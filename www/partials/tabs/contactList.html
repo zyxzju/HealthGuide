@@ -14,8 +14,9 @@
     <ion-list>
       <ion-item class="item-remove-animate item-avatar item-icon-right" ng-repeat="item in contactList.list" type="item-text-wrap" href="#/tab/chats/{{item.HealthCoachID}}&{{item.Name}}" ng-click="transImageURL_doc(item.imageURL)">
         <img ng-src="{{item.imageURL}}">
-        <h2>{{item.Name}}</h2>
-        <p>{{chat.latestMessage.Content}}</p>
+        <h2><b style="font-size:18px;">{{item.Name}}</b> <p style="float:right;font-size:10px;">{{item.SendDateTime}}</p></h2> 
+        <p style="font-size:15px;">{{item.module}}</p>
+        <p style="color:#737272;font-size:15px;">{{item.Content}}</p>       
         <i class="icon ion-chevron-right icon-accessory"></i>
 
         <!-- <ion-option-button class="button-assertive" ng-click="remove(chat)">
