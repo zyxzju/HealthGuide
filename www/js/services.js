@@ -589,13 +589,13 @@ self.GetHealthCoaches = function () {
       }else {
         window.localStorage['TerminalName'] = angular.toJson(data);
       }},
-    DeviceType:function(data){
-      if(data==null)
+    DeviceParams:function(key){
+      switch(key)
       {
-        return angular.fromJson(window.localStorage['DeviceType']);
-      }else {
-        window.localStorage['DeviceType'] = angular.toJson(data);
-      }},
+        case 'DeviceType':return window.localStorage['DeviceType'];break;
+        case 'DeviceClientHeight':return window.localStorage['DeviceClientHeight'];break;
+      }
+    },
     revUserId:function(data){
       if(data==null)
       {
@@ -776,7 +776,8 @@ self.GetHealthCoaches = function () {
             {
               "text": "",
               "bold": true,
-              "align":"center"
+              "align":"center",
+              "color":"white"
             }
           ],
           "export": {
@@ -804,7 +805,7 @@ self.GetHealthCoaches = function () {
     insertserverdata.revUserId=extraInfo.revUserId();
     insertserverdata.TerminalName=extraInfo.TerminalName();
     insertserverdata.TerminalIP=extraInfo.TerminalIP();
-    insertserverdata.DeviceType=parseInt(extraInfo.DeviceType());
+    // insertserverdata.DeviceType=parseInt(extraInfo.DeviceType());
     return insertserverdata;
   };
 
@@ -889,7 +890,7 @@ self.GetHealthCoaches = function () {
   return self;
 }])
 
-.factory('NotificationService',['$cordovaLocalNotification',function($cordovaLocalNotification){
+.factory('NotificationService',['$cordovaLocalNotification','extraInfo',function($cordovaLocalNotification,extraInfo){
   return{
     save:function(arr){
       var a=[];
@@ -913,7 +914,11 @@ self.GetHealthCoaches = function () {
         sound: "file://sources/Nokia.mp3",
         icon: "file://img/ionic.png"
       };
-      $cordovaLocalNotification.schedule(n);
+      if(extraInfo.DeviceParams('DeviceType')!='win32')
+        {
+          $cordovaLocalNotification.schedule(n);
+          // console.log("call cordovaLocalNotification")
+        }
     },
     get:function(){
       var alert = window.localStorage['alertlist'];
@@ -921,7 +926,7 @@ self.GetHealthCoaches = function () {
     },
     remove:function(index){
       var t= angular.fromJson(window.localStorage['alertlist']);
-      $cordovaLocalNotification.cancel(t[index].ID);
+      if(extraInfo.DeviceParams('DeviceType')!='win32')$cordovaLocalNotification.cancel(t[index].ID);
       t.splice(index,1);
       if(t)
       {

@@ -1,11 +1,147 @@
-<ion-view view-title="血糖测量">
+<ion-view view-title="测量血糖">
 	<ion-content scroll="false">
+		<ion-nav-view class="showcharts">
+			<ion-content scroll="true">
+				<div id="bloodglucosechartsdiv"></div>
+				<ion-scroll direction="x" zooming="true" scrollbar-x="true">
+			        <button id="s1" class="button button-clear" ng-click="selecttimeline('早餐前','s1')" style="width:20%;color:black;">早餐前</button>
+			        <button id="s2" class="button button-clear" ng-click="selecttimeline('早餐后','s2')" style="width:20%;color:black;">早餐后</button>
+			        <button id="s3" class="button button-clear" ng-click="selecttimeline('午餐前','s3')" style="width:20%;color:black;">午餐前</button>
+			        <button id="s4" class="button button-clear" ng-click="selecttimeline('午餐后','s4')" style="width:20%;color:black;">午餐后</button>
+			        <button id="s5" class="button button-clear" ng-click="selecttimeline('晚餐前','s5')" style="width:20%;color:black;">晚餐前</button>
+			        <button id="s6" class="button button-clear" ng-click="selecttimeline('晚餐后','s6')" style="width:20%;color:black;">晚餐后</button>
+			        <button id="s7" class="button button-clear" ng-click="selecttimeline('凌晨','s7')" style="width:20%;color:black;">凌晨</button>
+			        <button id="s8" class="button button-clear" ng-click="selecttimeline('睡前','s8')" style="width:20%;color:black;">睡前</button>
+  				</ion-scroll>
+				<ion-slide-box on-slide-changed="mbgslideHasChanged($index)" show-pager="false">
+					<ion-slide>
+						<div class="mslidebox">
+							<form name="myForm">
+								<div class="row" style="margin-top:-20px">
+									<div class="col col-25" style="text-align: center;">
+										<button ng-click="savebloodglucose(myForm.$valid)" id="submitbg">提交</button>
+									</div>
+									<div class="col col-45" style="padding:auto;text-align:right;">
+										<div class="row" style="margin:0px">
+											<div class="col col-30">
+												<span class="error" ng-show=bgcheck=='required' style="color:red;">*</span>血糖:
+											</div>
+											<div class="col col-70" style="padding:0px;border-style: solid;border-width: 1px;border-color: blue;">
+												<input class="myinput" type="number" name='bgmv' ng-model='bloodglucose.mvalue' required max='15' ng-change="check(myForm.bgmv.$error.required)">
+											</div>
+										</div>
+									</div>
+									<div class="col col-35" style="text-align: center;" ng-click="nextSlide()">
+										<i class="icon ion-chevron-right"></i>
+									</div>
+								</div>
+							</form>
+						</div>
+					</ion-slide>
+					<ion-slide>
+						<div class="mslidebox">
+							<div class="row" style="margin-top:-20px">
+								<div class="col col-20" style="text-align: center;" ng-click="previousSlide()">
+									<i class="icon ion-chevron-left"></i>
+								</div>
+								<div class="col col-60" style="text-align: center;">
+									<button class="button button-balanced mbutton" ng-click="startwhmeasure()">开始测量</button>
+									<i class="icon ion-record buttonicon" id="buttonicon"></i>
+								</div>
+								<div class="col col-20" style="text-align: center;">
+									<button ng-click="saveWH(false)" id="submitbg2">提交</button>
+								</div>
+							</div>
+						</div>
+					</ion-slide>
+				</ion-slide-box>
+			</ion-content>
+		</ion-nav-view>
+		<ion-nav-view class="showconslusion">
+			<ion-content scroll="true">
+			<p>{{result}}</p>
+			</ion-content>
+		</ion-nav-view>
+	</ion-content>
+</ion-view>
+<style type="text/css">
+	body{height:100%;}
+	.showconslusion {
+		position: absolute;
+		top: 70%;
+		width: 100%;
+		height: 30%;
+		border-style: solid;
+		border-width: 2px 0px 0px 0px;
+		border-color: blue ;
+	}
+	.showcharts{
+		position: absolute;
+		/*left: 50%;*/
+		width: 100%;
+		height: 70%;
+		/*border-style: solid;*/
+	}
+	#bloodglucosechartsdiv{
+		margin-top: 0;
+		width	: 100%;
+		height	: 250px;
+		padding-bottom: 0px;
+		z-index:1;
+	}
+	.mslidebox{
+		position: relative;
+		width	: 100%;
+		height	: 65px;
+		margin-top: 15px;
+		border-style: solid;
+		/*border-width: 1px;*/
+		border-color: blue;
+	}
+	.buttonicon{
+		position: relative;
+		left: -10px;
+		top: -1px;
+	}
+	.mbutton{
+		position: relative;
+		left: 10px;
+	}
+	.myinput{
+		background-color: "red";
+		width:100%;
+		text-align:center;
+		border-style: solid;
+		border-width: 1px;
+		border-color: blue;
+	}
+	.selectbutton{
+		/*border-top: none;*/
+		border-style: solid;
+		border-width: 1px;
+		border-color: red;
+	}
+	ion-scroll {
+		width: 100%;
+		font-size: 18px;
+		white-space: nowrap;
+		padding: auto;
+		line-height: 20px;
+		height: 40px;
+		/*border-style: solid;
+		border-width: 1px;
+		border-color: blue;*/
+	}
+</style>
+
+<!-- <ion-view view-title="血糖测量">
+	<ion-content scroll="false"> -->
 	<!-- 凌晨/空腹/早餐后/午餐前/午餐后/晚餐前/晚餐后/睡前
 	测量值 mmol/L 控制目标值
 	其他信息
 	删除/保存 -->
 		<!-- <button class='button button-clear button-small button-full button-outline button-positive' ng-click=""></button> -->
-		<form name="myForm">
+		<!-- <form name="myForm">
 			<div class="list list-inset">
 				<label class="item item-input item-select item-stacked-label">
 					<div class="input-label">
@@ -28,14 +164,14 @@
 						<span class="error" ng-show='myForm.bgmv.$error.max' style="color:red;">*输入异常</span>
 					</span>
 					<input type="number" name='bgmv' ng-model='bloodglucose.mvalue' required max='15' ng-change="check(myForm.bgmv.$error.required)">
-				</label>
+				</label> -->
 				<!-- <label class="item item-input item-stacked-label">
 					<span class="input-label">目标值 (毫摩尔/升):{{bloodglucose.tvalue}}</span>
 				</label> -->
-			</div>
+			<!-- </div>
 			<div class="button-bar padding">
 				<a class="button button-positive button-outline" ng-click="savebloodglucose(myForm.$valid)">保存</a>
 			</div>
 		</form>
 	</ion-content>
-</ion-view>
+</ion-view> -->
