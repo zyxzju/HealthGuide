@@ -1,5 +1,122 @@
 <ion-view view-title="测量体重">
 	<ion-content scroll="false">
+		<ion-nav-view class="showcharts">
+			<ion-content scroll="true">
+				<div id="mwchart"></div>
+				<ion-slide-box on-slide-changed="slideHasChanged($index)" show-pager="false">
+					<ion-slide>
+						<div class="mslidebox">
+							<form name="myForm">
+								<div class="row" style="margin-top:-20px">
+									<div class="col col-25" style="text-align: center;">
+										<button ng-click="saveWH(myForm.$valid)" id="submitwh">提交</button>
+									</div>
+									<div class="col col-20" style="padding:0px;border-style: solid;border-width: 1px;border-color: blue;">
+										<input class="myinput" type="number" name='mw_h' ng-model='BMI.height' required max='300' ng-change="check_h(myForm.mw_h.$error.required,myForm.mw_h.$error.max)">
+									</div>
+									<div class="col col-10"></div>
+									<div class="col col-20" style="border-style: solid;border-width: 1px;border-color: blue;padding:0px;">
+										<input class="myinput"  type="number" name='mw_w' ng-model='BMI.weight' required max='150' ng-change="check_w(myForm.mw_w.$error.required,myForm.mw_w.$error.max)">
+									</div>
+									<div class="col col-35" style="text-align: center;" ng-click="nextSlide()">
+										<i class="icon ion-chevron-right"></i>
+									</div>
+								</div>
+								<div class="row">
+									<div class="col col-25"></div>
+									<div class="col col-20" style="text-align:center">
+										<p><span class="error" ng-show=(hcheck=='required') style="color:red;">*</span>身高/cm</p>
+									</div>
+									<div class="col col-10"></div>
+									<div class="col col-20" style="text-align:center">
+										<p><span class="error" ng-show=(wcheck=='required') style="color:red;">*</span>体重/Kg</p>
+									</div>
+								</div>
+							</form>
+						</div>
+					</ion-slide>
+					<ion-slide>
+						<div class="mslidebox">
+							<div class="row" style="margin-top:-20px">
+								<div class="col col-20" style="text-align: center;" ng-click="previousSlide()">
+									<i class="icon ion-chevron-left"></i>
+								</div>
+								<div class="col col-60" style="text-align: center;">
+									<button class="button button-balanced mbutton" ng-click="startwhmeasure()">开始测量</button>
+									<i class="icon ion-record buttonicon" id="buttonicon"></i>
+								</div>
+								<div class="col col-20" style="text-align: center;">
+									<button ng-click="saveWH(false)" id="submit2">提交</button>
+								</div>
+							</div>
+						</div>
+					</ion-slide>
+				</ion-slide-box>
+			</ion-content>
+		</ion-nav-view>
+		<ion-nav-view class="showconslusion">
+			<ion-content scroll="true">
+			<p>{{BMI.result}}</p>
+			</ion-content>
+		</ion-nav-view>
+	</ion-content>
+</ion-view>
+<style type="text/css">
+	body{height:100%;}
+	.showconslusion {
+		position: absolute;
+		top: 70%;
+		width: 100%;
+		height: 30%;
+		border-style: solid;
+		border-width: 2px 0px 0px 0px;
+		border-color: blue ;
+	}
+	.showcharts{
+		position: absolute;
+		/*left: 50%;*/
+		width: 100%;
+		height: 70%;
+		/*border-style: solid;*/
+	}
+	#mwchart{
+		margin-top: 0;
+		width	: 100%;
+		height	: 250px;
+		padding-bottom: 0px;
+		z-index:1;
+	}
+	.mslidebox{
+		position: relative;
+		width	: 100%;
+		height	: 65px;
+		margin-top: 15px;
+		border-style: solid;
+		/*border-width: 1px;*/
+		border-color: blue;
+	}
+	.buttonicon{
+		position: relative;
+		left: -10px;
+		top: -1px;
+	}
+	.mbutton{
+		position: relative;
+		left: 10px;
+	}
+	.myinput{
+		background-color: "red";
+		width:100%;
+		text-align:center;
+		border-style: solid;
+		border-width: 1px;
+		border-color: blue;
+	}
+
+</style>
+
+<!-- <ion-view view-title="测量体重">
+	<ion-content scroll="false">
 		<form name="myForm">
 			<div class="list list-inset">
 				<label class="item item-input">
@@ -28,5 +145,6 @@
 				<a class="button button-positive button-outline" ng-click="saveWH(myForm.$valid)">保存</a>
 			</div>
 		</form>
+		<img ng-src="img/icon/accountbind.png" style="transform:rotate(45deg);">
 	</ion-content>
-</ion-view>
+</ion-view> -->

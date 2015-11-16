@@ -534,13 +534,13 @@ angular.module('zjubme.services', ['ionic','ngResource'])
       }else {
         window.localStorage['TerminalName'] = angular.toJson(data);
       }},
-    DeviceType:function(data){
-      if(data==null)
+    DeviceParams:function(key){
+      switch(key)
       {
-        return angular.fromJson(window.localStorage['DeviceType']);
-      }else {
-        window.localStorage['DeviceType'] = angular.toJson(data);
-      }},
+        case 'DeviceType':return window.localStorage['DeviceType'];break;
+        case 'DeviceClientHeight':return window.localStorage['DeviceClientHeight'];break;
+      }
+    },
     revUserId:function(data){
       if(data==null)
       {
@@ -720,7 +720,8 @@ angular.module('zjubme.services', ['ionic','ngResource'])
             {
               "text": "",
               "bold": true,
-              "align":"center"
+              "align":"center",
+              "color":"white"
             }
           ],
           "export": {
@@ -748,7 +749,7 @@ angular.module('zjubme.services', ['ionic','ngResource'])
     insertserverdata.revUserId=extraInfo.revUserId();
     insertserverdata.TerminalName=extraInfo.TerminalName();
     insertserverdata.TerminalIP=extraInfo.TerminalIP();
-    insertserverdata.DeviceType=parseInt(extraInfo.DeviceType());
+    // insertserverdata.DeviceType=parseInt(extraInfo.DeviceType());
     return insertserverdata;
   };
 
@@ -833,7 +834,7 @@ angular.module('zjubme.services', ['ionic','ngResource'])
   return self;
 }])
 
-.factory('NotificationService',['$cordovaLocalNotification',function($cordovaLocalNotification){
+.factory('NotificationService',['$cordovaLocalNotification','extraInfo',function($cordovaLocalNotification,extraInfo){
   return{
     save:function(arr){
       var a=[];
@@ -857,7 +858,11 @@ angular.module('zjubme.services', ['ionic','ngResource'])
         sound: "file://sources/Nokia.mp3",
         icon: "file://img/ionic.png"
       };
-      $cordovaLocalNotification.schedule(n);
+      if(extraInfo.DeviceParams('DeviceType')!='win32')
+        {
+          $cordovaLocalNotification.schedule(n);
+          // console.log("call cordovaLocalNotification")
+        }
     },
     get:function(){
       var alert = window.localStorage['alertlist'];
@@ -865,7 +870,7 @@ angular.module('zjubme.services', ['ionic','ngResource'])
     },
     remove:function(index){
       var t= angular.fromJson(window.localStorage['alertlist']);
-      $cordovaLocalNotification.cancel(t[index].ID);
+      if(extraInfo.DeviceParams('DeviceType')!='win32')$cordovaLocalNotification.cancel(t[index].ID);
       t.splice(index,1);
       if(t)
       {

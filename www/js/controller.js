@@ -1122,35 +1122,55 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
   };
 }])
 
-.controller('measureweightcontroller',['$scope','Data','Storage','VitalInfo', 'extraInfo','$ionicLoading',
-  function($scope,Data,Storage,VitalInfo,extraInfo,$ionicLoading){
+.controller('measureweightcontroller',['$scope','Data','Storage','VitalInfo', 'extraInfo','$ionicLoading','BloodPressureMeasure','$ionicSlideBoxDelegate','$rootScope', '$http',
+  function($scope,Data,Storage,VitalInfo,extraInfo,$ionicLoading,BloodPressureMeasure,$ionicSlideBoxDelegate,$rootScope, $http){
+  /////////////////////
+  var result='';
+  $http.get('data/whresult.json').success(function(data){
+        result = data;
+        console.log(result);
+      });
+  /////////////////////
+  $scope.BMI={weight:0,height:0,BMI:0,result:''};
   $scope.hcheck='';
   $scope.wcheck='';
-  $scope.check_h = function(c)
+  $scope.check_h = function(c1,c2)
   {
     $scope.BMI.BMI='';
-    if(!c)$scope.hcheck='';
+    if(!c1&&!c2)
+    {
+      $scope.hcheck='';
+      mathbmi();
+      setchartValue();
+      setchartband();
+    }
     else $scope.hcheck='required';
+    // console.log($scope.BMI.BMI);
   }
-  $scope.check_w = function(c)
+  $scope.check_w = function(c1,c2)
   {
     $scope.BMI.BMI='';
-    if(!c)$scope.wcheck='';
+    if(!c1&&!c2)
+    {
+      $scope.wcheck='';
+      mathbmi();
+      setchartValue();
+    }
     else $scope.wcheck='required';
   }
-  $scope.$on('$viewContentLoading', 
-    function(event){
-      console.log('viewContentLoading');
-      VitalInfo.GetLatestPatientVitalSigns(get[0]).then(function(s){
-        console.log(s);
-        $scope.BMI.weight = parseInt(s.result);
-        VitalInfo.GetLatestPatientVitalSigns(get[1]).then(function(s){
-          $scope.BMI.height = parseInt(s.result);
-          console.log(s);
-        });
-    });
-  });
-  $scope.BMI={}
+  // $scope.$on('$viewContentLoading', 
+  //   function(event){
+  //     console.log('viewContentLoading');
+  //     VitalInfo.GetLatestPatientVitalSigns(get[0]).then(function(s){
+  //       console.log(s);
+  //       $scope.BMI.weight = parseInt(s.result);
+  //       VitalInfo.GetLatestPatientVitalSigns(get[1]).then(function(s){
+  //         $scope.BMI.height = parseInt(s.result);
+  //         console.log(s);
+  //       });
+  //   });
+  // });
+  $scope.BMI={};
   var UserId =Storage.get("UID");//'PID201506180013'
   var get = [{
     UserId:UserId,
@@ -1167,21 +1187,45 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
     $scope.BMI.weight = parseInt(s.result);
     VitalInfo.GetLatestPatientVitalSigns(get[1]).then(function(s){
       $scope.BMI.height = parseInt(s.result);
+      setTimeout(function() {mathbmi();setchartband();setchartValue();}, 1000);
       console.log(s);
     });
   });
-  $scope.mathbmi = function(c)
+  var mathbmi = function()
   {
-    if(c)
-    {
       $scope.BMI.BMI=($scope.BMI.weight/($scope.BMI.height * $scope.BMI.height));
-      if($scope.BMI.BMI<0.00185)$scope.BMI.result = "您的体重有点过轻了";
-      else if($scope.BMI.BMI>=0.00185&&$scope.BMI.BMI<0.002499)$scope.BMI.result = "您的体重属于正常范围";
-      else if($scope.BMI.BMI>=0.0025&&$scope.BMI.BMI<0.0028)$scope.BMI.result = "您的体重过重了";
-      else if($scope.BMI.BMI>=0.0028&&$scope.BMI.BMI<0.0032)$scope.BMI.result = "您已经属于肥胖行列了";
-      else if($scope.BMI.BMI>=0.0032)$scope.BMI.result = "您现在已经非常肥胖了";
-      console.log($scope.BMI.BMI);
-    }
+      if($scope.BMI.BMI<0.00185)
+        {
+          $scope.BMI.result = result.result1;
+          document.getElementById('submitwh').style.backgroundColor='gray';
+          gaugeChart.arrows[0].color='gray';
+        }
+      else if($scope.BMI.BMI>=0.00185&&$scope.BMI.BMI<0.002499)
+        {
+          setTimeout(function() {$scope.BMI.result =  result.result2;console.log($scope.BMI.result);}, 1000);
+          
+          document.getElementById('submitwh').style.backgroundColor='green';
+          gaugeChart.arrows[0].color='green';
+        }
+      else if($scope.BMI.BMI>=0.0025&&$scope.BMI.BMI<0.0028)
+        {
+          $scope.BMI.result =  result.result3;
+          document.getElementById('submitwh').style.backgroundColor='#E8D502';
+          gaugeChart.arrows[0].color='#E8D502';
+        }
+      else if($scope.BMI.BMI>=0.0028&&$scope.BMI.BMI<0.0032)
+        {
+          $scope.BMI.result =  result.result4;
+          document.getElementById('submitwh').style.backgroundColor='#FF944D';
+          gaugeChart.arrows[0].color='#FF944D';
+        }
+      else if($scope.BMI.BMI>=0.0032)
+        {
+          $scope.BMI.result =  result.result5;
+          document.getElementById('submitwh').style.backgroundColor='red';
+          gaugeChart.arrows[0].color='red';
+        }
+      // console.log($scope.BMI.BMI);
   };
   $scope.saveWH = function(c)
   {
@@ -1226,17 +1270,188 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
         })
       })
     }
-    
+  }
+  $scope.nextSlide = function() {
+    $ionicSlideBoxDelegate.next();
+  }
+  $scope.previousSlide = function() {
+    $ionicSlideBoxDelegate.previous();
+  }
+  var mwchartdata = {
+    "type": "gauge",
+    "theme": "light",
+    "axes": [ {
+      "axisThickness": 1,
+      "axisAlpha": 0.2,
+      "tickAlpha": 0.2,
+      "valueInterval": 10,
+      "bands": [ {
+        "color": "gray",
+        "endValue": 150,
+        "startValue": 0
+      }, {
+        "color": "green",
+        "endValue": 0,
+        "startValue": 0
+      }, {
+        "color": "#E8D502",
+        "endValue": 0,
+        "innerRadius": "95%",
+        "startValue": 0
+      }, {
+        "color": "#FF944D",
+        "endValue": 0,
+        "innerRadius": "95%",
+        "startValue": 0
+      }, {
+        "color": "red",
+        "endValue": 0,
+        "innerRadius": "95%",
+        "startValue": 0
+      } ],
+      "bottomText": "0 km/h",
+      "bottomTextYOffset": -20,
+      "endValue": 150
+    } ],
+    "arrows": [ {
+        "color":"gray",
+        "nailAlpha":1,
+        "nailRadius":15
+      } ],
+    "export": {
+      "enabled": true
+    },
+    "panEventsEnabled":false,
+    "autoDisplay":true,
+    "marginBottom":0
+  }
+  var storagemwchartdata = mwchartdata;
+  var gaugeChart = AmCharts.makeChart( "mwchart",mwchartdata,500);
+  //////////////////////////
+  var buttoniconflag = true;
+  var buttoniconchange = setInterval( function(){setbuttoniconcolor()}, 1000 );
+  $rootScope.$on('$stateChangeStart', function(event, toState, toParams, fromState, fromParams)
+  {
+    // console.log(fromState);
+    // console.log(fromParams);
+    if(fromParams.tl=='measureweight')
+    {
+      clearInterval(buttoniconchange);
+    }
+  });
+  var setbuttoniconcolor = function(){
+    if(buttoniconflag)
+    {
+      document.getElementById("buttonicon").style.color="red";
+      buttoniconflag = !buttoniconflag;
+    }else
+    {
+      document.getElementById("buttonicon").style.color="black";
+      buttoniconflag = !buttoniconflag;
+    }
+  }
+  $scope.startwhmeasure = function()
+  {
+    clearInterval(buttoniconchange);
+    document.getElementById("buttonicon").style.color="red";
+  }
+  //////////////////////
+  var setchartValue = function() {
+    if($scope.BMI.height!=undefined&&$scope.BMI.weight!=undefined)
+    {
+      if ( gaugeChart ) {
+        if ( gaugeChart.arrows ) {
+          if ( gaugeChart.arrows[ 0 ] ) {
+            if ( gaugeChart.arrows[ 0 ].setValue ) {
+              gaugeChart.arrows[ 0 ].setValue( $scope.BMI.weight );
+              gaugeChart.axes[ 0 ].setBottomText("BMI:"+($scope.BMI.BMI*10000).toFixed(2)+'\n'+$scope.BMI.height + "cm  "+$scope.BMI.weight + "Kg");
+              // console.log(($scope.BMI.BMI*10000).toFixed(2));
+            }
+          }
+        }
+      }
+    }
+  }
+  var setchartband = function()
+  {
+    var band1 = $scope.BMI.height*$scope.BMI.height*0.00185;
+    gaugeChart.axes[ 0 ].bands[0].endValue=band1;
+    gaugeChart.axes[ 0 ].bands[1].startValue=band1;
+    var band2 = $scope.BMI.height*$scope.BMI.height*0.0025;
+    gaugeChart.axes[ 0 ].bands[1].endValue=band2;
+    gaugeChart.axes[ 0 ].bands[2].startValue=band2;
+    var band3 = $scope.BMI.height*$scope.BMI.height*0.0028;
+    gaugeChart.axes[ 0 ].bands[2].endValue=band3;
+    gaugeChart.axes[ 0 ].bands[3].startValue=band3;
+    var band4 = $scope.BMI.height*$scope.BMI.height*0.0032;
+    gaugeChart.axes[ 0 ].bands[3].endValue=band4;
+    gaugeChart.axes[ 0 ].bands[4].startValue=band4;
+    gaugeChart.axes[ 0 ].bands[4].endValue=150;
+    gaugeChart.validateNow(true,false);
+  }
+  var storageBMI = {};
+  $scope.slideHasChanged = function(index)
+  {
+    // console.log(index);
+    switch (index)
+    {
+      case 0:
+        $scope.BMI.weight=storageBMI.weight;
+        $scope.BMI.height=storageBMI.height;
+        $scope.BMI.BMI=storageBMI.BMI;
+        $scope.BMI.result=storageBMI.result;
+        console.log(storageBMI);
+        // mwchartdata=storagemwchartdata;
+        mathbmi();
+        setchartValue();
+        setchartband();
+        break;
+      case 1:
+        document.getElementById('submit2').style.backgroundColor='gray';
+        storageBMI.weight=$scope.BMI.weight;
+        storageBMI.height=$scope.BMI.height;
+        storageBMI.BMI=$scope.BMI.BMI;
+        storageBMI.result=$scope.BMI.result;
+        console.log(storageBMI);
+        $scope.BMI.weight=0;
+        $scope.BMI.height=0;
+        $scope.BMI.BMI=0;
+        $scope.BMI.result='';
+        mathbmi();
+        setchartValue();
+        setchartband();
+        mwchartdata.axes[ 0 ].bands[0].endValue=150;
+        mwchartdata.axes[ 0 ].bands[1].startValue=0;
+        mwchartdata.axes[ 0 ].bands[1].endValue=0;
+        mwchartdata.axes[ 0 ].bands[2].startValue=0;
+        mwchartdata.axes[ 0 ].bands[2].endValue=0;
+        mwchartdata.axes[ 0 ].bands[3].startValue=0;
+        mwchartdata.axes[ 0 ].bands[3].endValue=0;
+        mwchartdata.axes[ 0 ].bands[4].startValue=0;
+        mwchartdata.axes[ 0 ].bands[4].endValue=0;
+        mwchartdata.arrows[0].color='gray';
+        gaugeChart.validateNow(true,false);
+        break;
+    }
   }
 }])
 
-.controller('bloodglucosecontroller',['$scope','Data','Storage', 'VitalInfo','extraInfo', '$ionicLoading', function($scope,Data,Storage,VitalInfo,extraInfo,$ionicLoading){
+.controller('bloodglucosecontroller',['$scope','Data','Storage', 'VitalInfo','extraInfo', '$ionicLoading','$rootScope', '$ionicSlideBoxDelegate', '$http',
+  function($scope,Data,Storage,VitalInfo,extraInfo,$ionicLoading,$rootScope,$ionicSlideBoxDelegate, $http){
   console.log('bloodglucosecontroller');
   $scope.bloodglucose={"select":'早餐前',"mvalue":"","tvalue":""};
   $scope.bgcheck='';
+  var result={};
+  $http.get('data/bgresult.json').success(function(data){
+    result = data;
+    console.log(result);
+  });
+  $scope.result = '';
   $scope.check = function(c)
   {
     // console.log('change');
+    setchartValue();
+    setarrowcolor();
     if(!c)$scope.bgcheck='';
     else $scope.bgcheck='required';
   }
@@ -1257,9 +1472,9 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
         "TerminalIP": "sample string 10",
         "DeviceType": 11
       }
-      //console.log(save);
+      console.log(save);
       VitalInfo.PostPatientVitalSigns(save).then(function(s){
-        //console.log(s);
+        console.log(s);
         $ionicLoading.show({
           template: '保存成功',
           noBackdrop: true,
@@ -1275,6 +1490,211 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
       });
     }else $scope.bgcheck='required';
   }
+   var setchartValue = function() 
+   {
+    var v = $scope.bloodglucose.mvalue; 
+    if(v == undefined || v == '')v=0;
+    if ( bloodglucosecharts ) {
+      if ( bloodglucosecharts.arrows ) {
+        if ( bloodglucosecharts.arrows[ 0 ] ) {
+          if ( bloodglucosecharts.arrows[ 0 ].setValue ) {
+            bloodglucosecharts.arrows[ 0 ].setValue(v);
+            bloodglucosecharts.axes[ 0 ].setBottomText(v+" mmol/L");
+          }
+        }
+      }
+    }
+    
+  }
+  setchartValue();
+  //////////////////////////
+  var storagembg = {"select":'早餐前',"mvalue":"","tvalue":""};
+  $scope.mbgslideHasChanged = function(index)
+  {
+    switch(index)
+    {
+      case 0:
+        $scope.bloodglucose.mvalue = storagembg.mvalue;
+        setchartValue();
+        setarrowcolor();
+        break;
+      case 1:
+        storagembg.mvalue = $scope.bloodglucose.mvalue;
+        $scope.bloodglucose.mvalue = 0;
+        setchartValue();
+        setarrowcolor();
+        break;
+    }
+  }
+  $scope.nextSlide = function() {
+    $ionicSlideBoxDelegate.next();
+  }
+  $scope.previousSlide = function() {
+    $ionicSlideBoxDelegate.previous();
+  }
+  var buttoniconflag = true;
+  var buttoniconchange = setInterval( function(){setbuttoniconcolor()}, 1000 );
+  $rootScope.$on('$stateChangeStart', function(event, toState, toParams, fromState, fromParams)
+  {
+    // console.log(fromState);
+    // console.log(fromParams);
+    if(fromParams.tl=='bloodglucose')
+    {
+      clearInterval(buttoniconchange);
+    }
+  });
+  var setbuttoniconcolor = function(){
+    if(buttoniconflag)
+    {
+      document.getElementById("buttonicon").style.color="red";
+      buttoniconflag = !buttoniconflag;
+    }else
+    {
+      document.getElementById("buttonicon").style.color="black";
+      buttoniconflag = !buttoniconflag;
+    }
+  }
+  $scope.startwhmeasure = function()
+  {
+    clearInterval(buttoniconchange);
+    document.getElementById("buttonicon").style.color="red";
+  }
+  //////////////////////
+  var lastid = 's1';
+  var hournow = new Date().getHours();
+  if(hournow>=1&&hournow<8)$scope.selecttimeline
+  /////////////////////////////////
+  $scope.selecttimeline = function(tl,cid)
+  {
+    console.log(cid);
+    document.getElementById(lastid).style.color="black";
+    lastid = cid;
+    document.getElementById(cid).style.color="red";
+    switch(tl)
+    {      
+      case '早餐前':
+        setchartband(4,8);
+        $scope.bloodglucose.select='早餐前';
+        break;
+      case '早餐后':
+        setchartband(6,10);
+        $scope.bloodglucose.select='早餐后';
+        break;
+      case '午餐前':
+        setchartband(4,9);
+        $scope.bloodglucose.select='午餐前';
+        break;
+      case '午餐后':
+        setchartband(9,13);
+        $scope.bloodglucose.select='午餐后';
+        break;
+      case '晚餐前':
+        setchartband(7,10);
+        $scope.bloodglucose.select='晚餐前';
+        break;
+      case '晚餐后':
+        setchartband(10,13);
+        $scope.bloodglucose.select='晚餐后';
+        break;
+      case '凌晨':
+        setchartband(5,7);
+        $scope.bloodglucose.select='凌晨';
+        break;
+      case '睡前':
+        setchartband(6,9);
+        $scope.bloodglucose.select='睡前';
+        break;
+    }
+    setarrowcolor();
+  }
+  //////////////////////
+  setTimeout(function(){
+    var hournow = new Date().getHours();
+    if(hournow>=1&&hournow<8)$scope.selecttimeline('早餐前','s1');
+    else if(hournow>=8&&hournow<9)$scope.selecttimeline('早餐后','s2');
+    else if(hournow>=9&&hournow<12)$scope.selecttimeline('午餐前','s3');
+    else if(hournow>=12&&hournow<15)$scope.selecttimeline('午餐后','s4');
+    else if(hournow>=15&&hournow<19)$scope.selecttimeline('晚餐前','s5');
+    else if(hournow>=19&&hournow<21)$scope.selecttimeline('晚餐后','s6');
+    else if(hournow>=21&&hournow<23)$scope.selecttimeline('睡前','s8');
+    else if(hournow>=23||hournow<1)$scope.selecttimeline('凌晨','s7');
+  },500);
+  
+  /////////////////////////////////
+  var setchartband = function(n1,n2)
+  {
+    bloodglucosecharts.axes[ 0 ].bands[0].startValue=0;
+    bloodglucosecharts.axes[ 0 ].bands[0].endValue=n1;
+    bloodglucosecharts.axes[ 0 ].bands[1].startValue=n1;
+    bloodglucosecharts.axes[ 0 ].bands[1].endValue=n2;
+    bloodglucosecharts.axes[ 0 ].bands[2].startValue=n2;
+    bloodglucosecharts.axes[ 0 ].bands[2].endValue=15;
+    bloodglucosecharts.validateNow(true,false);
+  }
+  var setarrowcolor = function()
+  {
+    var v = $scope.bloodglucose.mvalue;
+    if(v==undefined)v=0;
+      if(v < bloodglucosecharts.axes[ 0 ].bands[0].endValue)
+        {
+          document.getElementById('submitbg').style.backgroundColor='gray';
+          bloodglucosecharts.arrows[0].color='gray';
+          $scope.result = result.result1;
+        }
+      else if(v>=bloodglucosecharts.axes[ 0 ].bands[0].endValue && v<bloodglucosecharts.axes[ 0 ].bands[1].endValue)
+        {
+          document.getElementById('submitbg').style.backgroundColor='green';
+          bloodglucosecharts.arrows[0].color='green';
+          $scope.result = result.result2;
+        }
+      else if(v>=bloodglucosecharts.axes[ 0 ].bands[1].endValue && v<=15)
+        {
+          document.getElementById('submitbg').style.backgroundColor='red';
+          bloodglucosecharts.arrows[0].color='red';
+          $scope.result = result.result3;
+        }
+      // console.log($scope.BMI.BMI);
+  };
+  ///////////////////////////////
+  var bloodglucosecharts = AmCharts.makeChart("bloodglucosechartsdiv", {
+    "type": "gauge",
+    "theme": "light",
+    "axes": [ {
+      "axisThickness": 1,
+      "axisAlpha": 0.2,
+      "tickAlpha": 0.2,
+      "valueInterval": 1,
+      "bands": [ {
+        "color": "gray",
+        "endValue": 15,
+        "startValue": 0
+      }, {
+        "color": "green",
+        "endValue": 0,
+        "startValue": 0
+      },{
+        "color": "red",
+        "endValue": 0,
+        "innerRadius": "95%",
+        "startValue": 0
+      } ],
+      "bottomText": "0 mmol/L",
+      "bottomTextYOffset": -20,
+      "endValue": 15
+    } ],
+    "arrows": [ {
+        "color":"gray",
+        "nailAlpha":1,
+        "nailRadius":15
+      } ],
+    "export": {
+      "enabled": true
+    },
+    "panEventsEnabled":false,
+    "autoDisplay":true,
+    "marginBottom":0
+  },500);
+  ////////////////////////////////
 }])
 
 .controller('alertcontroller',['$scope', '$timeout', '$ionicModal', '$ionicHistory', '$cordovaDatePicker','$cordovaLocalNotification','NotificationService',

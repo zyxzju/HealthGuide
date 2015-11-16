@@ -5,7 +5,7 @@
 // the 2nd parameter is an array of 'requires' 
 angular.module('zjubme', ['ionic','zjubme.services', 'zjubme.directives', 'zjubme.controllers','ngCordova','ionic-timepicker','monospaced.qrcode'])
 
-.run(function($ionicPlatform) {
+.run(function($ionicPlatform,extraInfo) {
   $ionicPlatform.ready(function() {
     // Hide the accessory bar by default (remove this to show the accessory bar above the keyboard
     // for form inputs)
@@ -15,8 +15,9 @@ angular.module('zjubme', ['ionic','zjubme.services', 'zjubme.directives', 'zjubm
     if(window.StatusBar) {
       StatusBar.styleDefault();
     }
-
-    
+    window.localStorage['DeviceType'] = ionic.Platform.platform();
+    window.localStorage['DeviceClientHeight']=document.documentElement.clientHeight;
+    // console.log(extraInfo.DeviceParams('DeviceClientHeight'));
   });
 })
 
