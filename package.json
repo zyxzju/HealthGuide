@@ -28,9 +28,14 @@
     "C:\\Users\\ZJU\\Desktop\\zyx\\plugins\\cordova-plugin-camera",
     "C:\\Users\\ZJU\\Desktop\\little\\HealthCoach\\plugins\\cordova-plugin-file",
     "C:\\Users\\ZJU\\Desktop\\little\\HealthCoach\\plugins\\cordova-plugin-file-transfer",
-    "C:\\Users\\ZJU\\Desktop\\jpush-phonegap-plugin-master"
+    "C:\\Users\\ZJU\\Desktop\\jpush-phonegap-plugin-master",
+    "C:\\Users\\ZJU\\Desktop\\jpush-phonegap-plugin-master\\jpush-phonegap-plugin-master"
   ],
   "cordovaPlatforms": [
     "android"
-  ]
+  ],
+  "scripts": {
+    "test": "karma start mzb_test/karma-unit-test.config.js",
+    "protractor": "protractor tests/e2e-tests.conf.js"
+  }
 }

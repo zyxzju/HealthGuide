@@ -5,37 +5,38 @@
             <i class="icon ion-navicon"></i>
     </button>
   </ion-nav-buttons>
- <!--  <ion-nav-buttons side="secondary">
-    <a class="button icon-left ion-refresh button-clear" href="#" ng-click="refrsh_graph()"></a>
-  </ion-nav-buttons> -->
+  <ion-nav-buttons side="secondary">
+    <a class="button icon-left ion-grid button-clear" href="#/tab/recordList"></a>
+  </ion-nav-buttons>
+
+<!--     <div class="button-bar bar-light">
+          <a class="button " href="#/tab/targetGraph" >依从率图</a>
+          <a class="button button-energized" href="#/tab/recordList">体征表</a>
+    </div> -->
 
   <ion-content class="padding">
-    <div class="button-bar bar-light">
-      <a class="button button-energized" href="#/tab/targetGraph" >依从率图</a>
-      <a class="button" href="#/tab/recordList">体征表</a>
-    </div>
 
      <ion-refresher pulling-text="下拉刷新" on-refresh="refrsh_graph()"></ion-refresher>
 
 <div ng-if="showGraph==true">
     <div class="row">
-      <div class="col" style="text-align:center;">
-         <p><i class="icon ion-arrow-swap"></i>体征选择</p>
-         <select ng-model="vitalInfo" ng-change="changeVitalInfo(vitalInfo)" ng-options="option.SignName for option in options" class="select-block select-calm">
+      <div class="col" style="text-align:center;border: none 0px;">
+         <p style="font-size:16px;"><i class="icon ion-arrow-swap"></i>体征选择</p>
+         <select ng-model="vitalInfo" ng-change="changeVitalInfo(vitalInfo)" ng-options="option.SignName for option in options" class="select-block select-calm" style="width:100%;height:30px;font-size:16px;">
          </select>
 
       </div>
-      <div class="col col-67" style="text-align:center">
+      <div class="col col-67" style="text-align:center;border: none 0px;font-size:16px;">
          <p> {{orignalValue}}</p> <!-- <img src="img/original.png"> -->
          <p> {{targetValue}}</p> <!-- <img src="img/target.png"> -->
        </div>
     </div>
 
-    <div style='width: 90%; height: 450px;margin-left:5%;' id='chartdiv_graph'>
+    <div style='width: 96%; height:370px;margin-left:2%;' id='chartdiv_graph'>
     </div>
 
     <div style="text-align:center;margin-top:20px;"> 
-      <p style="color:#2894FF;font-size:16px;">计划整体依从率：{{PlanCompliance}}%</p>
+      <p style="color:#2894FF;font-size:16px;">计划整体依从率：{{PlanCompliance*100}}%</p>
       <p style="color:#2894FF;font-size:16px;">计划进度{{ProgressRate*100}}%，离结束还有{{RemainingDays}}天</p>
     </div>
 </div>   
