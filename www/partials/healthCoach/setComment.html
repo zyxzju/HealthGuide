@@ -17,7 +17,7 @@
     </div>   
     <ion-radio ng-repeat="item in modouleList"
                ng-value="item.value"
-               ng-model="comment.selectedModoule">
+               ng-model="comment.selectedModoule" ng-change="getCommentAuthority(item)">
       {{ item.text }}
     </ion-radio>
   </div>

@@ -140,9 +140,10 @@ angular.module('zjubme.services', ['ionic','ngResource'])
         PostPatBasicInfoDetail: {method:'POST', params:{route:'BasicDtlInfo'}, timeout:10000},
         GetHealthCoaches: {method:'GET',isArray: true,params:{route: 'HealthCoaches'}, timeout:100000},
         GetHealthCoachInfo: {method:'GET',params:{route: 'GetHealthCoachInfo', HealthCoachID:'@HealthCoachID'}, timeout:1000},
-        GetCommentList: {method:'GET',isArray: true,params:{route: 'GetCommentList', DoctorId:'@DoctorId',CategoryCode:'@CategoryCode'}, timeout:10000},
+        GetCommentList: {method:'GET',isArray: true,params:{route: 'GetCommentList'}, timeout:10000},
         SetComment: {method:'POST', params:{route:'SetComment'}, timeout:10000},
-        ReserveHealthCoach: {method:'POST', params:{route:'ReserveHealthCoach'}, timeout:10000}
+        ReserveHealthCoach: {method:'POST', params:{route:'ReserveHealthCoach'}, timeout:10000},
+        BasicDtlValue: {method:'GET', params:{route:'BasicDtlValue'}, timeout:10000}
       });
     };
     var Service = function(){
@@ -254,6 +255,16 @@ angular.module('zjubme.services', ['ionic','ngResource'])
 .factory('Users', ['$q', '$http', 'Data',function ( $q,$http, Data) {
   var self = this;
 
+  self.BasicDtlValue = function (UserId, CategoryCode, ItemCode, ItemSeq) {//U201511120002 HM1 Doctor 1
+      var deferred = $q.defer();
+      Data.Users.BasicDtlValue({UserId:UserId, CategoryCode:CategoryCode, ItemCode:ItemCode, ItemSeq:ItemSeq}, function (data, headers) {
+        deferred.resolve(data);
+      }, function (err) {
+      deferred.reject(err);
+      });
+      return deferred.promise;
+  };
+
   self.GetHealthCoachListByPatient = function (PatientId, CategoryCode) {
       var deferred = $q.defer();
       Data.Users.HealthCoaches({PatientId:PatientId}, function (data, headers) {
@@ -284,9 +295,9 @@ self.GetHealthCoaches = function () {
       return deferred.promise;
   };
 
-   self.GetCommentList = function (DoctorId ,CategoryCode) {
+   self.GetCommentList = function (DoctorId ,CategoryCode, num, skip) {
       var deferred = $q.defer();
-      Data.Users.GetCommentList({DoctorId:DoctorId,CategoryCode:CategoryCode}, function (data, headers) {
+      Data.Users.GetCommentList({DoctorId:DoctorId,CategoryCode:CategoryCode, $orderby:"CommentTime desc", $top:num, $skip:skip}, function (data, headers) {
         deferred.resolve(data);
       }, function (err) {
       deferred.reject(err);

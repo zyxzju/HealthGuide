@@ -1,6 +1,10 @@
 <ion-view view-title="评价列表" hide-nav-bar="true">
   <ion-content>
-  <ion-refresher pulling-text="下拉刷新" on-refresh="doRefresh()"></ion-refresher>
+
+  <ion-refresher pulling-text="下拉刷新" on-refresh="refreshComment()">
+  </ion-refresher>
+
+
     <div class="bar bar-calm item-input-inset">
      <button class="button button-icon icon ion-ios-arrow-left" style="text-align:left;padding-right:20px" ng-click="nvGoback()">返回</button> 
      <h1 class="title">评价列表</h1>
@@ -15,5 +19,8 @@
             <p>{{comment.Comment}}</p>
         </ion-item>
     </ion-list>
+
+     <!-- <ion-infinite-scroll on-infinite="loadMoreComment()" distance="10%" icon="ion-loading-c"></ion-infinite-scroll> -->
+
   </ion-content>
 </ion-view>
