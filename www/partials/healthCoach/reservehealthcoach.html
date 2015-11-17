@@ -1,0 +1,16 @@
+<div class="list">
+    <div class="item item-divider"> 选择模块
+    </div>   
+    <ion-radio ng-repeat="item in modouleList"
+               ng-value="item.value"
+               ng-model="reserve.selectedModoule"
+               ng-change="getReserveAuthority(item)">
+      {{ item.text }}
+    </ion-radio>
+  </div>
+  <div class="list">
+      <div class="item item-divider"> 描述</div> 
+      <label class="item item-input"><i class="icon ion-android-create placeholder-icon"></i>
+        <textarea placeholder="请描述您的预约想法，不能超过100字哦" rows="3" ng-model="reserve.Description"></textarea>
+      </label>
+</div>
