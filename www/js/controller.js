@@ -2642,7 +2642,7 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
                     {
                         data.Time = "";
                     }
-                    $scope.Dialog.DisplayOnes.push({"IDFlag": "Send","SendDateTime": data.Time,"Content":$scope.Dialog.SMScontent});
+                    $scope.Dialog.DisplayOnes.push({"IDFlag": "Send","Time": data.Time,"Content":$scope.Dialog.SMScontent});
                     $ionicScrollDelegate.scrollBottom(true);
                     $scope.SocketSubmit(Receiver +  "||" + SendBy + "||" + data.Time + "||" + $scope.Dialog.SMScontent);
                     $scope.Dialog.SMScontent = "";
