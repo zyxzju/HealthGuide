@@ -137,7 +137,12 @@ angular.module('zjubme.services', ['ionic','ngResource'])
         GetPatBasicInfo: {method:'GET', params:{route:'@UserId'}, timeout:10000},
         GetPatientDetailInfo: {method:'GET', params:{route:'@UserId'}, timeout:10000},
         SetPatBasicInfo: {method:'POST', params:{route:'BasicInfo'}, timeout:10000},
-        PostPatBasicInfoDetail: {method:'POST', params:{route:'BasicDtlInfo'}, timeout:10000}
+        PostPatBasicInfoDetail: {method:'POST', params:{route:'BasicDtlInfo'}, timeout:10000},
+        GetHealthCoaches: {method:'GET',isArray: true,params:{route: 'HealthCoaches'}, timeout:100000},
+        GetHealthCoachInfo: {method:'GET',params:{route: 'GetHealthCoachInfo', HealthCoachID:'@HealthCoachID'}, timeout:1000},
+        GetCommentList: {method:'GET',isArray: true,params:{route: 'GetCommentList', DoctorId:'@DoctorId',CategoryCode:'@CategoryCode'}, timeout:10000},
+        SetComment: {method:'POST', params:{route:'SetComment'}, timeout:10000},
+        ReserveHealthCoach: {method:'POST', params:{route:'ReserveHealthCoach'}, timeout:10000}
       });
     };
     var Service = function(){
@@ -172,7 +177,7 @@ angular.module('zjubme.services', ['ionic','ngResource'])
         return $resource(CONFIG.baseUrl + ':path/:route', {path:'PlanInfo'},
           {
               Plan: {method:'GET', params:{route: 'Plan'},timeout: 10000, isArray:true},
-              PlanInfoChart: {method:'GET', params:{route: 'PlanInfoChart', $top:"7", $orderby:"Date"},timeout: 10000, isArray:true},                
+              PlanInfoChart: {method:'GET', params:{route: 'PlanInfoChart'},timeout: 10000, isArray:true},                
               Target: {method:'GET', params:{route: 'Target'},timeout: 10000},
               PlanInfoChartDtl: {method:'GET', params:{route: 'PlanInfoChartDtl'},timeout: 10000, isArray:true},
               GetExecutingPlan: {method:'GET', isArray:true ,params:{route: 'Plan'},timeout: 10000}        
@@ -252,6 +257,56 @@ angular.module('zjubme.services', ['ionic','ngResource'])
   self.GetHealthCoachListByPatient = function (PatientId, CategoryCode) {
       var deferred = $q.defer();
       Data.Users.HealthCoaches({PatientId:PatientId}, function (data, headers) {
+        deferred.resolve(data);
+      }, function (err) {
+      deferred.reject(err);
+      });
+      return deferred.promise;
+  };
+
+self.GetHealthCoaches = function () {
+      var deferred = $q.defer();
+      Data.Users.GetHealthCoaches( function (data, headers) {
+        deferred.resolve(data);
+      }, function (err) {
+      deferred.reject(err);
+      });
+      return deferred.promise;
+  };
+ 
+  self.GetHealthCoachInfo = function (HealthCoachID) {
+      var deferred = $q.defer();
+      Data.Users.GetHealthCoachInfo({HealthCoachID:HealthCoachID}, function (data, headers) {
+        deferred.resolve(data);
+      }, function (err) {
+      deferred.reject(err);
+      });
+      return deferred.promise;
+  };
+
+   self.GetCommentList = function (DoctorId ,CategoryCode) {
+      var deferred = $q.defer();
+      Data.Users.GetCommentList({DoctorId:DoctorId,CategoryCode:CategoryCode}, function (data, headers) {
+        deferred.resolve(data);
+      }, function (err) {
+      deferred.reject(err);
+      });
+      return deferred.promise;
+  };
+
+   self.SetComment = function (sendData) {
+      var deferred = $q.defer();
+      Data.Users.SetComment(sendData, function (data, headers) {
+        deferred.resolve(data);
+      }, function (err) {
+      deferred.reject(err);
+      });
+      return deferred.promise;
+  };
+
+  self.ReserveHealthCoach = function (sendData) {
+      var deferred = $q.defer();
+      Data.Users.ReserveHealthCoach(sendData, function (data, headers) {
         deferred.resolve(data);
       }, function (err) {
       deferred.reject(err);
@@ -566,7 +621,8 @@ angular.module('zjubme.services', ['ionic','ngResource'])
       dt.fulldate=dt.year+dt.month+dt.day;
       //dt.fulltime=dt.hour+dt.minute+dt.second;
       dt.fulltime=dt.hour+dt.minute;
-      dt.full=dt.year+dt.month+dt.dat+dt.hour+dt.minute+dt.second;
+      dt.full=dt.year+dt.month+dt.day+dt.hour+dt.minute+dt.second;
+      dt.zyxTime=dt.year+'-'+dt.month+'-'+dt.day+' '+dt.hour+':'+dt.minute+':'+dt.second;
       // console.log(dt);
       return dt;
     },
@@ -894,8 +950,8 @@ angular.module('zjubme.services', ['ionic','ngResource'])
   var self = this;
   self.PlanInfoChart = function (UserId,PlanNo,StartDate,EndDate,ItemType,ItemCode) {
     var deferred = $q.defer();
-    Data.PlanInfo.PlanInfoChart({UserId:UserId,PlanNo:PlanNo,StartDate:StartDate, EndDate:EndDate, ItemType:ItemType, ItemCode:ItemCode}, function (data, headers) {
-      deferred.resolve(data);
+    Data.PlanInfo.PlanInfoChart({UserId:UserId,PlanNo:PlanNo,StartDate:StartDate, EndDate:EndDate, ItemType:ItemType, ItemCode:ItemCode, $orderby:"Date desc", $top:7}, function (data, headers) {
+      deferred.resolve(data.reverse());
     }, function (err) {
       deferred.reject(err);
     });
