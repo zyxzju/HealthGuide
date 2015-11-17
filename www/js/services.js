@@ -151,6 +151,7 @@ angular.module('zjubme.services', ['ionic','ngResource'])
       },{
               sendSMS:{method:'POST',headers:{token:getToken()}, params:{route: 'sendSMS',phoneNo:'@phoneNo',smsType:'@smsType'}, timeout: 10000},
               checkverification:{method:'POST',headers:{token:getToken()}, params:{route: 'checkverification', mobile:'@mobile',smsType: '@smsType', verification:'@verification'},timeout: 10000},
+              BindMeasureDevice:{method:'GET',params:{route:'GetPatientInfo',PatientId:'@PatientId'},timeout:10000}
       })
     };
     var VitalInfo = function () {
@@ -459,6 +460,16 @@ self.GetHealthCoaches = function () {
       return deferred.promise;
     }
 
+    serve.BindMeasureDevice = function(uid){
+      var deferred = $q.defer();
+      Data.Service.BindMeasureDevice({"PatientId":uid},
+        function(s){
+          deferred.resolve(s);
+        },function(e){
+          deferred.reject(e);
+        })
+      return deferred.promise;
+    }
 
     //var passReg1=/([a-zA-Z]+[0-9]+|[0-9]+[a-zA-Z]+)/;
     //var passReg2=/^.[A-Za-z0-9]+$/;
@@ -796,14 +807,14 @@ self.GetHealthCoaches = function () {
   self.InsertServerData = function()
   {
     var insertserverdata={};
-    insertserverdata.UserId=extraInfo.PatientId();
+    insertserverdata.UserId=window.localStorage['UID'];
     insertserverdata.RecordDate=extraInfo.DateTimeNow().year+extraInfo.DateTimeNow().month+extraInfo.DateTimeNow().day;
     insertserverdata.RecordTime=extraInfo.DateTimeNow().hour+extraInfo.DateTimeNow().minute+extraInfo.DateTimeNow().second;
     insertserverdata.ItemType='';
     insertserverdata.ItemCode='';
     insertserverdata.Value='';
     insertserverdata.Unit='';
-    insertserverdata.revUserId=extraInfo.revUserId();
+    insertserverdata.revUserId=window.localStorage['UID'];
     insertserverdata.TerminalName=extraInfo.TerminalName();
     insertserverdata.TerminalIP=extraInfo.TerminalIP();
     // insertserverdata.DeviceType=parseInt(extraInfo.DeviceType());

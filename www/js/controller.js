@@ -687,11 +687,11 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
   $scope.openUrl = function(url)
   {
     var options = {
-      location: 'no',
+      location: 'yes',
       clearcache: 'yes',
-      toolbar: 'no'
+      toolbar: 'yes'
     };
-    $cordovaInAppBrowser.open(extraInfo.TransformUrl(url), '_blank', options);
+    $cordovaInAppBrowser.open(extraInfo.TransformUrl(url), '_self', options);
   }
   ////////////////////////////////
   ionic.DomUtil.ready(function(){
@@ -1114,10 +1114,15 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
          VitalInfo.PostPatientVitalSigns(highbp).then(function(r){
             VitalInfo.PostPatientVitalSigns(lowbp).then(function(r){
               VitalInfo.PostPatientVitalSigns(jn).then(function(r){
-                alert('savesuccess');
-                extraInfo.refreshflag('set','graphRefresh');
-                extraInfo.refreshflag('set','recordlistrefresh');
-                refreshflag
+                $ionicLoading.show({
+                  template: '保存成功',
+                  noBackdrop: true,
+                  duration: 700
+                });
+                // alert('savesuccess');
+                // extraInfo.refreshflag('set','graphRefresh');
+                // extraInfo.refreshflag('set','recordlistrefresh');
+                // refreshflag
               },function(e){alert('e.result');});
             },function(e){alert('e.result');});
          },function(e){alert('e.result');}); 
@@ -1127,16 +1132,22 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
       handhighbp.Value = $scope.handinputbpm.B1;
       handlowbp.Value = $scope.handinputbpm.B2;
       handjn.Value = $scope.handinputbpm.M;
+      console.log(handhighbp);
       VitalInfo.PostPatientVitalSigns(handhighbp).then(function(r){
         VitalInfo.PostPatientVitalSigns(handlowbp).then(function(r){
           VitalInfo.PostPatientVitalSigns(handjn).then(function(r){
-            alert('savesuccess');
-            extraInfo.refreshflag('set','graphRefresh');
-            extraInfo.refreshflag('set','recordlistrefresh');
-            refreshflag
-          },function(e){alert('e.result');});
-        },function(e){alert('e.result');});
-      },function(e){alert('e.result');});
+            $ionicLoading.show({
+              template: '保存成功',
+              noBackdrop: true,
+              duration: 700
+            });
+            // alert('savesuccess');
+            // extraInfo.refreshflag('set','graphRefresh');
+            // extraInfo.refreshflag('set','recordlistrefresh');
+            // refreshflag
+          },function(e){alert('e1.result');});
+        },function(e){alert('e2.result');});
+      },function(e){alert('e3.result');});
     };
     $ionicModal.fromTemplateUrl('setbt.html', {
       scope: $scope,
@@ -1509,8 +1520,8 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
   }
 }])
 
-.controller('bloodglucosecontroller',['$scope','Data','Storage', 'VitalInfo','extraInfo', '$ionicLoading','$rootScope', '$ionicSlideBoxDelegate', '$http',
-  function($scope,Data,Storage,VitalInfo,extraInfo,$ionicLoading,$rootScope,$ionicSlideBoxDelegate, $http){
+.controller('bloodglucosecontroller',['$scope','Data','Storage', 'VitalInfo','extraInfo', '$ionicLoading','$rootScope', '$ionicSlideBoxDelegate', '$http','VitalInfo','userservice',
+  function($scope,Data,Storage,VitalInfo,extraInfo,$ionicLoading,$rootScope,$ionicSlideBoxDelegate, $http, VitalInfo,userservice){
   console.log('bloodglucosecontroller');
   $scope.bloodglucose={"select":'早餐前',"mvalue":"","tvalue":""};
   $scope.bgcheck='';
@@ -1527,6 +1538,47 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
     setarrowcolor();
     if(!c)$scope.bgcheck='';
     else $scope.bgcheck='required';
+  }
+  var value1,value2;
+  $scope.getlatestbgvalue = function()
+  {
+    var param1 = {UserId:window.localStorage['UID'],ItemType:'BloodSugar',ItemCode:'BloodSugar_10'};
+    var param2 = {UserId:window.localStorage['UID'],ItemType:'BloodSugar',ItemCode:'BloodSugar_11'};
+    VitalInfo.GetLatestPatientVitalSigns(param1).then(function(s){
+      console.log(s);
+      value1 = s.result;
+      VitalInfo.GetLatestPatientVitalSigns(param2).then(function(s){
+        console.log(s);
+        value2 = s.result;
+        // if(value1!=null&&value2 != null)
+        // {
+          
+        // }
+        // if(value2 == null)
+        //   {
+        //     $scope.bloodglucose.mvalue = value2;
+        //   }
+        // else if(va
+        $scope.bloodglucose.mvalue = parseInt(value2);
+        setchartValue();
+        setarrowcolor();
+        clearInterval(buttoniconchange);
+        document.getElementById("buttonicon").style.color="red";
+      },function(e){
+        console.log(e);
+      });
+    },function(e){
+      console.log(e);
+    });
+  }
+  $scope.binddevice = function()
+  {
+    userservice.BindMeasureDevice(window.localStorage['UID']).then(
+      function(s){
+        console.log(s);
+      },function(e){
+        console.log(e);
+      })
   }
   $scope.savebloodglucose = function(check)
   {
@@ -1584,18 +1636,20 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
   var storagembg = {"select":'早餐前',"mvalue":"","tvalue":""};
   $scope.mbgslideHasChanged = function(index)
   {
+    // console.log(storagembg.mvalue);
     switch(index)
     {
       case 0:
-        $scope.bloodglucose.mvalue = storagembg.mvalue;
-        setchartValue();
-        setarrowcolor();
+          $scope.bloodglucose.mvalue = storagembg.mvalue;
+          setchartValue();
+          setarrowcolor();
         break;
       case 1:
-        storagembg.mvalue = $scope.bloodglucose.mvalue;
-        $scope.bloodglucose.mvalue = 0;
-        setchartValue();
-        setarrowcolor();
+          storagembg.mvalue = $scope.bloodglucose.mvalue;
+          // $scope.bloodglucose.mvalue = 0;
+          setchartValue();
+          setarrowcolor();
+          $scope.getlatestbgvalue();
         break;
     }
   }
@@ -1629,8 +1683,8 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
   }
   $scope.startwhmeasure = function()
   {
-    clearInterval(buttoniconchange);
-    document.getElementById("buttonicon").style.color="red";
+    // clearInterval(buttoniconchange);
+    document.getElementById("buttonicon").style.color="black";
   }
   //////////////////////
   var lastid = 's1';
