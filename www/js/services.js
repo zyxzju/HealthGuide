@@ -782,7 +782,8 @@ self.GetHealthCoaches = function () {
           ],
           "export": {
             "enabled": true
-          }
+          },
+          "panEventsEnabled":false
       }
       console.log(bpc);
       return bpc;

@@ -1,7 +1,7 @@
 <!-- 测量血压 -->
 <ion-view view-title="血压测量">
-	<ion-content scroll="false">
-	 <button class='button button-clear button-small button-full button-outline button-positive' ng-click="openModal()">{{btstatus}}</button>
+	<ion-content scroll="true">
+	 <!-- <button class='button button-clear button-small button-full button-outline button-positive' ng-click="openModal()">{{btstatus}}</button> -->
 	<!--<button class='button button-calm button-full' ng-click="EnableBle()">EnableBle?</button>
 	<button class='button button-assertive button-full' ng-click="ScanDevices()">ScanDevices?</button>
 	<button class='button button-energized button-full' ng-click="ConnectedList()">ConnectedList?</button>
@@ -10,19 +10,97 @@
 	<button class='button button-energized button-full' ng-click="SendCtr('{{Bttestdata}}')">SendCtr?</button> -->
 	<!-- <button class='button button-calm button-full' ng-click="getbpmdata()">getbpmdata?</button> -->
 	<!-- <p>高压：{{highbp}}</p><p>低压：{{lowbp}}</p><p>脉率：{{jn}}</p> -->
-	<div id="bpm_chartdiv"></div>
-	  <div class="button-bar padding">
-		  <a class="button button-positive button-outline" ng-click="realstart()">测量</a>
-		  <a class="button button-positive button-outline" ng-click="save()">保存</a>
-		</div>
+		<div id="bpm_chartdiv"></div>
+		<ion-slide-box  class="inputdiv" id="inputdiv" on-slide-changed="bpmslideHasChanged($index)" show-pager="false">
+			<ion-slide>
+				<form name="bpmform">
+					<div class="handiputdiv">
+						<label class="item item-input" style="height:34%;margin-top:1%;">
+							<span class="input-label">收缩压</span>
+							<input type="number" ng-model='handinputbpm.B1' required max='300' min='50' ng-change="handinputbpmchanged()">
+						</label>
+						<label class="item item-input" style="height:33%;">
+							<span class="input-label">舒张压</span>
+							<input type="number" ng-model='handinputbpm.B2' required max='300' min='50'ng-change="handinputbpmchanged()">
+						</label>
+						<label class="item item-input" style="height:33%;">
+							<span class="input-label">脉  率</span>
+							<input type="number" ng-model='handinputbpm.M' required max='300' min='20' ng-change="handinputbpmchanged()">
+						</label>
+						<!-- <a class="button button-positive button-outline" ng-click="realstart()">测量</a>
+						<a class="button button-positive button-outline" ng-click="save()">保存</a> -->
+					</div>
+				</form>
+				<div class="savediv">
+					<button class="button button-large button-calm button-full" style="height:100%;margin:0px;" ng-click="savehandinput()">保存</button>
+					<!-- <a class="button button-positive button-outline" ng-click="realstart()">测量</a>
+					<a class="button button-positive button-outline" ng-click="save()">保存</a> -->
+				</div>
+			</ion-slide>
+			<ion-slide>
+				<div class="deviceinputdiv" style="text-align: center;">
+					<button class="button button-calm button-large button-full" style="height:100%;margin:0px;" ng-click="realstart()">开始测量
+						<i class="icon ion-record buttonicon" id="startbutton"></i>
+					</button>
+				</div>
+				<div class="savediv">
+					<button class="button button-large button-calm button-full" style="height:100%;margin:0px;" ng-click="save()">保存</button>
+				</div>
+			</ion-slide>
+		</ion-slide-box>
+	  	
 	</ion-content>
 </ion-view>
-<style>
-#bpm_chartdiv
+<style  type="text/css">
+	body{height:100%;}
+	.inputdiv{
+		width: 90%;
+		margin: auto;
+		padding-top: 1px;
+		/*border-style: dashed;
+		border-color: blue;
+		border-width: 1px;*/
+	}
+	.handiputdiv{
+		position: absolute;
+		width: 50%;
+		height: 100%;
+		padding-right: 2px;
+		/*border-style: dashed;
+		border-color: red;
+		border-width: 1px;*/
+	}
+	.deviceinputdiv{
+		position: absolute;
+		width: 50%;
+		height: 100%;
+		/*border-style: dashed;
+		border-color: red;
+		border-width: 1px;*/
+	}
+	.savediv{
+		position: absolute;
+		top: 0;
+		left: 50%;
+		width: 50%;
+		height: 100%;
+		border-left:solid;
+		border-left-style: solid;
+		border-left-color: black;
+		border-left-width: 2px;
+		text-align: center;
+	}
+	.buttonicon{
+		position: absolute;
+		left: 80%;
+		top: 0px;
+	}
+	#bpm_chartdiv
 	{
 		background: #282828;
 		margin-left:auto;
 		margin-right:auto;
+		margin-top: 10px;
 		width:90%;
 		color: #fff;
 		font-size: 11px;
