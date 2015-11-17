@@ -763,13 +763,14 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
 }])
 
 //血压
-.controller('bpmcontroller',['$scope',  '$timeout', '$cordovaBluetoothSerial', '$ionicLoading', '$cordovaBLE', 'BloodPressureMeasure', '$ionicModal', 'VitalInfo','extraInfo',
-  function($scope,  $timeout, $cordovaBluetoothSerial, $ionicLoading, $cordovaBLE, BloodPressureMeasure, $ionicModal, VitalInfo,extraInfo){
+.controller('bpmcontroller',['$scope',  '$timeout', '$cordovaBluetoothSerial', '$ionicLoading', '$cordovaBLE', 'BloodPressureMeasure', '$ionicModal', 'VitalInfo','extraInfo','$rootScope',
+  function($scope,  $timeout, $cordovaBluetoothSerial, $ionicLoading, $cordovaBLE, BloodPressureMeasure, $ionicModal, VitalInfo,extraInfo,$rootScope){
     console.log('bpmcontroller');
     var total = document.documentElement.clientHeight;
     console.log(total);
     var bpm_chartdiv = 3*total/5;
     document.getElementById("bpm_chartdiv").style.height=bpm_chartdiv+"px";
+    document.getElementById("inputdiv").style.height=1*total/5+"px";
     var bpc=BloodPressureMeasure.BloodPressureChart();
     var chart = AmCharts.makeChart("bpm_chartdiv",bpc,500);
     $scope.device_a='';
@@ -788,10 +789,65 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
       jn.Unit='次/分';
       jn.ItemType='Pulserate';
       jn.ItemCode='Pulserate_1';
-    // var highbp,lowbp,jn;
+      ///////////////////////////////////////////
+    var handhighbp=VitalInfo.InsertServerData();
+      handhighbp.Unit='mmHg';
+      handhighbp.ItemType='Bloodpressure';
+      handhighbp.ItemCode='Bloodpressure_1';
+    var handlowbp=VitalInfo.InsertServerData();
+      handlowbp.Unit='mmHg';
+      handlowbp.ItemType='Bloodpressure';
+      handlowbp.ItemCode='Bloodpressure_2';
+    var handjn=VitalInfo.InsertServerData();
+      handjn.Unit='次/分';
+      handjn.ItemType='Pulserate';
+      handjn.ItemCode='Pulserate_1';
+      ////////////////////////////////////
+    // var handhighbp,lowbp,jn;
     var btstart=new Uint8Array(9);
     var BPdata=new Uint8Array(30);
-    ionic.DomUtil.ready(function()
+    ///////////////////////////////////////////////
+    var deviceinputcolor = 'black';
+    $scope.handinputbpm={B1:'',B2:'',M:''};
+    var buttoniconchange='';
+    $scope.handinputbpmchanged = function()
+    {
+      console.log($scope.handinputbpm);
+      validatechart($scope.handinputbpm.B1,$scope.handinputbpm.B2,$scope.handinputbpm.M);
+    }
+    $scope.bpmslideHasChanged = function(index)
+    {
+      switch(index)
+      {
+        case 0:
+        {
+          console.log('index0');
+          clearInterval(buttoniconchange);
+        break;}
+        case 1:
+        {
+          console.log('index1');
+          // validatechart(13,13,13);
+          initbpm();
+          buttoniconchange = setInterval(function(){
+            // console.log(deviceinputcolor);
+            deviceinputcolor=='black'?deviceinputcolor='red':deviceinputcolor='black';
+            document.getElementById('startbutton').style.color=deviceinputcolor;
+          },1000);
+        break;}
+      }
+    }
+    $rootScope.$on('$stateChangeStart', function(event, toState, toParams, fromState, fromParams)
+    {
+      // console.log(fromState);
+      // console.log(fromParams);
+      if(fromParams.tl=='bpm')
+      {
+        clearInterval(buttoniconchange);
+      }
+    });
+    ////////////////////////////////////////////////
+    var initbpm = function()
     {
       setInterval(function()
       {
@@ -803,6 +859,8 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
               {
                 readbloothbuffer(i,1);
               }
+              clearInterval(buttoniconchange);
+              document.getElementById('startbutton').style.color='red';
               $scope.btstatus='已准备好设备，请点击"测量"按钮开始测量';
             }else if(numBytes==30)
             {
@@ -833,7 +891,7 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
           );
         }
       );
-    });
+    };
     $scope.isBleEnable = function()
     {
       //document.addEventListener('deviceready', function () {
@@ -1043,10 +1101,10 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
     var validatechart=function(hbp,lbp,jn)
     {
       console.log(chart.dataProvider[0].points);
-      chart.dataProvider[0].points=hbp;
-      chart.dataProvider[1].points=lbp;
-      chart.dataProvider[2].points=jn;
-      chart.graphs[0].labelText="[[points]][[Unit]]";
+      if(hbp>50)chart.dataProvider[0].points=hbp;
+      if(lbp>50)chart.dataProvider[1].points=lbp;
+      if(jn>20)chart.dataProvider[2].points=jn;
+      if(hbp>50&&lbp>50&&jn>20)chart.graphs[0].labelText="[[points]][[Unit]]";
       chart.allLabels[0].text=BloodPressureMeasure.BPConclusion(highbp.Value,lowbp.Value);
       chart.validateData();
     };    
@@ -1064,6 +1122,21 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
             },function(e){alert('e.result');});
          },function(e){alert('e.result');}); 
       }
+    };
+    $scope.savehandinput = function(){
+      handhighbp.Value = $scope.handinputbpm.B1;
+      handlowbp.Value = $scope.handinputbpm.B2;
+      handjn.Value = $scope.handinputbpm.M;
+      VitalInfo.PostPatientVitalSigns(handhighbp).then(function(r){
+        VitalInfo.PostPatientVitalSigns(handlowbp).then(function(r){
+          VitalInfo.PostPatientVitalSigns(handjn).then(function(r){
+            alert('savesuccess');
+            extraInfo.refreshflag('set','graphRefresh');
+            extraInfo.refreshflag('set','recordlistrefresh');
+            refreshflag
+          },function(e){alert('e.result');});
+        },function(e){alert('e.result');});
+      },function(e){alert('e.result');});
     };
     $ionicModal.fromTemplateUrl('setbt.html', {
       scope: $scope,
