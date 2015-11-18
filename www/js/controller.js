@@ -1,5 +1,5 @@
 
-angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'zjubme.directives', 'ja.qr','ionic-datepicker'])//,'ngRoute'
+angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'zjubme.directives','zjubme.filters', 'ja.qr','ionic-datepicker', ])//,'ngRoute'
 
 // 初装或升级App的介绍页面控制器  /暂时不用
 .controller('intro', ['$scope', 'Storage', function ($scope, Storage) {
@@ -687,11 +687,11 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
   $scope.openUrl = function(url)
   {
     var options = {
-      location: 'no',
+      location: 'yes',
       clearcache: 'yes',
-      toolbar: 'no'
+      toolbar: 'yes'
     };
-    $cordovaInAppBrowser.open(extraInfo.TransformUrl(url), '_blank', options);
+    $cordovaInAppBrowser.open(extraInfo.TransformUrl(url), '_self', options);
   }
   ////////////////////////////////
   ionic.DomUtil.ready(function(){
@@ -763,13 +763,14 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
 }])
 
 //血压
-.controller('bpmcontroller',['$scope',  '$timeout', '$cordovaBluetoothSerial', '$ionicLoading', '$cordovaBLE', 'BloodPressureMeasure', '$ionicModal', 'VitalInfo','extraInfo',
-  function($scope,  $timeout, $cordovaBluetoothSerial, $ionicLoading, $cordovaBLE, BloodPressureMeasure, $ionicModal, VitalInfo,extraInfo){
+.controller('bpmcontroller',['$scope',  '$timeout', '$cordovaBluetoothSerial', '$ionicLoading', '$cordovaBLE', 'BloodPressureMeasure', '$ionicModal', 'VitalInfo','extraInfo','$rootScope',
+  function($scope,  $timeout, $cordovaBluetoothSerial, $ionicLoading, $cordovaBLE, BloodPressureMeasure, $ionicModal, VitalInfo,extraInfo,$rootScope){
     console.log('bpmcontroller');
     var total = document.documentElement.clientHeight;
     console.log(total);
     var bpm_chartdiv = 3*total/5;
     document.getElementById("bpm_chartdiv").style.height=bpm_chartdiv+"px";
+    document.getElementById("inputdiv").style.height=1*total/5+"px";
     var bpc=BloodPressureMeasure.BloodPressureChart();
     var chart = AmCharts.makeChart("bpm_chartdiv",bpc,500);
     $scope.device_a='';
@@ -788,10 +789,65 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
       jn.Unit='次/分';
       jn.ItemType='Pulserate';
       jn.ItemCode='Pulserate_1';
-    // var highbp,lowbp,jn;
+      ///////////////////////////////////////////
+    var handhighbp=VitalInfo.InsertServerData();
+      handhighbp.Unit='mmHg';
+      handhighbp.ItemType='Bloodpressure';
+      handhighbp.ItemCode='Bloodpressure_1';
+    var handlowbp=VitalInfo.InsertServerData();
+      handlowbp.Unit='mmHg';
+      handlowbp.ItemType='Bloodpressure';
+      handlowbp.ItemCode='Bloodpressure_2';
+    var handjn=VitalInfo.InsertServerData();
+      handjn.Unit='次/分';
+      handjn.ItemType='Pulserate';
+      handjn.ItemCode='Pulserate_1';
+      ////////////////////////////////////
+    // var handhighbp,lowbp,jn;
     var btstart=new Uint8Array(9);
     var BPdata=new Uint8Array(30);
-    ionic.DomUtil.ready(function()
+    ///////////////////////////////////////////////
+    var deviceinputcolor = 'black';
+    $scope.handinputbpm={B1:'',B2:'',M:''};
+    var buttoniconchange='';
+    $scope.handinputbpmchanged = function()
+    {
+      console.log($scope.handinputbpm);
+      validatechart($scope.handinputbpm.B1,$scope.handinputbpm.B2,$scope.handinputbpm.M);
+    }
+    $scope.bpmslideHasChanged = function(index)
+    {
+      switch(index)
+      {
+        case 0:
+        {
+          console.log('index0');
+          clearInterval(buttoniconchange);
+        break;}
+        case 1:
+        {
+          console.log('index1');
+          // validatechart(13,13,13);
+          initbpm();
+          buttoniconchange = setInterval(function(){
+            // console.log(deviceinputcolor);
+            deviceinputcolor=='black'?deviceinputcolor='red':deviceinputcolor='black';
+            document.getElementById('startbutton').style.color=deviceinputcolor;
+          },1000);
+        break;}
+      }
+    }
+    $rootScope.$on('$stateChangeStart', function(event, toState, toParams, fromState, fromParams)
+    {
+      // console.log(fromState);
+      // console.log(fromParams);
+      if(fromParams.tl=='bpm')
+      {
+        clearInterval(buttoniconchange);
+      }
+    });
+    ////////////////////////////////////////////////
+    var initbpm = function()
     {
       setInterval(function()
       {
@@ -803,6 +859,8 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
               {
                 readbloothbuffer(i,1);
               }
+              clearInterval(buttoniconchange);
+              document.getElementById('startbutton').style.color='red';
               $scope.btstatus='已准备好设备，请点击"测量"按钮开始测量';
             }else if(numBytes==30)
             {
@@ -833,7 +891,7 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
           );
         }
       );
-    });
+    };
     $scope.isBleEnable = function()
     {
       //document.addEventListener('deviceready', function () {
@@ -1043,10 +1101,10 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
     var validatechart=function(hbp,lbp,jn)
     {
       console.log(chart.dataProvider[0].points);
-      chart.dataProvider[0].points=hbp;
-      chart.dataProvider[1].points=lbp;
-      chart.dataProvider[2].points=jn;
-      chart.graphs[0].labelText="[[points]][[Unit]]";
+      if(hbp>50)chart.dataProvider[0].points=hbp;
+      if(lbp>50)chart.dataProvider[1].points=lbp;
+      if(jn>20)chart.dataProvider[2].points=jn;
+      if(hbp>50&&lbp>50&&jn>20)chart.graphs[0].labelText="[[points]][[Unit]]";
       chart.allLabels[0].text=BloodPressureMeasure.BPConclusion(highbp.Value,lowbp.Value);
       chart.validateData();
     };    
@@ -1056,14 +1114,40 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
          VitalInfo.PostPatientVitalSigns(highbp).then(function(r){
             VitalInfo.PostPatientVitalSigns(lowbp).then(function(r){
               VitalInfo.PostPatientVitalSigns(jn).then(function(r){
-                alert('savesuccess');
-                extraInfo.refreshflag('set','graphRefresh');
-                extraInfo.refreshflag('set','recordlistrefresh');
-                refreshflag
+                $ionicLoading.show({
+                  template: '保存成功',
+                  noBackdrop: true,
+                  duration: 700
+                });
+                // alert('savesuccess');
+                // extraInfo.refreshflag('set','graphRefresh');
+                // extraInfo.refreshflag('set','recordlistrefresh');
+                // refreshflag
               },function(e){alert('e.result');});
             },function(e){alert('e.result');});
          },function(e){alert('e.result');}); 
       }
+    };
+    $scope.savehandinput = function(){
+      handhighbp.Value = $scope.handinputbpm.B1;
+      handlowbp.Value = $scope.handinputbpm.B2;
+      handjn.Value = $scope.handinputbpm.M;
+      console.log(handhighbp);
+      VitalInfo.PostPatientVitalSigns(handhighbp).then(function(r){
+        VitalInfo.PostPatientVitalSigns(handlowbp).then(function(r){
+          VitalInfo.PostPatientVitalSigns(handjn).then(function(r){
+            $ionicLoading.show({
+              template: '保存成功',
+              noBackdrop: true,
+              duration: 700
+            });
+            // alert('savesuccess');
+            // extraInfo.refreshflag('set','graphRefresh');
+            // extraInfo.refreshflag('set','recordlistrefresh');
+            // refreshflag
+          },function(e){alert('e1.result');});
+        },function(e){alert('e2.result');});
+      },function(e){alert('e3.result');});
     };
     $ionicModal.fromTemplateUrl('setbt.html', {
       scope: $scope,
@@ -1122,35 +1206,55 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
   };
 }])
 
-.controller('measureweightcontroller',['$scope','Data','Storage','VitalInfo', 'extraInfo','$ionicLoading',
-  function($scope,Data,Storage,VitalInfo,extraInfo,$ionicLoading){
+.controller('measureweightcontroller',['$scope','Data','Storage','VitalInfo', 'extraInfo','$ionicLoading','BloodPressureMeasure','$ionicSlideBoxDelegate','$rootScope', '$http',
+  function($scope,Data,Storage,VitalInfo,extraInfo,$ionicLoading,BloodPressureMeasure,$ionicSlideBoxDelegate,$rootScope, $http){
+  /////////////////////
+  var result='';
+  $http.get('data/whresult.json').success(function(data){
+        result = data;
+        console.log(result);
+      });
+  /////////////////////
+  $scope.BMI={weight:0,height:0,BMI:0,result:''};
   $scope.hcheck='';
   $scope.wcheck='';
-  $scope.check_h = function(c)
+  $scope.check_h = function(c1,c2)
   {
     $scope.BMI.BMI='';
-    if(!c)$scope.hcheck='';
+    if(!c1&&!c2)
+    {
+      $scope.hcheck='';
+      mathbmi();
+      setchartValue();
+      setchartband();
+    }
     else $scope.hcheck='required';
+    // console.log($scope.BMI.BMI);
   }
-  $scope.check_w = function(c)
+  $scope.check_w = function(c1,c2)
   {
     $scope.BMI.BMI='';
-    if(!c)$scope.wcheck='';
+    if(!c1&&!c2)
+    {
+      $scope.wcheck='';
+      mathbmi();
+      setchartValue();
+    }
     else $scope.wcheck='required';
   }
-  $scope.$on('$viewContentLoading', 
-    function(event){
-      console.log('viewContentLoading');
-      VitalInfo.GetLatestPatientVitalSigns(get[0]).then(function(s){
-        console.log(s);
-        $scope.BMI.weight = parseInt(s.result);
-        VitalInfo.GetLatestPatientVitalSigns(get[1]).then(function(s){
-          $scope.BMI.height = parseInt(s.result);
-          console.log(s);
-        });
-    });
-  });
-  $scope.BMI={}
+  // $scope.$on('$viewContentLoading', 
+  //   function(event){
+  //     console.log('viewContentLoading');
+  //     VitalInfo.GetLatestPatientVitalSigns(get[0]).then(function(s){
+  //       console.log(s);
+  //       $scope.BMI.weight = parseInt(s.result);
+  //       VitalInfo.GetLatestPatientVitalSigns(get[1]).then(function(s){
+  //         $scope.BMI.height = parseInt(s.result);
+  //         console.log(s);
+  //       });
+  //   });
+  // });
+  $scope.BMI={};
   var UserId =Storage.get("UID");//'PID201506180013'
   var get = [{
     UserId:UserId,
@@ -1167,21 +1271,45 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
     $scope.BMI.weight = parseInt(s.result);
     VitalInfo.GetLatestPatientVitalSigns(get[1]).then(function(s){
       $scope.BMI.height = parseInt(s.result);
+      setTimeout(function() {mathbmi();setchartband();setchartValue();}, 1000);
       console.log(s);
     });
   });
-  $scope.mathbmi = function(c)
+  var mathbmi = function()
   {
-    if(c)
-    {
       $scope.BMI.BMI=($scope.BMI.weight/($scope.BMI.height * $scope.BMI.height));
-      if($scope.BMI.BMI<0.00185)$scope.BMI.result = "您的体重有点过轻了";
-      else if($scope.BMI.BMI>=0.00185&&$scope.BMI.BMI<0.002499)$scope.BMI.result = "您的体重属于正常范围";
-      else if($scope.BMI.BMI>=0.0025&&$scope.BMI.BMI<0.0028)$scope.BMI.result = "您的体重过重了";
-      else if($scope.BMI.BMI>=0.0028&&$scope.BMI.BMI<0.0032)$scope.BMI.result = "您已经属于肥胖行列了";
-      else if($scope.BMI.BMI>=0.0032)$scope.BMI.result = "您现在已经非常肥胖了";
-      console.log($scope.BMI.BMI);
-    }
+      if($scope.BMI.BMI<0.00185)
+        {
+          $scope.BMI.result = result.result1;
+          document.getElementById('submitwh').style.backgroundColor='gray';
+          gaugeChart.arrows[0].color='gray';
+        }
+      else if($scope.BMI.BMI>=0.00185&&$scope.BMI.BMI<0.002499)
+        {
+          setTimeout(function() {$scope.BMI.result =  result.result2;console.log($scope.BMI.result);}, 1000);
+          
+          document.getElementById('submitwh').style.backgroundColor='green';
+          gaugeChart.arrows[0].color='green';
+        }
+      else if($scope.BMI.BMI>=0.0025&&$scope.BMI.BMI<0.0028)
+        {
+          $scope.BMI.result =  result.result3;
+          document.getElementById('submitwh').style.backgroundColor='#E8D502';
+          gaugeChart.arrows[0].color='#E8D502';
+        }
+      else if($scope.BMI.BMI>=0.0028&&$scope.BMI.BMI<0.0032)
+        {
+          $scope.BMI.result =  result.result4;
+          document.getElementById('submitwh').style.backgroundColor='#FF944D';
+          gaugeChart.arrows[0].color='#FF944D';
+        }
+      else if($scope.BMI.BMI>=0.0032)
+        {
+          $scope.BMI.result =  result.result5;
+          document.getElementById('submitwh').style.backgroundColor='red';
+          gaugeChart.arrows[0].color='red';
+        }
+      // console.log($scope.BMI.BMI);
   };
   $scope.saveWH = function(c)
   {
@@ -1226,19 +1354,231 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
         })
       })
     }
-    
+  }
+  $scope.nextSlide = function() {
+    $ionicSlideBoxDelegate.next();
+  }
+  $scope.previousSlide = function() {
+    $ionicSlideBoxDelegate.previous();
+  }
+  var mwchartdata = {
+    "type": "gauge",
+    "theme": "light",
+    "axes": [ {
+      "axisThickness": 1,
+      "axisAlpha": 0.2,
+      "tickAlpha": 0.2,
+      "valueInterval": 10,
+      "bands": [ {
+        "color": "gray",
+        "endValue": 150,
+        "startValue": 0
+      }, {
+        "color": "green",
+        "endValue": 0,
+        "startValue": 0
+      }, {
+        "color": "#E8D502",
+        "endValue": 0,
+        "innerRadius": "95%",
+        "startValue": 0
+      }, {
+        "color": "#FF944D",
+        "endValue": 0,
+        "innerRadius": "95%",
+        "startValue": 0
+      }, {
+        "color": "red",
+        "endValue": 0,
+        "innerRadius": "95%",
+        "startValue": 0
+      } ],
+      "bottomText": "0 km/h",
+      "bottomTextYOffset": -20,
+      "endValue": 150
+    } ],
+    "arrows": [ {
+        "color":"gray",
+        "nailAlpha":1,
+        "nailRadius":15
+      } ],
+    "export": {
+      "enabled": true
+    },
+    "panEventsEnabled":false,
+    "autoDisplay":true,
+    "marginBottom":0
+  }
+  var storagemwchartdata = mwchartdata;
+  var gaugeChart = AmCharts.makeChart( "mwchart",mwchartdata,500);
+  //////////////////////////
+  var buttoniconflag = true;
+  var buttoniconchange = setInterval( function(){setbuttoniconcolor()}, 1000 );
+  $rootScope.$on('$stateChangeStart', function(event, toState, toParams, fromState, fromParams)
+  {
+    // console.log(fromState);
+    // console.log(fromParams);
+    if(fromParams.tl=='measureweight')
+    {
+      clearInterval(buttoniconchange);
+    }
+  });
+  var setbuttoniconcolor = function(){
+    if(buttoniconflag)
+    {
+      document.getElementById("buttonicon").style.color="red";
+      buttoniconflag = !buttoniconflag;
+    }else
+    {
+      document.getElementById("buttonicon").style.color="black";
+      buttoniconflag = !buttoniconflag;
+    }
+  }
+  $scope.startwhmeasure = function()
+  {
+    clearInterval(buttoniconchange);
+    document.getElementById("buttonicon").style.color="red";
+  }
+  //////////////////////
+  var setchartValue = function() {
+    if($scope.BMI.height!=undefined&&$scope.BMI.weight!=undefined)
+    {
+      if ( gaugeChart ) {
+        if ( gaugeChart.arrows ) {
+          if ( gaugeChart.arrows[ 0 ] ) {
+            if ( gaugeChart.arrows[ 0 ].setValue ) {
+              gaugeChart.arrows[ 0 ].setValue( $scope.BMI.weight );
+              gaugeChart.axes[ 0 ].setBottomText("BMI:"+($scope.BMI.BMI*10000).toFixed(2)+'\n'+$scope.BMI.height + "cm  "+$scope.BMI.weight + "Kg");
+              // console.log(($scope.BMI.BMI*10000).toFixed(2));
+            }
+          }
+        }
+      }
+    }
+  }
+  var setchartband = function()
+  {
+    var band1 = $scope.BMI.height*$scope.BMI.height*0.00185;
+    gaugeChart.axes[ 0 ].bands[0].endValue=band1;
+    gaugeChart.axes[ 0 ].bands[1].startValue=band1;
+    var band2 = $scope.BMI.height*$scope.BMI.height*0.0025;
+    gaugeChart.axes[ 0 ].bands[1].endValue=band2;
+    gaugeChart.axes[ 0 ].bands[2].startValue=band2;
+    var band3 = $scope.BMI.height*$scope.BMI.height*0.0028;
+    gaugeChart.axes[ 0 ].bands[2].endValue=band3;
+    gaugeChart.axes[ 0 ].bands[3].startValue=band3;
+    var band4 = $scope.BMI.height*$scope.BMI.height*0.0032;
+    gaugeChart.axes[ 0 ].bands[3].endValue=band4;
+    gaugeChart.axes[ 0 ].bands[4].startValue=band4;
+    gaugeChart.axes[ 0 ].bands[4].endValue=150;
+    gaugeChart.validateNow(true,false);
+  }
+  var storageBMI = {};
+  $scope.slideHasChanged = function(index)
+  {
+    // console.log(index);
+    switch (index)
+    {
+      case 0:
+        $scope.BMI.weight=storageBMI.weight;
+        $scope.BMI.height=storageBMI.height;
+        $scope.BMI.BMI=storageBMI.BMI;
+        $scope.BMI.result=storageBMI.result;
+        console.log(storageBMI);
+        // mwchartdata=storagemwchartdata;
+        mathbmi();
+        setchartValue();
+        setchartband();
+        break;
+      case 1:
+        document.getElementById('submit2').style.backgroundColor='gray';
+        storageBMI.weight=$scope.BMI.weight;
+        storageBMI.height=$scope.BMI.height;
+        storageBMI.BMI=$scope.BMI.BMI;
+        storageBMI.result=$scope.BMI.result;
+        console.log(storageBMI);
+        $scope.BMI.weight=0;
+        $scope.BMI.height=0;
+        $scope.BMI.BMI=0;
+        $scope.BMI.result='';
+        mathbmi();
+        setchartValue();
+        setchartband();
+        mwchartdata.axes[ 0 ].bands[0].endValue=150;
+        mwchartdata.axes[ 0 ].bands[1].startValue=0;
+        mwchartdata.axes[ 0 ].bands[1].endValue=0;
+        mwchartdata.axes[ 0 ].bands[2].startValue=0;
+        mwchartdata.axes[ 0 ].bands[2].endValue=0;
+        mwchartdata.axes[ 0 ].bands[3].startValue=0;
+        mwchartdata.axes[ 0 ].bands[3].endValue=0;
+        mwchartdata.axes[ 0 ].bands[4].startValue=0;
+        mwchartdata.axes[ 0 ].bands[4].endValue=0;
+        mwchartdata.arrows[0].color='gray';
+        gaugeChart.validateNow(true,false);
+        break;
+    }
   }
 }])
 
-.controller('bloodglucosecontroller',['$scope','Data','Storage', 'VitalInfo','extraInfo', '$ionicLoading', function($scope,Data,Storage,VitalInfo,extraInfo,$ionicLoading){
+.controller('bloodglucosecontroller',['$scope','Data','Storage', 'VitalInfo','extraInfo', '$ionicLoading','$rootScope', '$ionicSlideBoxDelegate', '$http','VitalInfo','userservice',
+  function($scope,Data,Storage,VitalInfo,extraInfo,$ionicLoading,$rootScope,$ionicSlideBoxDelegate, $http, VitalInfo,userservice){
   console.log('bloodglucosecontroller');
   $scope.bloodglucose={"select":'早餐前',"mvalue":"","tvalue":""};
   $scope.bgcheck='';
+  var result={};
+  $http.get('data/bgresult.json').success(function(data){
+    result = data;
+    console.log(result);
+  });
+  $scope.result = '';
   $scope.check = function(c)
   {
     // console.log('change');
+    setchartValue();
+    setarrowcolor();
     if(!c)$scope.bgcheck='';
     else $scope.bgcheck='required';
+  }
+  var value1,value2;
+  $scope.getlatestbgvalue = function()
+  {
+    var param1 = {UserId:window.localStorage['UID'],ItemType:'BloodSugar',ItemCode:'BloodSugar_10'};
+    var param2 = {UserId:window.localStorage['UID'],ItemType:'BloodSugar',ItemCode:'BloodSugar_11'};
+    VitalInfo.GetLatestPatientVitalSigns(param1).then(function(s){
+      console.log(s);
+      value1 = s.result;
+      VitalInfo.GetLatestPatientVitalSigns(param2).then(function(s){
+        console.log(s);
+        value2 = s.result;
+        // if(value1!=null&&value2 != null)
+        // {
+          
+        // }
+        // if(value2 == null)
+        //   {
+        //     $scope.bloodglucose.mvalue = value2;
+        //   }
+        // else if(va
+        $scope.bloodglucose.mvalue = parseInt(value2);
+        setchartValue();
+        setarrowcolor();
+        clearInterval(buttoniconchange);
+        document.getElementById("buttonicon").style.color="red";
+      },function(e){
+        console.log(e);
+      });
+    },function(e){
+      console.log(e);
+    });
+  }
+  $scope.binddevice = function()
+  {
+    userservice.BindMeasureDevice(window.localStorage['UID']).then(
+      function(s){
+        console.log(s);
+      },function(e){
+        console.log(e);
+      })
   }
   $scope.savebloodglucose = function(check)
   {
@@ -1257,9 +1597,9 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
         "TerminalIP": "sample string 10",
         "DeviceType": 11
       }
-      //console.log(save);
+      console.log(save);
       VitalInfo.PostPatientVitalSigns(save).then(function(s){
-        //console.log(s);
+        console.log(s);
         $ionicLoading.show({
           template: '保存成功',
           noBackdrop: true,
@@ -1275,6 +1615,213 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
       });
     }else $scope.bgcheck='required';
   }
+   var setchartValue = function() 
+   {
+    var v = $scope.bloodglucose.mvalue; 
+    if(v == undefined || v == '')v=0;
+    if ( bloodglucosecharts ) {
+      if ( bloodglucosecharts.arrows ) {
+        if ( bloodglucosecharts.arrows[ 0 ] ) {
+          if ( bloodglucosecharts.arrows[ 0 ].setValue ) {
+            bloodglucosecharts.arrows[ 0 ].setValue(v);
+            bloodglucosecharts.axes[ 0 ].setBottomText(v+" mmol/L");
+          }
+        }
+      }
+    }
+    
+  }
+  setchartValue();
+  //////////////////////////
+  var storagembg = {"select":'早餐前',"mvalue":"","tvalue":""};
+  $scope.mbgslideHasChanged = function(index)
+  {
+    // console.log(storagembg.mvalue);
+    switch(index)
+    {
+      case 0:
+          $scope.bloodglucose.mvalue = storagembg.mvalue;
+          setchartValue();
+          setarrowcolor();
+        break;
+      case 1:
+          storagembg.mvalue = $scope.bloodglucose.mvalue;
+          // $scope.bloodglucose.mvalue = 0;
+          setchartValue();
+          setarrowcolor();
+          $scope.getlatestbgvalue();
+        break;
+    }
+  }
+  $scope.nextSlide = function() {
+    $ionicSlideBoxDelegate.next();
+  }
+  $scope.previousSlide = function() {
+    $ionicSlideBoxDelegate.previous();
+  }
+  var buttoniconflag = true;
+  var buttoniconchange = setInterval( function(){setbuttoniconcolor()}, 1000 );
+  $rootScope.$on('$stateChangeStart', function(event, toState, toParams, fromState, fromParams)
+  {
+    // console.log(fromState);
+    // console.log(fromParams);
+    if(fromParams.tl=='bloodglucose')
+    {
+      clearInterval(buttoniconchange);
+    }
+  });
+  var setbuttoniconcolor = function(){
+    if(buttoniconflag)
+    {
+      document.getElementById("buttonicon").style.color="red";
+      buttoniconflag = !buttoniconflag;
+    }else
+    {
+      document.getElementById("buttonicon").style.color="black";
+      buttoniconflag = !buttoniconflag;
+    }
+  }
+  $scope.startwhmeasure = function()
+  {
+    // clearInterval(buttoniconchange);
+    document.getElementById("buttonicon").style.color="black";
+  }
+  //////////////////////
+  var lastid = 's1';
+  var hournow = new Date().getHours();
+  if(hournow>=1&&hournow<8)$scope.selecttimeline
+  /////////////////////////////////
+  $scope.selecttimeline = function(tl,cid)
+  {
+    console.log(cid);
+    document.getElementById(lastid).style.color="black";
+    lastid = cid;
+    document.getElementById(cid).style.color="red";
+    switch(tl)
+    {      
+      case '早餐前':
+        setchartband(4,8);
+        $scope.bloodglucose.select='早餐前';
+        break;
+      case '早餐后':
+        setchartband(6,10);
+        $scope.bloodglucose.select='早餐后';
+        break;
+      case '午餐前':
+        setchartband(4,9);
+        $scope.bloodglucose.select='午餐前';
+        break;
+      case '午餐后':
+        setchartband(9,13);
+        $scope.bloodglucose.select='午餐后';
+        break;
+      case '晚餐前':
+        setchartband(7,10);
+        $scope.bloodglucose.select='晚餐前';
+        break;
+      case '晚餐后':
+        setchartband(10,13);
+        $scope.bloodglucose.select='晚餐后';
+        break;
+      case '凌晨':
+        setchartband(5,7);
+        $scope.bloodglucose.select='凌晨';
+        break;
+      case '睡前':
+        setchartband(6,9);
+        $scope.bloodglucose.select='睡前';
+        break;
+    }
+    setarrowcolor();
+  }
+  //////////////////////
+  setTimeout(function(){
+    var hournow = new Date().getHours();
+    if(hournow>=1&&hournow<8)$scope.selecttimeline('早餐前','s1');
+    else if(hournow>=8&&hournow<9)$scope.selecttimeline('早餐后','s2');
+    else if(hournow>=9&&hournow<12)$scope.selecttimeline('午餐前','s3');
+    else if(hournow>=12&&hournow<15)$scope.selecttimeline('午餐后','s4');
+    else if(hournow>=15&&hournow<19)$scope.selecttimeline('晚餐前','s5');
+    else if(hournow>=19&&hournow<21)$scope.selecttimeline('晚餐后','s6');
+    else if(hournow>=21&&hournow<23)$scope.selecttimeline('睡前','s8');
+    else if(hournow>=23||hournow<1)$scope.selecttimeline('凌晨','s7');
+  },500);
+  
+  /////////////////////////////////
+  var setchartband = function(n1,n2)
+  {
+    bloodglucosecharts.axes[ 0 ].bands[0].startValue=0;
+    bloodglucosecharts.axes[ 0 ].bands[0].endValue=n1;
+    bloodglucosecharts.axes[ 0 ].bands[1].startValue=n1;
+    bloodglucosecharts.axes[ 0 ].bands[1].endValue=n2;
+    bloodglucosecharts.axes[ 0 ].bands[2].startValue=n2;
+    bloodglucosecharts.axes[ 0 ].bands[2].endValue=15;
+    bloodglucosecharts.validateNow(true,false);
+  }
+  var setarrowcolor = function()
+  {
+    var v = $scope.bloodglucose.mvalue;
+    if(v==undefined)v=0;
+      if(v < bloodglucosecharts.axes[ 0 ].bands[0].endValue)
+        {
+          document.getElementById('submitbg').style.backgroundColor='gray';
+          bloodglucosecharts.arrows[0].color='gray';
+          $scope.result = result.result1;
+        }
+      else if(v>=bloodglucosecharts.axes[ 0 ].bands[0].endValue && v<bloodglucosecharts.axes[ 0 ].bands[1].endValue)
+        {
+          document.getElementById('submitbg').style.backgroundColor='green';
+          bloodglucosecharts.arrows[0].color='green';
+          $scope.result = result.result2;
+        }
+      else if(v>=bloodglucosecharts.axes[ 0 ].bands[1].endValue && v<=15)
+        {
+          document.getElementById('submitbg').style.backgroundColor='red';
+          bloodglucosecharts.arrows[0].color='red';
+          $scope.result = result.result3;
+        }
+      // console.log($scope.BMI.BMI);
+  };
+  ///////////////////////////////
+  var bloodglucosecharts = AmCharts.makeChart("bloodglucosechartsdiv", {
+    "type": "gauge",
+    "theme": "light",
+    "axes": [ {
+      "axisThickness": 1,
+      "axisAlpha": 0.2,
+      "tickAlpha": 0.2,
+      "valueInterval": 1,
+      "bands": [ {
+        "color": "gray",
+        "endValue": 15,
+        "startValue": 0
+      }, {
+        "color": "green",
+        "endValue": 0,
+        "startValue": 0
+      },{
+        "color": "red",
+        "endValue": 0,
+        "innerRadius": "95%",
+        "startValue": 0
+      } ],
+      "bottomText": "0 mmol/L",
+      "bottomTextYOffset": -20,
+      "endValue": 15
+    } ],
+    "arrows": [ {
+        "color":"gray",
+        "nailAlpha":1,
+        "nailRadius":15
+      } ],
+    "export": {
+      "enabled": true
+    },
+    "panEventsEnabled":false,
+    "autoDisplay":true,
+    "marginBottom":0
+  },500);
+  ////////////////////////////////
 }])
 
 .controller('alertcontroller',['$scope', '$timeout', '$ionicModal', '$ionicHistory', '$cordovaDatePicker','$cordovaLocalNotification','NotificationService',
@@ -1345,7 +1892,7 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
               StartDate =data[0].StartDate; 
               EndDate=data[0].EndDate;
 
-              init_graph(UserId, data[0].PlanNo, data[0].StartDate, data[0].EndDate, "Bloodpressure", "Bloodpressure_1", SBPGuide,80,200);
+              init_graph(UserId, data[0].PlanNo, data[0].StartDate, data[0].EndDate, "Bloodpressure", "Bloodpressure_1", SBPGuide,60,200,"收缩压 （单位：mmHg）");
               
            }
            else
@@ -1475,7 +2022,7 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
        //同时修改初始值和目标值，有显示，无则隐藏  未做
        if(ItemCode=="Bloodpressure_1")
         {
-          init_graph(UserId, PlanNo, StartDate, EndDate, ItemType, ItemCode, SBPGuide,80,200,"收缩压 （单位：mmHg）");
+          init_graph(UserId, PlanNo, StartDate, EndDate, ItemType, ItemCode, SBPGuide,80,210,"收缩压 （单位：mmHg）");
           //chart_graph.panels[0].title="收缩压 （单位：mmHg）";
           //chart_graph.panels[0].valueAxes[0].minimum=80;
           //chart_graph.panels[0].valueAxes[0].maximum=200;
@@ -1553,7 +2100,7 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
         },
         //autoMargins:false,
         panels: [{
-          title: "收缩压 （单位：mmHg）",
+          title: "",
           showCategoryAxis: false,
           percentHeight: 65,
           autoMargins:false,
@@ -1574,8 +2121,8 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
               gridAlpha : 0,
               //labelOffset:0,
               labelsEnabled : false,
-              minimum: 80,  
-              maximum: 200,  
+              //minimum: 80,  
+              //maximum: 200,  
               guides:''   //区域划分ChartData.GraphGuide.GuideList
               
             }
@@ -1685,7 +2232,7 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
           chartScrollbarSettings: {  //时间缩放面板
             zoomable:false,
             pan:true,           
-            enabled:true,
+            enabled:false,
             position: "top",
             autoGridCount: true, //默认
             graph: "graph1",
@@ -1874,7 +2421,7 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
      $scope.Signs_all.list=[];
      $scope.Signs_all.UnitCount = 10;//每次点击加载的条数
      $scope.Signs_all.Skip = $scope.Signs_all.UnitCount;//跳过的条数
-      console.log($scope.Signs_all.Skip);
+     // console.log($scope.Signs_all.Skip);
       $scope.loadMore = function(){
           $scope.show_button = true;
           $scope.show_recordList = false;
@@ -1936,28 +2483,57 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
 //我的专员消息列表
 .controller('contactListCtrl',function($scope, $http, $state, $stateParams, Users, Storage,CONFIG){
     //console.log($stateParams.tt);
-    
     $scope.chatImgUrl=CONFIG.ImageAddressIP + CONFIG.ImageAddressFile+'/';
     $scope.contactList = {};
-    $scope.contactList.list;
+    $scope.contactList.list = new Array();
 
-     $scope.$watch('$viewContentLoaded', function() {  
-          $scope.GetHealthCoachListByPatient();
+    $scope.$watch('$viewContentLoaded', function() {  
+        $scope.GetHealthCoachListByPatient();
     }); 
     $scope.GetHealthCoachListByPatient = function()
     {
         var PatientId = Storage.get("UID");
         var promise = Users.GetHealthCoachListByPatient(PatientId);  
-        promise.then(function(data) {  
-
-            $scope.contactList.list = data;console.log($scope.contactList.list); 
-            for(var i=0;i<$scope.contactList.list.length;i++){
-               if(($scope.contactList.list[i].imageURL=="")||($scope.contactList.list[i].imageURL==null)){
-                $scope.contactList.list[i].imageURL="img/DefaultAvatar.jpg";
-              }
-              else{ $scope.contactList.list[i].imageURL=CONFIG.ImageAddressIP + CONFIG.ImageAddressFile+'/'+$scope.contactList.list[i].imageURL;
-              }
-            }
+        promise.then(function(data) { 
+            if (data.length > 0)
+            {
+                for (var i = 0; i < data.length - 1; i++)
+                {
+                    data[i].module = data[i].module.substr(0, data[i].module.length - 2)
+                    var indexList = new Array();
+                    for (var j = i + 1; j < data.length; j++)
+                    {
+                        if (data[i].HealthCoachID == data[j].HealthCoachID)
+                        {
+                            data[i].module += "/" + data[j].module.substr(0, data[j].module.length - 2);
+                            indexList.push(j - 1);
+                        }
+                    }
+                    data[i].module = "模块：" + data[i].module;
+                    if (indexList.length > 0)
+                    {
+                        indexList[0] += 1;
+                        for (var k = 0; k < indexList.length; k++)
+                        {
+                            data.splice(indexList[k], 1);
+                        }
+                    } 
+                }
+                $scope.contactList.list = data;
+                console.log($scope.contactList.list); 
+                for(var i=0;i<$scope.contactList.list.length;i++)
+                {
+                    if(($scope.contactList.list[i].imageURL=="")||($scope.contactList.list[i].imageURL==null))
+                    {
+                        $scope.contactList.list[i].imageURL="img/DefaultAvatar.jpg";
+                    }
+                    else
+                    { 
+                        $scope.contactList.list[i].imageURL=CONFIG.ImageAddressIP + CONFIG.ImageAddressFile+'/'+$scope.contactList.list[i].imageURL;
+                    }
+                }
+            } 
+            
             $scope.$broadcast('scroll.refreshComplete');
         }, function(data) {  
         });      
@@ -1978,6 +2554,11 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
 
 .controller('ChatDetailCtrl' ,function($scope, $http, $stateParams, $resource, MessageInfo, $ionicScrollDelegate, CONFIG, Storage,Data) 
 {
+
+    $scope.setCurrent = function(healthCoachID){
+      Storage.set("HealthCoachID",healthCoachID );
+    }
+
     //console.log($stateParams.tt);
     $scope.Dialog = {};
     var paraArry = $stateParams.tt.split('&');
@@ -2115,7 +2696,7 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
                     {
                         data.Time = "";
                     }
-                    $scope.Dialog.DisplayOnes.push({"IDFlag": "Send","SendDateTime": data.Time,"Content":$scope.Dialog.SMScontent});
+                    $scope.Dialog.DisplayOnes.push({"IDFlag": "Send","Time": data.Time,"Content":$scope.Dialog.SMScontent});
                     $ionicScrollDelegate.scrollBottom(true);
                     $scope.SocketSubmit(Receiver +  "||" + SendBy + "||" + data.Time + "||" + $scope.Dialog.SMScontent);
                     $scope.Dialog.SMScontent = "";
@@ -2152,92 +2733,394 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
         });
     } 
 })
-// --------专员选择-李山----------------
-.controller('HealthCoachListCtrl', ['$scope', '$state','$ionicPopup','$ionicSideMenuDelegate','$http', '$ionicModal','$ionicPopover','$ionicHistory',
-    function($scope, $state, $ionicPopup,$ionicSideMenuDelegate,$http, $ionicModal, $ionicPopover,$ionicHistory) { 
-      
+// --------专员选择-赵艳霞----------------
+.controller('HealthCoachListCtrl', ['$scope', '$state','$ionicPopup','$ionicSideMenuDelegate','$http', '$ionicModal','$ionicPopover','$ionicHistory','Users','Storage','CONFIG','$filter',
+    function($scope, $state, $ionicPopup,$ionicSideMenuDelegate,$http, $ionicModal, $ionicPopover,$ionicHistory,Users,Storage,CONFIG,$filter) { 
       
       $scope.nvGoback = function() {
         $ionicHistory.goBack();
       } 
 
-      $http.get('data/healthCoachList.json').success(function(data) {
-          $scope.healthCoachList = data.healthCoachList1;
-       });
+      $scope.$watch('$viewContentLoaded', function() {      
+      GetHealthCoaches();
+      }); 
 
-      $scope.doRefresh = function() {
-              $http.get('data/tasks1.json')  
-                  .success(function(data) {
-                      $scope.tasks = data;
-                  })
-                  .finally(function() {
-                      $scope.$broadcast('scroll.refreshComplete');
-                  });
-      };
+     GetHealthCoaches = function()
+     {
+           var promise = Users.GetHealthCoaches(); 
+           promise.then(function(data)
+          { 
+             $scope.healthCoachList = data; 
+             for(var i=0;i<$scope.healthCoachList.length;i++){
+                 if(($scope.healthCoachList[i].imageURL=="")||($scope.healthCoachList[i].imageURL==null)){
+                  $scope.healthCoachList[i].imageURL="img/DefaultAvatar.jpg";
+                }
+                else{ $scope.healthCoachList[i].imageURL=CONFIG.ImageAddressIP + CONFIG.ImageAddressFile+'/'+$scope.healthCoachList[i].imageURL;
+                }
+              }
+             $scope.$broadcast('scroll.refreshComplete');
+            },function(err) {   
+          });      
+      }
+
+    $scope.setCurrent = function(healthCoach){
+      Storage.set("HealthCoachID",healthCoach.healthCoachID );
+
+     }
+
+       $scope.doRefresh = function() {
+              GetHealthCoaches();
+              $scope.$broadcast('scroll.refreshComplete');
+       };
+
+       //排序
+       $ionicPopover.fromTemplateUrl('templates/popover-sort.html', {
+        scope: $scope,
+      }).then(function(popover) {
+        $scope.popover = popover;
+      });
+
       $scope.sideList = [
-        { text: "姓名", value: "name" },
-        { text: "年龄", value: "age" },
-        { text: "评分", value: "score" },
+        { text: "姓名顺序排列", value: "name" ,reverse:false},
+        { text: "姓名逆序排列", value: "name" ,reverse:true},
+        { text: "年龄最高", value: "age",reverse:true },
+        { text: "年龄最低", value: "age",reverse:false },
+        { text: "评分最高", value: "score" ,reverse:true},
+        { text: "评分最低", value: "score" ,reverse:false},
       ];
       $scope.orderProp = 'name';
-      $scope.reverseSort= false;
-      $scope.Change = function() {
-          $scope.reverseSort=!($scope.reverseSort);
-      }; 
+      
       $scope.sideChange = function(item) {
           $scope.orderProp= item.value;
+          $scope.reverse=item.reverse;
+          //console.log(item,$scope.reverse)
       }; 
-      
-      $scope.sexList = [{ text: "男", checked: true },{ text: "女", checked: true }];
 
-      $ionicModal.fromTemplateUrl('partials/healthCoach/filterHealthCoach.html', {
-          scope: $scope,
-          animation: 'slide-in-up'
-        }).then(function(modal) {
+      //筛选
+      $scope.query = '';
+
+       $ionicPopover.fromTemplateUrl('templates/popover-select.html', {
+        scope: $scope,
+      }).then(function(popover1) {
+        $scope.popover1 = popover1;
+      });
+      $scope.sexList = [{ text: "男", value: '男' },{ text: "女", value: '女' }];
+      $scope.SS={selectedSex:'男'};
+      $scope.filter= function(){
+        $scope.query = $scope.SS.selectedSex;
+        $scope.popover1.hide();
+      }
+      //弹出界面
+       $ionicModal.fromTemplateUrl('partials/healthCoach/filterHealthCoach.html', {
+           scope: $scope,
+           animation: 'slide-in-up'
+       }).then(function(modal) {
           $scope.modal = modal;
-        });
+         });
 
-        $scope.openModal = function() {
-          $scope.modal.show();
-        };
-        $scope.closeModal = function() {
-          $scope.modal.hide();
-        };
-        $scope.finish = function() {
-          $scope.modal.hide();
-        };  
+         $scope.openModal = function() {
+           $scope.modal.show();
+         };
+         $scope.closeModal = function() {
+         $scope.modal.hide();
+          };
+         $scope.finish = function() {
+           $scope.modal.hide();
+         };  
   }])
 
-.controller('HealthCoachInfoCtrl',['$scope', '$ionicHistory', '$ionicSideMenuDelegate',
-  function($scope, $ionicHistory,$ionicSideMenuDelegate) {
+.controller('HealthCoachInfoCtrl',['$scope', '$ionicHistory', '$ionicSideMenuDelegate','$stateParams','$rootScope','Data','Users','Storage','CONFIG','$ionicPopup','$timeout','extraInfo','$ionicLoading',
+  function($scope,$ionicHistory,$ionicSideMenuDelegate,$stateParams,$rootScope,Data, Users,Storage,CONFIG,$ionicPopup,$timeout,extraInfo,$ionicLoading) {
+      
+      //console.log($stateParams.tt);
 
       $scope.nvGoback = function() {
         $ionicHistory.goBack();
       } 
+
+      $scope.$watch('$viewContentLoaded', function() {   
+        GetHealthCoachInfo( Storage.get("HealthCoachID") );
+      }); 
+
+      var GetHealthCoachInfo= function(HealthCoachID)
+       {
+         var promise =  Users.GetHealthCoachInfo(HealthCoachID); 
+         promise.then(function(data)
+         { 
+           $scope.HealthCoachInfo = data;
+           if(($scope.HealthCoachInfo.imageURL=="")||($scope.HealthCoachInfo.imageURL==null)){
+                $scope.HealthCoachInfo.imageURL="img/DefaultAvatar.jpg";
+              }
+            else{ $scope.HealthCoachInfo.imageURL=CONFIG.ImageAddressIP + CONFIG.ImageAddressFile+'/'+$scope.HealthCoachInfo.imageURL;
+              }
+            $scope.$broadcast('scroll.refreshComplete'); 
+          },function(err) {   
+        });      
+      }
+
+      $scope.nvGoback = function() {
+         $ionicHistory.goBack();
+       }
+
+
+      var CategoryCode = "";
+
+      $scope.$watch('$viewContentLoaded', function() {   
+        GetCommentList(Storage.get("HealthCoachID") ,CategoryCode);
+      }); 
+
+      var GetCommentList= function(DoctorId ,CategoryCode)
+       {
+         var promise =  Users.GetCommentList(DoctorId, CategoryCode, 2); 
+         promise.then(function(data)
+        { 
+          $scope.CommentList=data;
+          for(i=0;i<$scope.CommentList.length;i++){
+           if(($scope.CommentList[i].imageURL=="")||($scope.CommentList[i].imageURL==null)){
+                  $scope.CommentList[i].imageURL="img/DefaultAvatar.jpg";
+                }
+            else{ 
+                  $scope.CommentList[i].imageURL=CONFIG.ImageAddressIP + CONFIG.ImageAddressFile+'/'+$scope.CommentList[i].imageURL;
+                }
+            $scope.$broadcast('scroll.refreshComplete'); 
+           }
+         },function(err) {   
+        });      
+      }
+
+
+        $scope.reserve={Description:"",selectedModoule: ''};
+        $scope.modouleList = [
+        { text: "高血压", value: "HM1" },
+        { text: "糖尿病", value: "HM2" },
+        { text: "心衰", value: "HM3" }];
+
+        //获取预约权限
+        $scope.getReserveAuthority=function (item)
+        {
+           $scope.reserve.selectedModoule = '';
+           var promise =  Users.BasicDtlValue(Storage.get("UID"), item.value, 'Doctor', 1); //获取患者评价专员的权限
+           promise.then(function(data)
+           { 
+             
+            if((data.result==null) ||(data.result=='')) {  //没有专员负责的模块
+             $scope.reserve.selectedModoule = item.value;
+           }
+            else if(data.result==Storage.get("HealthCoachID")){ //本专员负责该模块
+             $scope.reserve.selectedModoule = item.value;
+           }
+           else{  //本专员不负责该模块（已有他人负责）
+             $scope.reserve.selectedModoule = '';
+             $ionicLoading.show({
+                template: '对不起，您没有预约'+item.text+'模块的权限',//item.text
+                noBackdrop: false,
+                duration: 1000,
+                hideOnStateChange: true
+              });
+           }
+            },function(err) { 
+             $scope.reserve.selectedModoule = '';
+          });
+
+        }
+
+        var ReserveHealthCoach = function()
+        {
+          if($scope.reserve.selectedModoule == '')
+          {
+            $ionicLoading.show({
+            template: '对不起，预约的模块不能为空',
+            noBackdrop: false,
+            duration: 1000,
+            hideOnStateChange: true
+            });
+          }
+          else if($scope.reserve.Description == '')
+          {
+            $ionicLoading.show({
+            template: '对不起，预约的描述不能为空',
+            noBackdrop: false,
+            duration: 1000,
+            hideOnStateChange: true
+            });
+          }
+          else{
+            var sendData={
+              "DoctorId": Storage.get("HealthCoachID"),
+              "PatientId": Storage.get("UID"),
+              "Module": $scope.reserve.selectedModoule,
+              //"Module": "M1",
+              // "Description": "初次预约，请多指教",
+              "Description": $scope.reserve.Description,
+              // "Description": $scope.sendData.Description,
+              "Status": 1,
+              "ApplicationTime": extraInfo.DateTimeNow().zyxTime,
+              "AppointmentTime": extraInfo.DateTimeNow().zyxTime,
+              "AppointmentAdd": "",
+              "Redundancy": "",
+              "revUserId": "1",
+              "TerminalName": "1",
+              "TerminalIP": "1",
+              "DeviceType": 1
+            }
+
+            var promise =  Users.ReserveHealthCoach(sendData);
+            promise.then(function(data){ 
+              
+              if(data.result=="数据插入成功"){
+                $ionicLoading.show({
+                  template: "预约请求已发送！",
+                  noBackdrop: false,
+                  duration: 1000,
+                  hideOnStateChange: true
+                });
+              }
+             },function(err) {   
+           }); 
+
+          } //else end
+        } //function end
+
+
+          $scope.showPopup = function() {
+            $scope.reserve={Description:"",selectedModoule: ''};
+             var myPopup = $ionicPopup.show({
+               // template: '<input type="textarea" ng-model="sendData.Description">',
+               templateUrl:'partials/healthCoach/reservehealthcoach.html',
+               title: '预约详情',
+               //subTitle: '预约详情',
+               scope: $scope,
+               buttons: [
+                 { text: '提交预约',
+                 　onTap: function(e) {
+                    if($scope.reserve.Description.length >100)
+                   {
+                     $ionicLoading.show({
+                     template: '输入字数不能超过100字',
+                     noBackdrop: false,
+                     duration: 1500,
+                     hideOnStateChange: true
+                   });
+                  }
+                   else
+                  {
+                    ReserveHealthCoach();
+                   }
+     
+        　　　　　　}
+      　　　　　　},
+                 {
+                   text: '<b>取消预约</b>',
+                   type: 'button-positive',
+                 },
+               ]
+             });
+             myPopup.then(function(res) {
+               
+             });
+             $timeout(function() {
+                myPopup.close(); // 3秒后关闭弹窗
+             }, 90000);
+          };
 }])
 
-.controller('CommentListCtrl',['$scope', '$ionicHistory', '$ionicSideMenuDelegate',
-   function($scope, $ionicHistory,$ionicSideMenuDelegate) {
+.controller('CommentListCtrl',['$scope', '$ionicHistory', '$ionicSideMenuDelegate','Users','Storage', 'CONFIG', '$ionicScrollDelegate',
+   function($scope, $ionicHistory, $ionicSideMenuDelegate, Users, Storage, CONFIG, $ionicScrollDelegate) {
     
       $scope.nvGoback = function() {
         $ionicHistory.goBack();
        }
+
+
+      $scope.refreshComment = function() {
+        console.log(1);
+         $scope.CommentList=new Array();
+         GetCommentList(Storage.get("HealthCoachID"), CategoryCode, 1000, 0);
+         $scope.$broadcast('scroll.refreshComplete');
+       }
+
+       $scope.loadMoreComment = function () {
+           console.log(2);
+           GetCommentList(Storage.get("HealthCoachID"), CategoryCode, 1, $scope.CommentList.length);
+           $scope.$broadcast('scroll.infiniteScrollComplete');
+        }
+
+      var CategoryCode = "";
+      $scope.CommentList=new Array();
+
+      $scope.$watch('$viewContentLoaded', function() {   }); 
+        
+      var GetCommentList= function(DoctorId ,CategoryCode,num, skip)
+       {
+           var promise =  Users.GetCommentList(DoctorId ,CategoryCode, num, skip); 
+           promise.then(function(data)
+          { 
+           //console.log(data);
+            for(var i=0;i<data.length;i++){
+              if((data[i].imageURL=="")||(data[i].imageURL==null)){
+                    data[i].imageURL="img/DefaultAvatar.jpg";
+                  }
+              else
+              { 
+                  data[i].imageURL=CONFIG.ImageAddressIP + CONFIG.ImageAddressFile+'/'+data[i].imageURL;
+              }
+              $scope.CommentList.push(data[i]);
+            }
+            },function(err) {   
+          });      
+       };
+
+       GetCommentList(Storage.get("HealthCoachID"), '', 1000, 0);
+      
+
+      
 }])
 
-.controller('SetCommentCtrl',['$scope', '$ionicHistory', '$ionicLoading',
-   function($scope, $ionicHistory,$ionicLoading) {
+.controller('SetCommentCtrl',['$scope', '$ionicHistory', '$ionicLoading','Users','Storage','$state',
+   function($scope, $ionicHistory,$ionicLoading,Users,Storage,$state) {
 
-      $scope.comment={score:1, commentContent:""};
+      $scope.comment={score:1, commentContent:"",selectedModoule: ''};
+      
+      $scope.modouleList = [
+        { text: "高血压", value: "HM1" },
+        { text: "糖尿病", value: "HM2" },
+        { text: "心衰", value: "HM3" }];
+      
+      $scope.getCommentAuthority=function (item)
+      {
+         $scope.comment.selectedModoule = '';
+         var promise =  Users.BasicDtlValue(Storage.get("UID"), item.value, 'Doctor', 1); //获取患者评价专员的权限
+         promise.then(function(data)
+         { 
+          if(data.result==Storage.get("HealthCoachID")){
+           $scope.comment.selectedModoule = item.value;
+         }
+         else{
+           $scope.comment.selectedModoule = '';
+           $ionicLoading.show({
+              template: '对不起，您没有评价'+item.text+'模块的权限',//item.text
+              noBackdrop: false,
+              duration: 1000,
+              hideOnStateChange: true
+            });
+         }
+          },function(err) { 
+           $scope.comment.selectedModoule = '';
+        });
+
+      }
+
 
       $scope.nvGoback = function() {
         $ionicHistory.goBack();
        }
+       
       $scope.ratingsObject = {
         iconOn: 'ion-ios-star',
         iconOff: 'ion-ios-star-outline',
-        iconOnColor: 'rgb(200, 200, 100)',
+        iconOnColor: '#FFD700',//rgb(200, 200, 100)
         iconOffColor: 'rgb(200, 100, 100)',
-        rating: 1,
+        rating: 1, 
         minRating: 1,
         readOnly:false,
         callback: function(rating) {
@@ -2251,26 +3134,61 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
       };
 
       $scope.deliverComment = function() {
-        if($scope.comment.commentContent =="")
-        {
-            $ionicLoading.show({
-              template: '输入字数不足15字',
-              noBackdrop: false,
-              duration: 1500,
-              hideOnStateChange: true
-            });
-        }
-        else
+        if($scope.comment.selectedModoule=='')
         {
           $ionicLoading.show({
-              template: '您给的评分是'+$scope.comment.score+'评论：'+$scope.comment.commentContent,
+              template: '请选择评价的模块',
               noBackdrop: false,
-              duration: 1500,
+              duration: 1000,
               hideOnStateChange: true
             });
-          //restful
+        }
+        else if($scope.comment.commentContent.length <10)
+        {
+            $ionicLoading.show({
+              template: '输入字数不足10字',
+              noBackdrop: false,
+              duration: 1000,
+              hideOnStateChange: true
+            });
+        }
+        
+        else
+        {
+          SetComment();
         }
       };
+
+    //restful
+    var SetComment= function()
+     {
+        var sendData={
+          "DoctorId": Storage.get("HealthCoachID"),
+          "CategoryCode": $scope.comment.selectedModoule,
+          "Value": Storage.get("UID"),
+          "Description": $scope.comment.commentContent,
+          "SortNo": $scope.comment.score ,
+          "piUserId": "sample string 6",
+          "piTerminalName": "sample string 7",
+          "piTerminalIP": "sample string 8",
+          "piDeviceType": 9
+        }
+       var promise =  Users.SetComment(sendData); 
+       promise.then(function(data){ 
+          if(data.result=="数据插入成功"){
+            $ionicLoading.show({
+              template: "评论成功！",
+              noBackdrop: false,
+              duration: 500,
+              hideOnStateChange: true
+            });
+            setTimeout(function(){
+              $ionicHistory.goBack();
+            },600);
+          }
+         },function(err) {   
+       }); 
+    } 
       
   }])
 

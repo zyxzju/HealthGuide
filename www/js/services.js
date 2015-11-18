@@ -137,7 +137,13 @@ angular.module('zjubme.services', ['ionic','ngResource'])
         GetPatBasicInfo: {method:'GET', params:{route:'@UserId'}, timeout:10000},
         GetPatientDetailInfo: {method:'GET', params:{route:'@UserId'}, timeout:10000},
         SetPatBasicInfo: {method:'POST', params:{route:'BasicInfo'}, timeout:10000},
-        PostPatBasicInfoDetail: {method:'POST', params:{route:'BasicDtlInfo'}, timeout:10000}
+        PostPatBasicInfoDetail: {method:'POST', params:{route:'BasicDtlInfo'}, timeout:10000},
+        GetHealthCoaches: {method:'GET',isArray: true,params:{route: 'HealthCoaches'}, timeout:100000},
+        GetHealthCoachInfo: {method:'GET',params:{route: 'GetHealthCoachInfo', HealthCoachID:'@HealthCoachID'}, timeout:1000},
+        GetCommentList: {method:'GET',isArray: true,params:{route: 'GetCommentList'}, timeout:10000},
+        SetComment: {method:'POST', params:{route:'SetComment'}, timeout:10000},
+        ReserveHealthCoach: {method:'POST', params:{route:'ReserveHealthCoach'}, timeout:10000},
+        BasicDtlValue: {method:'GET', params:{route:'BasicDtlValue'}, timeout:10000}
       });
     };
     var Service = function(){
@@ -146,6 +152,7 @@ angular.module('zjubme.services', ['ionic','ngResource'])
       },{
               sendSMS:{method:'POST',headers:{token:getToken()}, params:{route: 'sendSMS',phoneNo:'@phoneNo',smsType:'@smsType'}, timeout: 10000},
               checkverification:{method:'POST',headers:{token:getToken()}, params:{route: 'checkverification', mobile:'@mobile',smsType: '@smsType', verification:'@verification'},timeout: 10000},
+              BindMeasureDevice:{method:'GET',params:{route:'GetPatientInfo',PatientId:'@PatientId'},timeout:10000}
       })
     };
     var VitalInfo = function () {
@@ -249,9 +256,69 @@ angular.module('zjubme.services', ['ionic','ngResource'])
 .factory('Users', ['$q', '$http', 'Data',function ( $q,$http, Data) {
   var self = this;
 
+  self.BasicDtlValue = function (UserId, CategoryCode, ItemCode, ItemSeq) {//U201511120002 HM1 Doctor 1
+      var deferred = $q.defer();
+      Data.Users.BasicDtlValue({UserId:UserId, CategoryCode:CategoryCode, ItemCode:ItemCode, ItemSeq:ItemSeq}, function (data, headers) {
+        deferred.resolve(data);
+      }, function (err) {
+      deferred.reject(err);
+      });
+      return deferred.promise;
+  };
+
   self.GetHealthCoachListByPatient = function (PatientId, CategoryCode) {
       var deferred = $q.defer();
       Data.Users.HealthCoaches({PatientId:PatientId}, function (data, headers) {
+        deferred.resolve(data);
+      }, function (err) {
+      deferred.reject(err);
+      });
+      return deferred.promise;
+  };
+
+self.GetHealthCoaches = function () {
+      var deferred = $q.defer();
+      Data.Users.GetHealthCoaches( function (data, headers) {
+        deferred.resolve(data);
+      }, function (err) {
+      deferred.reject(err);
+      });
+      return deferred.promise;
+  };
+ 
+  self.GetHealthCoachInfo = function (HealthCoachID) {
+      var deferred = $q.defer();
+      Data.Users.GetHealthCoachInfo({HealthCoachID:HealthCoachID}, function (data, headers) {
+        deferred.resolve(data);
+      }, function (err) {
+      deferred.reject(err);
+      });
+      return deferred.promise;
+  };
+
+   self.GetCommentList = function (DoctorId ,CategoryCode, num, skip) {
+      var deferred = $q.defer();
+      Data.Users.GetCommentList({DoctorId:DoctorId,CategoryCode:CategoryCode, $orderby:"CommentTime desc", $top:num, $skip:skip}, function (data, headers) {
+        deferred.resolve(data);
+      }, function (err) {
+      deferred.reject(err);
+      });
+      return deferred.promise;
+  };
+
+   self.SetComment = function (sendData) {
+      var deferred = $q.defer();
+      Data.Users.SetComment(sendData, function (data, headers) {
+        deferred.resolve(data);
+      }, function (err) {
+      deferred.reject(err);
+      });
+      return deferred.promise;
+  };
+
+  self.ReserveHealthCoach = function (sendData) {
+      var deferred = $q.defer();
+      Data.Users.ReserveHealthCoach(sendData, function (data, headers) {
         deferred.resolve(data);
       }, function (err) {
       deferred.reject(err);
@@ -404,6 +471,16 @@ angular.module('zjubme.services', ['ionic','ngResource'])
       return deferred.promise;
     }
 
+    serve.BindMeasureDevice = function(uid){
+      var deferred = $q.defer();
+      Data.Service.BindMeasureDevice({"PatientId":uid},
+        function(s){
+          deferred.resolve(s);
+        },function(e){
+          deferred.reject(e);
+        })
+      return deferred.promise;
+    }
 
     //var passReg1=/([a-zA-Z]+[0-9]+|[0-9]+[a-zA-Z]+)/;
     //var passReg2=/^.[A-Za-z0-9]+$/;
@@ -534,13 +611,13 @@ angular.module('zjubme.services', ['ionic','ngResource'])
       }else {
         window.localStorage['TerminalName'] = angular.toJson(data);
       }},
-    DeviceType:function(data){
-      if(data==null)
+    DeviceParams:function(key){
+      switch(key)
       {
-        return angular.fromJson(window.localStorage['DeviceType']);
-      }else {
-        window.localStorage['DeviceType'] = angular.toJson(data);
-      }},
+        case 'DeviceType':return window.localStorage['DeviceType'];break;
+        case 'DeviceClientHeight':return window.localStorage['DeviceClientHeight'];break;
+      }
+    },
     revUserId:function(data){
       if(data==null)
       {
@@ -566,7 +643,8 @@ angular.module('zjubme.services', ['ionic','ngResource'])
       dt.fulldate=dt.year+dt.month+dt.day;
       //dt.fulltime=dt.hour+dt.minute+dt.second;
       dt.fulltime=dt.hour+dt.minute;
-      dt.full=dt.year+dt.month+dt.dat+dt.hour+dt.minute+dt.second;
+      dt.full=dt.year+dt.month+dt.day+dt.hour+dt.minute+dt.second;
+      dt.zyxTime=dt.year+'-'+dt.month+'-'+dt.day+' '+dt.hour+':'+dt.minute+':'+dt.second;
       // console.log(dt);
       return dt;
     },
@@ -720,12 +798,14 @@ angular.module('zjubme.services', ['ionic','ngResource'])
             {
               "text": "",
               "bold": true,
-              "align":"center"
+              "align":"center",
+              "color":"white"
             }
           ],
           "export": {
             "enabled": true
-          }
+          },
+          "panEventsEnabled":false
       }
       console.log(bpc);
       return bpc;
@@ -738,17 +818,17 @@ angular.module('zjubme.services', ['ionic','ngResource'])
   self.InsertServerData = function()
   {
     var insertserverdata={};
-    insertserverdata.UserId=extraInfo.PatientId();
+    insertserverdata.UserId=window.localStorage['UID'];
     insertserverdata.RecordDate=extraInfo.DateTimeNow().year+extraInfo.DateTimeNow().month+extraInfo.DateTimeNow().day;
     insertserverdata.RecordTime=extraInfo.DateTimeNow().hour+extraInfo.DateTimeNow().minute+extraInfo.DateTimeNow().second;
     insertserverdata.ItemType='';
     insertserverdata.ItemCode='';
     insertserverdata.Value='';
     insertserverdata.Unit='';
-    insertserverdata.revUserId=extraInfo.revUserId();
+    insertserverdata.revUserId=window.localStorage['UID'];
     insertserverdata.TerminalName=extraInfo.TerminalName();
     insertserverdata.TerminalIP=extraInfo.TerminalIP();
-    insertserverdata.DeviceType=parseInt(extraInfo.DeviceType());
+    // insertserverdata.DeviceType=parseInt(extraInfo.DeviceType());
     return insertserverdata;
   };
 
@@ -833,7 +913,7 @@ angular.module('zjubme.services', ['ionic','ngResource'])
   return self;
 }])
 
-.factory('NotificationService',['$cordovaLocalNotification',function($cordovaLocalNotification){
+.factory('NotificationService',['$cordovaLocalNotification','extraInfo',function($cordovaLocalNotification,extraInfo){
   return{
     save:function(arr){
       var a=[];
@@ -857,7 +937,11 @@ angular.module('zjubme.services', ['ionic','ngResource'])
         sound: "file://sources/Nokia.mp3",
         icon: "file://img/ionic.png"
       };
-      $cordovaLocalNotification.schedule(n);
+      if(extraInfo.DeviceParams('DeviceType')!='win32')
+        {
+          $cordovaLocalNotification.schedule(n);
+          // console.log("call cordovaLocalNotification")
+        }
     },
     get:function(){
       var alert = window.localStorage['alertlist'];
@@ -865,7 +949,7 @@ angular.module('zjubme.services', ['ionic','ngResource'])
     },
     remove:function(index){
       var t= angular.fromJson(window.localStorage['alertlist']);
-      $cordovaLocalNotification.cancel(t[index].ID);
+      if(extraInfo.DeviceParams('DeviceType')!='win32')$cordovaLocalNotification.cancel(t[index].ID);
       t.splice(index,1);
       if(t)
       {

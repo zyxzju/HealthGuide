@@ -34,22 +34,31 @@ describe('\nTests for "controllers"', function(){
       		expect(scope.checkalert).toEqual("required");
    		});
 
-   // 		describe(" $scope.save() call $scope.closeModal()",function(){
-			// beforeEach(function(){
-		 //        scope.flag='update';
-		 //    	spyOn(scope, 'closeModal');
-		 //    	scope.alertcontent = {'index':1};
-			// });
-	  //  		it('', function() {
-	  //  			expect(scope.save(true));
-	  //  			expect(scope.flag).toBe('save');
-	  //  			expect(scope.closeModal).toHaveBeenCalled();
-	  //  		});
-   // 		});
+   		describe(" $scope.save() when true and update",function(){
+			beforeEach(function(){
+		        scope.flag='update';
+		    	spyOn(scope, 'closeModal');
+		    	scope.alertcontent = {'index':1};
+		    	scope.save(true)
+			});
+	   		it('', function() {
+	   			expect(scope.flag).toBe('save');
+	   			expect(scope.closeModal).toHaveBeenCalled();
+	   		});
+   		});
+   		describe(" $scope.save() when true and save new",function(){
+			beforeEach(function(){
+		    	scope.alertcontent = {'index':0};
+		    	spyOn(scope, 'closeModal');
+		    	scope.save(true)
+			});
+	   		it('', function() {
+	   			expect(scope.flag).not.toBe('save');
+	   		});
+   		});
 	});
 });
 describe('\nTests for "services"', function(){
-
     
     beforeEach(angular.mock.module('zjubme'));
 
@@ -89,7 +98,7 @@ describe('\nTests for "services"', function(){
 				.respond([{Code: "TA0000",ControlType: "0",Description: "",GroupHeaderFlag: "0",Instruction: "",InvalidFlag: "1",Name: "体重管理",OptionCategory: "",ParentCode: "T",SortNo: "",Status: "0",Type: "TA",VitalSignValue: ""}]);
 			$httpBackend.whenGET(/partials\/.*/).respond(200, '');
 	    }));
-   		it('GetExecutingPlan() method should get executing plan number.', function() {
+   		it('GetTasklist() method should get task list.', function() {
 			var promise = taskinfo.GetTasklist(gettasklist);
 			promise.then(function(d) {
 				rdata = d[0];
