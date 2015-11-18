@@ -2554,6 +2554,11 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
 
 .controller('ChatDetailCtrl' ,function($scope, $http, $stateParams, $resource, MessageInfo, $ionicScrollDelegate, CONFIG, Storage,Data) 
 {
+
+    $scope.setCurrent = function(healthCoachID){
+      Storage.set("HealthCoachID",healthCoachID );
+    }
+
     //console.log($stateParams.tt);
     $scope.Dialog = {};
     var paraArry = $stateParams.tt.split('&');
@@ -2691,7 +2696,7 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
                     {
                         data.Time = "";
                     }
-                    $scope.Dialog.DisplayOnes.push({"IDFlag": "Send","SendDateTime": data.Time,"Content":$scope.Dialog.SMScontent});
+                    $scope.Dialog.DisplayOnes.push({"IDFlag": "Send","Time": data.Time,"Content":$scope.Dialog.SMScontent});
                     $ionicScrollDelegate.scrollBottom(true);
                     $scope.SocketSubmit(Receiver +  "||" + SendBy + "||" + data.Time + "||" + $scope.Dialog.SMScontent);
                     $scope.Dialog.SMScontent = "";
@@ -2728,47 +2733,76 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
         });
     } 
 })
+
 // --------专员选择-赵艳霞----------------
-.controller('HealthCoachListCtrl', ['$scope', '$state','$ionicPopup','$ionicSideMenuDelegate','$http', '$ionicModal','$ionicPopover','$ionicHistory','Users','Storage','CONFIG','$filter',
-    function($scope, $state, $ionicPopup,$ionicSideMenuDelegate,$http, $ionicModal, $ionicPopover,$ionicHistory,Users,Storage,CONFIG,$filter) { 
+//所有专员列表（排序、筛选）
+.controller('HealthCoachListCtrl', ['$scope', '$state','$ionicPopup','$ionicSideMenuDelegate','$http', '$ionicModal','$ionicPopover','$ionicHistory','Users','Storage','CONFIG','$filter','$ionicScrollDelegate','$ionicLoading',
+    function($scope, $state, $ionicPopup,$ionicSideMenuDelegate,$http, $ionicModal, $ionicPopover,$ionicHistory,Users,Storage,CONFIG,$filter, $ionicScrollDelegate, $ionicLoading ) { 
       
-      
+      $scope.healthCoachList = new Array();
+      $scope.moreHealthCoach=false;  //上拉加载更多，没有更多数据标志
+
       $scope.nvGoback = function() {
         $ionicHistory.goBack();
       } 
 
-      $scope.$watch('$viewContentLoaded', function() {      
-      GetHealthCoaches();
-     }); 
-     var healthCoachID;
+     $scope.$watch('$viewContentLoaded', function() {GetHealthCoaches(10, 0); });      
 
-    GetHealthCoaches = function()
-       {
-         var promise = Users.GetHealthCoaches(); 
-         promise.then(function(data)
-        { 
-           $scope.healthCoachList = data; 
-           for(var i=0;i<$scope.healthCoachList.length;i++){
-               if(($scope.healthCoachList[i].imageURL=="")||($scope.healthCoachList[i].imageURL==null)){
-                $scope.healthCoachList[i].imageURL="img/DefaultAvatar.jpg";
+     //获取所有专员列表
+     GetHealthCoaches = function(num, skip)  
+     {
+         var promise = Users.GetHealthCoaches(num, skip); 
+         promise.then(function(data){ 
+            for(var i=0;i<data.length;i++){
+               if((data[i].imageURL=="")||(data[i].imageURL==null)){
+                data[i].imageURL="img/DefaultAvatar.jpg";
               }
-              else{ $scope.healthCoachList[i].imageURL=CONFIG.ImageAddressIP + CONFIG.ImageAddressFile+'/'+$scope.healthCoachList[i].imageURL;
+              else{ data[i].imageURL=CONFIG.ImageAddressIP + CONFIG.ImageAddressFile+'/'+data[i].imageURL;
               }
+              $scope.healthCoachList.push(data[i]);
+            }//for end
+
+            //本次获取的数量少于num，则说明没有更多数据了
+            if(data.length < num){
+                $scope.moreHealthCoach=false;
+                // $ionicLoading.show({
+                //   template: '没有更多数据',
+                //   noBackdrop: false,
+                //   duration: 1000,
+                //   hideOnStateChange: true
+                // });
             }
-           $scope.$broadcast('scroll.refreshComplete');
-          },function(err) {   
-        });      
+            else
+            {
+               $scope.moreHealthCoach=true;
             }
+
+          },function(err) {
+
+        }).finally(function () {
+            $scope.$broadcast('scroll.refreshComplete');
+            $scope.$broadcast('scroll.infiniteScrollComplete');
+        });     
+    }
 
     $scope.setCurrent = function(healthCoach){
       Storage.set("HealthCoachID",healthCoach.healthCoachID );
 
      }
 
-       $scope.doRefresh = function() {
-              GetHealthCoaches();
-              $scope.$broadcast('scroll.refreshComplete');
-       };
+    //下拉刷新列表
+     $scope.refreshHealthCoachList = function() {
+        $scope.healthCoachList = new Array();
+        $scope.moreHealthCoach=false;
+        GetHealthCoaches(10, 0); 
+     };
+
+    //上拉加载更多评论
+     $scope.loadMoreHealthCoach = function () { 
+        console.log($scope.healthCoachList.length);
+        //console.log(333);
+        GetHealthCoaches(5, $scope.healthCoachList.length);
+      }
 
        //排序
        $ionicPopover.fromTemplateUrl('templates/popover-sort.html', {
@@ -2778,24 +2812,23 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
       });
 
       $scope.sideList = [
-        { text: "姓名", value: "name" },
-        { text: "年龄", value: "age" },
-        { text: "评分", value: "score" },
+        { text: "姓名顺序排列", value: "name" ,reverse:false},
+        { text: "姓名逆序排列", value: "name" ,reverse:true},
+        { text: "年龄最高", value: "age",reverse:true },
+        { text: "年龄最低", value: "age",reverse:false },
+        { text: "评分最高", value: "score" ,reverse:true},
+        { text: "评分最低", value: "score" ,reverse:false},
       ];
       $scope.orderProp = 'name';
       
       $scope.sideChange = function(item) {
           $scope.orderProp= item.value;
+          $scope.reverse=item.reverse;
       }; 
-
-      //倒序
-      // $scope.reverseSort= false;
-      // $scope.Change = function() {
-      //     $scope.reverseSort=!($scope.reverseSort);
-      // }; 
 
       //筛选
       $scope.query = '';
+
        $ionicPopover.fromTemplateUrl('templates/popover-select.html', {
         scope: $scope,
       }).then(function(popover1) {
@@ -2807,6 +2840,7 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
         $scope.query = $scope.SS.selectedSex;
         $scope.popover1.hide();
       }
+
       //弹出界面
        $ionicModal.fromTemplateUrl('partials/healthCoach/filterHealthCoach.html', {
            scope: $scope,
@@ -2826,21 +2860,24 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
          };  
   }])
 
-.controller('HealthCoachInfoCtrl',['$scope', '$ionicHistory', '$ionicSideMenuDelegate','$stateParams','$rootScope','Data','Users','Storage','CONFIG','$ionicPopup','$timeout','extraInfo','$ionicLoading',
-  function($scope,$ionicHistory,$ionicSideMenuDelegate,$stateParams,$rootScope,Data, Users,Storage,CONFIG,$ionicPopup,$timeout,extraInfo,$ionicLoading) {
+//专员简介（预约）
+.controller('HealthCoachInfoCtrl',['$scope', '$ionicHistory', '$ionicSideMenuDelegate','$stateParams','$rootScope','Data','Users','Service','Storage','CONFIG','$ionicPopup','$timeout','extraInfo','$ionicLoading',
+  function($scope,$ionicHistory,$ionicSideMenuDelegate,$stateParams,$rootScope,Data, Users, Service , Storage,CONFIG,$ionicPopup,$timeout,extraInfo,$ionicLoading) {
+      
       //console.log($stateParams.tt);
-      //if($stateParams.tt=='')
+      $scope.CommentList=new Array();
+
       $scope.nvGoback = function() {
         $ionicHistory.goBack();
       } 
 
-      var HealthCoachID ;
-      HealthCoachID =Storage.get("HealthCoachID");
-
+      //一进页面则加载
       $scope.$watch('$viewContentLoaded', function() {   
-      GetHealthCoachInfo(HealthCoachID);
+        GetHealthCoachInfo( Storage.get("HealthCoachID") ); //获取专员个人信息
+        GetCommentList(Storage.get("HealthCoachID") ,''); //获取专员的2条评论(所有模块)
       }); 
 
+      //restful获取专员个人信息
       var GetHealthCoachInfo= function(HealthCoachID)
        {
          var promise =  Users.GetHealthCoachInfo(HealthCoachID); 
@@ -2855,160 +2892,322 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
             $scope.$broadcast('scroll.refreshComplete'); 
           },function(err) {   
         });      
-            }
-             $scope.nvGoback = function() {
-        $ionicHistory.goBack();
-       }
+      }
 
-      var DoctorId ;
-      var CategoryCode ;
-      DoctorId =Storage.get("HealthCoachID");
-      CategoryCode = "HM1";
-
-      $scope.$watch('$viewContentLoaded', function() {   
-        GetCommentList(DoctorId ,CategoryCode);
-      }); 
-
+      //restful获取专员评论列表
       var GetCommentList= function(DoctorId ,CategoryCode)
        {
-         var promise =  Users.GetCommentList(DoctorId ,CategoryCode); 
+         var promise =  Users.GetCommentList(DoctorId, CategoryCode, 2); 
          promise.then(function(data)
         { 
-          $scope.CommentList=[];
-          for(i=0;i<2;i++){
-           $scope.CommentList[i] = data[i];
+          $scope.CommentList=data;
+          for(i=0;i<$scope.CommentList.length;i++){
            if(($scope.CommentList[i].imageURL=="")||($scope.CommentList[i].imageURL==null)){
                   $scope.CommentList[i].imageURL="img/DefaultAvatar.jpg";
                 }
             else{ 
                   $scope.CommentList[i].imageURL=CONFIG.ImageAddressIP + CONFIG.ImageAddressFile+'/'+$scope.CommentList[i].imageURL;
                 }
-            $scope.$broadcast('scroll.refreshComplete'); 
            }
          },function(err) {   
         });      
+      }
+
+      //预约的模块选项
+      $scope.reserve={Description:"",selectedModoule: ''};
+      $scope.modouleList = [
+      { text: "高血压", value: "HM1" },
+      { text: "糖尿病", value: "HM2" },
+      { text: "心衰", value: "HM3" }];
+
+      //获取预约权限
+      $scope.getReserveAuthority=function (item)
+      {
+         $scope.reserve.selectedModoule = '';
+         var promise =  Users.BasicDtlValue(Storage.get("UID"), item.value, 'Doctor', 1); //获取患者评价专员的权限
+         promise.then(function(data)
+         { 
+            if((data.result==null) ||(data.result=='')) {  //没有专员负责的模块
+              $scope.reserve.selectedModoule = item.value;
             }
+            else if(data.result==Storage.get("HealthCoachID")){ //本专员负责该模块
+              $scope.reserve.selectedModoule = item.value;
+            }
+            else{  //本专员不负责该模块（已有他人负责）
+              $scope.reserve.selectedModoule = '';
+              $ionicLoading.show({
+                template: '对不起，您没有预约'+item.text+'模块的权限',//item.text
+                noBackdrop: false,
+                duration: 1000,
+                hideOnStateChange: true
+              });
+            }
+          },function(err) { 
+           $scope.reserve.selectedModoule = '';
+          });
 
-            var ReserveHealthCoach = function()
-            {
-              var sendData={
-                "DoctorId": Storage.get("HealthCoachID"),
-                "PatientId": Storage.get("UID"),
-                "Module": "M1",
-                "Description": "初次预约，请多指教",
-                "Status": 1,
-                "ApplicationTime": extraInfo.DateTimeNow().zyxTime,
-                "AppointmentTime": extraInfo.DateTimeNow().zyxTime,
-                "AppointmentAdd": "",
-                "Redundancy": "",
-                "revUserId": "1",
-                "TerminalName": "1",
-                "TerminalIP": "1",
-                "DeviceType": 1
-              }
-              console.log(extraInfo.DateTimeNow().zyxTime);
-             var promise =  Users.ReserveHealthCoach(sendData);
+      }
+ 
+     //预约有效性验证、restful预约
+      var ReserveHealthCoach = function()
+      {
+        if($scope.reserve.selectedModoule == '')
+        {
+          $ionicLoading.show({
+          template: '对不起，预约的模块不能为空',
+          noBackdrop: false,
+          duration: 1000,
+          hideOnStateChange: true
+          });
+        }
+        else if($scope.reserve.Description == '')
+        {
+          $ionicLoading.show({
+          template: '对不起，预约的描述不能为空',
+          noBackdrop: false,
+          duration: 1000,
+          hideOnStateChange: true
+          });
+        }
+        else{
+          var sendData={
+            "DoctorId": Storage.get("HealthCoachID"),
+            "PatientId": Storage.get("UID"),
+            "Module": $scope.reserve.selectedModoule,
+            //"Module": "M1",
+            // "Description": "初次预约，请多指教",
+            "Description": $scope.reserve.Description,
+            // "Description": $scope.sendData.Description,
+            "Status": 1,
+            "ApplicationTime": extraInfo.DateTimeNow().zyxTime,
+            "AppointmentTime": extraInfo.DateTimeNow().zyxTime,
+            "AppointmentAdd": "",
+            "Redundancy": "",
+            "revUserId": "1",
+            "TerminalName": "1",
+            "TerminalIP": "1",
+            "DeviceType": 1
+          }
 
-             promise.then(function(data){ 
-                
-                if(data.result=="数据插入成功"){
-                  $ionicLoading.show({
-                    template: "预约请求已发送！",
-                    noBackdrop: false,
-                    duration: 1000,
-                    hideOnStateChange: true
-                  });
-                }
-               },function(err) {   
-             }); 
-          } 
+          var promise =  Users.ReserveHealthCoach(sendData);
+          promise.then(function(data){ 
+            
+            if(data.result=="数据插入成功"){
+              $ionicLoading.show({
+                template: "预约请求已发送！",
+                noBackdrop: false,
+                duration: 1000,
+                hideOnStateChange: true
+              });
 
-          $scope.showPopup = function() {
-           // 自定义弹窗
-           var myPopup = $ionicPopup.show({
-             template: '',
-             title: '确认预约？',
-             scope: $scope,
-             buttons: [
-               { text: '提交预约',
-               　onTap: function(e) {
-                　ReserveHealthCoach();
-      　　　　　　//e.preventDefault();
-      　　　　　　}
-    　　　　　　},
-               {
-                 text: '<b>取消预约</b>',
-                 type: 'button-positive',
-               },
-             ]
+              //推送通知
+              var promise1 =  Service.PushNotification('android', Storage.get("HealthCoachID"), $scope.reserve.Description, '来自'+Storage.get("UID")+'的预约', Storage.get("UID")); //获取患者评价专员的权限
+              promise1.then(function(data){ 
+                console.log("通知医生成功");
+              },function(err) { 
+                 console.log("通知医生失败");
+              });
+            }
+           },function(err) {   
+         }); 
+
+        } //else end
+      } //function end
+
+
+     //解除关系-弹框
+     $scope.showRemovePop = function() {
+        var RemovePop = $ionicPopup.show({
+            template:'', 
+            title: '解除专员', 
+            scope: $scope,
+            buttons: [{text: '确定解除',
+                       type: 'button-assertive',
+                       onTap: function(e) {
+                        //RemoveHealthCoach();
+                      }
+                   },{
+                   text: '<b>取消</b>',
+                   type: 'button-positive'}]
+            });
+     }
+
+      //弹出预约框
+      $scope.showreservePop = function() {
+           $scope.reserve={Description:"",selectedModoule: ''};
+            var myPopup = $ionicPopup.show({
+               templateUrl:'partials/healthCoach/reservehealthcoach.html',
+               title: '预约详情',
+               //subTitle: '预约详情',
+               scope: $scope,
+               buttons: [
+                  {text: '提交预约',
+                 　onTap: function(e) {
+                      if($scope.reserve.Description.length >100)
+                      {
+                       $ionicLoading.show({
+                       template: '输入字数不能超过100字',
+                       noBackdrop: false,
+                       duration: 1000,
+                       hideOnStateChange: true
+                       });
+                     }
+                     else
+                     {
+                       ReserveHealthCoach();
+                     }
+        　　　　    }
+                   },
+                 {
+                   text: '<b>取消预约</b>',
+                   type: 'button-positive',
+               }]
            });
+
            myPopup.then(function(res) {
              
            });
+
            $timeout(function() {
-              myPopup.close(); // 3秒后关闭弹窗
-           }, 10000);
-          };
+              myPopup.close(); // 30秒后自动关闭弹窗
+           }, 30000);
+      }
 }])
 
-.controller('CommentListCtrl',['$scope', '$ionicHistory', '$ionicSideMenuDelegate','Data','Users','Storage','CONFIG',
-   function($scope, $ionicHistory,$ionicSideMenuDelegate,Data, Users,Storage,CONFIG) {
+//专员的评价列表
+.controller('CommentListCtrl',['$scope', '$ionicHistory', '$ionicSideMenuDelegate','Users','Storage', 'CONFIG', '$ionicScrollDelegate', '$ionicLoading',
+   function($scope, $ionicHistory, $ionicSideMenuDelegate, Users, Storage, CONFIG, $ionicScrollDelegate, $ionicLoading) {
     
+      $scope.scrollToTop=false; //“回到顶部按钮”初始隐藏
+      var CategoryCode = ""; //后期作为筛选
+      $scope.CommentList = new Array();
+      $scope.moreComment=false;  //上拉加载更多，没有更多数据标志
+
+      //回到顶部函数
+      $scope.scrollTop = function() {
+        $ionicScrollDelegate.scrollTop();
+      };
+
+    //滚动时获取滚动长度，超出某长度则显示“回到顶部按钮”
+     $scope.getScrollPosition = function() {
+        $scope.moveData = $ionicScrollDelegate.getScrollPosition().top;
+       
+        if($scope.moveData>=100){
+            $scope.scrollToTop=true;
+         }else if($scope.moveData<100){
+           $scope.scrollToTop=false;
+         }
+      };
+
+      //后退
       $scope.nvGoback = function() {
         $ionicHistory.goBack();
        }
-      var DoctorId ;
-      var CategoryCode ;
-      DoctorId =Storage.get("HealthCoachID");
-      CategoryCode = "HM1";
-      $scope.$watch('$viewContentLoaded', function() {   
-        GetCommentList(DoctorId ,CategoryCode);
-      }); 
-      var GetCommentList= function(DoctorId ,CategoryCode)
+
+      //下拉刷新评论
+      $scope.refreshComment = function() {
+         $scope.CommentList=new Array();
+         $scope.moreComment=false;
+         GetCommentList(Storage.get("HealthCoachID"), CategoryCode, 10, 0);
+       }
+
+      //上啦加载更多评论
+       $scope.loadMoreComment = function () {
+           //console.log(333);
+           GetCommentList(Storage.get("HealthCoachID"), CategoryCode, 5, $scope.CommentList.length);    
+        }
+
+      //restful获取评论列表
+      var GetCommentList= function(DoctorId ,CategoryCode,num, skip)
        {
-         var promise =  Users.GetCommentList(DoctorId ,CategoryCode); 
-         promise.then(function(data)
-        { 
-           $scope.CommentList = data;
-           console.log($scope.CommentList);
-           for(var i=0;i<$scope.CommentList.length;i++){
-            if(($scope.CommentList[i].imageURL=="")||($scope.CommentList[i].imageURL==null)){
-                  $scope.CommentList[i].imageURL="img/DefaultAvatar.jpg";
-                }
-            else{ 
-                  $scope.CommentList[i].imageURL=CONFIG.ImageAddressIP + CONFIG.ImageAddressFile+'/'+$scope.CommentList[i].imageURL;
-                }
-            $scope.$broadcast('scroll.refreshComplete'); 
-          }
-          },function(err) {   
-        });      
+           var promise =  Users.GetCommentList(DoctorId ,CategoryCode, num, skip); 
+           promise.then(function(data)
+          { 
+            for(var i=0;i<data.length;i++){
+              if((data[i].imageURL=="")||(data[i].imageURL==null)){
+                    data[i].imageURL="img/DefaultAvatar.jpg";
+                  }
+              else
+              { 
+                  data[i].imageURL=CONFIG.ImageAddressIP + CONFIG.ImageAddressFile+'/'+data[i].imageURL;
+              }
+              $scope.CommentList.push(data[i]);
             }
-             $scope.doRefresh = function() {
-             GetCommentList(DoctorId ,CategoryCode);
-             $scope.$broadcast('scroll.refreshComplete');
-       };
+
+            //本次获取的数量少于num，则说明没有更多数据了
+            if(data.length < num){
+                $scope.moreComment=false;
+                $ionicLoading.show({
+                  template: '没有更多数据',
+                  noBackdrop: false,
+                  duration: 1000,
+                  hideOnStateChange: true
+                });
+            }
+            else
+            {
+               $scope.moreComment=true;
+            }
+
+            },function(err) {   
+          }).finally(function () {
+              $scope.$broadcast('scroll.refreshComplete');
+              $scope.$broadcast('scroll.infiniteScrollComplete');
+          });     
+       }
+
+      //初始化
+      GetCommentList(Storage.get("HealthCoachID"), '', 10, 0);
+       
 }])
 
+//写评论
 .controller('SetCommentCtrl',['$scope', '$ionicHistory', '$ionicLoading','Users','Storage','$state',
    function($scope, $ionicHistory,$ionicLoading,Users,Storage,$state) {
 
-      $scope.comment={score:1, commentContent:"",selectedModoule: 'HM1'};
-      
+      //初始化
+      $scope.comment={score:5, commentContent:"",selectedModoule: ''};
       $scope.modouleList = [
         { text: "高血压", value: "HM1" },
         { text: "糖尿病", value: "HM2" },
         { text: "心衰", value: "HM3" }];
+      
+      //获取评论权限
+      $scope.getCommentAuthority=function (item)
+      {
+         $scope.comment.selectedModoule = '';
+         var promise =  Users.BasicDtlValue(Storage.get("UID"), item.value, 'Doctor', 1); //获取患者评价专员的权限
+         promise.then(function(data)
+         { 
+          if(data.result==Storage.get("HealthCoachID")){
+           $scope.comment.selectedModoule = item.value;
+         }
+         else{
+           $scope.comment.selectedModoule = '';
+           $ionicLoading.show({
+              template: '对不起，您没有评价'+item.text+'模块的权限',//item.text
+              noBackdrop: false,
+              duration: 1000,
+              hideOnStateChange: true
+            });
+         }
+          },function(err) { 
+           $scope.comment.selectedModoule = '';
+         });
+      }
+
 
       $scope.nvGoback = function() {
         $ionicHistory.goBack();
        }
        
+       //评论星星初始化
       $scope.ratingsObject = {
         iconOn: 'ion-ios-star',
         iconOff: 'ion-ios-star-outline',
-        iconOnColor: 'rgb(200, 200, 100)',
+        iconOnColor: '#FFD700',//rgb(200, 200, 100)
         iconOffColor: 'rgb(200, 100, 100)',
-        rating: 1, 
+        rating: 5, 
         minRating: 1,
         readOnly:false,
         callback: function(rating) {
@@ -3016,29 +3215,40 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
         }
       };
 
+      //评论星星点击改变分数
       $scope.ratingsCallback = function(rating) {
         $scope.comment.score = rating;
-        //console.log('Selected rating is : ', rating);
       };
 
+      //上传评论-有效性验证
       $scope.deliverComment = function() {
-        if($scope.comment.commentContent.length <10)
+        if($scope.comment.selectedModoule=='')
+        {
+          $ionicLoading.show({
+              template: '请选择评价的模块',
+              noBackdrop: false,
+              duration: 1000,
+              hideOnStateChange: true
+            });
+        }
+        else if($scope.comment.commentContent.length <10)
         {
             $ionicLoading.show({
               template: '输入字数不足10字',
               noBackdrop: false,
-              duration: 1500,
+              duration: 1000,
               hideOnStateChange: true
             });
         }
+        
         else
         {
           SetComment();
         }
       };
 
-    //restful
-    var SetComment= function()
+      //上传评论-restful调用
+     var SetComment= function()
      {
         var sendData={
           "DoctorId": Storage.get("HealthCoachID"),
@@ -3066,10 +3276,11 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
           }
          },function(err) {   
        }); 
-    } 
+     } 
       
-  }])
+}])
 
+// --------其他----------------
 .controller('OthersCtrl',['$scope', '$ionicHistory', '$ionicSideMenuDelegate','$http',
    function($scope, $ionicHistory,$ionicSideMenuDelegate,$http) {
 
