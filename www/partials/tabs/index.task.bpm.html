@@ -27,20 +27,20 @@
 							<span class="input-label">脉  率</span>
 							<input type="number" ng-model='handinputbpm.M' required max='300' min='20' ng-change="handinputbpmchanged()">
 						</label>
-						<!-- <a class="button button-positive button-outline" ng-click="realstart()">测量</a>
-						<a class="button button-positive button-outline" ng-click="save()">保存</a> -->
 					</div>
 				</form>
 				<div class="savediv">
-					<button class="button button-large button-calm button-full" style="height:100%;margin:0px;" ng-click="savehandinput()">保存</button>
-					<!-- <a class="button button-positive button-outline" ng-click="realstart()">测量</a>
-					<a class="button button-positive button-outline" ng-click="save()">保存</a> -->
+					<button class="button button-large button-calm button-full" style="height:100%;margin:0px;" ng-click="savehandinput()">
+						保存
+						<i class="icon ion-chevron-right swipeicon-right"></i>
+					</button>
 				</div>
 			</ion-slide>
 			<ion-slide>
 				<div class="deviceinputdiv" style="text-align: center;">
 					<button class="button button-calm button-large button-full" style="height:100%;margin:0px;" ng-click="realstart()">开始测量
 						<i class="icon ion-record buttonicon" id="startbutton"></i>
+						<i class="icon ion-chevron-left swipeicon-left"></i>
 					</button>
 				</div>
 				<div class="savediv">
@@ -57,9 +57,9 @@
 		width: 90%;
 		margin: auto;
 		padding-top: 1px;
-		/*border-style: dashed;
+		border-style: dashed;
 		border-color: blue;
-		border-width: 1px;*/
+		border-width: 1px;
 	}
 	.handiputdiv{
 		position: absolute;
@@ -94,6 +94,14 @@
 		position: absolute;
 		left: 80%;
 		top: 0px;
+	}
+	.swipeicon-right{
+		float: right;
+		width: 1px;
+	}
+	.swipeicon-left{
+		float: left;
+		width: 1px;
 	}
 	#bpm_chartdiv
 	{
