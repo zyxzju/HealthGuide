@@ -1,9 +1,10 @@
-<ion-view view-title="评论" hide-nav-bar="true" cache-view="false">
+<ion-view view-title="评论" hide-nav-bar="false" cache-view="false">
+
   <ion-content>
-    <div class="bar bar-calm item-input-inset">
+    <!-- <div class="bar bar-calm item-input-inset">
      <button class="button button-icon icon ion-ios-arrow-left" ng-click="nvGoback()">返回</button> 
      <h1 class="title">发表评论</h1>
-    </div>
+    </div> -->
 <style>.ionic_ratings .icon {
   font-size:50px;
 }
@@ -17,7 +18,7 @@
     </div>   
     <ion-radio ng-repeat="item in modouleList"
                ng-value="item.value"
-               ng-model="comment.selectedModoule">
+               ng-model="comment.selectedModoule" ng-change="getCommentAuthority(item)">
       {{ item.text }}
     </ion-radio>
   </div>
