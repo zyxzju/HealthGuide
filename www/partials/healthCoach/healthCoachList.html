@@ -20,7 +20,7 @@
        <!-- <button class="button button-icon ion-funnel button-clear button-balanced" ng-click="popover1.show($event)">
       </button> -->
     </div>
-    <ion-refresher pulling-text="下拉刷新" on-refresh="doRefresh()"></ion-refresher>
+    <ion-refresher pulling-text="下拉刷新" on-refresh="refreshHealthCoachList()"></ion-refresher>
     <ion-list>
         <ion-item href='#/healthCoach/{{healthCoach.healthCoachID}}' ng-repeat="healthCoach in healthCoachList | filter:query | orderBy:orderProp:reverse" ng-click ="setCurrent(healthCoach)"  class="item-avatar item-icon-right">
             <img src="{{healthCoach.imageURL}}">
@@ -35,7 +35,13 @@
         </ion-item> 
     </ion-list>
 
+    <ion-infinite-scroll on-infinite="loadMoreHealthCoach()" distance="1%" ng-if="moreHealthCoach">
+    </ion-infinite-scroll>
 
+    <div ng-if="!moreHealthCoach" style="text-align:center;margin-top:20px;margin-bottom:20px;">
+      <p style="color:#2894FF;font-size:16px;">没有更多数据</p>
+     </div>
+     
     <script id="templates/popover-sort.html" type="text/ng-template">
       <ion-popover-view>
         <ion-content>
