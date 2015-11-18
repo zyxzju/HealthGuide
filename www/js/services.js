@@ -140,7 +140,7 @@ angular.module('zjubme.services', ['ionic','ngResource'])
         PostPatBasicInfoDetail: {method:'POST', params:{route:'BasicDtlInfo'}, timeout:10000},
         GetHealthCoaches: {method:'GET',isArray: true,params:{route: 'HealthCoaches'}, timeout:100000},
         GetHealthCoachInfo: {method:'GET',params:{route: 'GetHealthCoachInfo', HealthCoachID:'@HealthCoachID'}, timeout:1000},
-        GetCommentList: {method:'GET',isArray: true,params:{route: 'GetCommentList'}, timeout:10000},
+        GetCommentList: {method:'GET',isArray: true,params:{route: 'GetCommentList'}, timeout:100000},
         SetComment: {method:'POST', params:{route:'SetComment'}, timeout:10000},
         ReserveHealthCoach: {method:'POST', params:{route:'ReserveHealthCoach'}, timeout:10000},
         BasicDtlValue: {method:'GET', params:{route:'BasicDtlValue'}, timeout:10000},
@@ -303,9 +303,9 @@ angular.module('zjubme.services', ['ionic','ngResource'])
       return deferred.promise;
   };
 
-self.GetHealthCoaches = function () {
+self.GetHealthCoaches = function (top, skip, filter) {
       var deferred = $q.defer();
-      Data.Users.GetHealthCoaches( function (data, headers) {
+      Data.Users.GetHealthCoaches({$top:top, $skip:skip, $filter:filter},function (data, headers) {
         deferred.resolve(data);
       }, function (err) {
       deferred.reject(err);
