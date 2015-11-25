@@ -16,7 +16,8 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
   }else{
     $scope.logOn={username:"",password:""};
   }
-  $scope.signIn = function(logOn) {
+  $scope.signIn = function(logOn) {  
+    $scope.logStatus='';
     if((logOn.username!="") && (logOn.password!="")){ 
       var saveUID = function(){
         var UIDpromise=userservice.UID('PhoneNo',logOn.username);
@@ -39,12 +40,13 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
       }
       loading.loadingBarStart($scope);/////////////////
       promise.then(function(data){
+        loading.loadingBarFinish($scope);
         $scope.logStatus=data.result.substr(0,4);
         if($scope.logStatus=="登陆成功"){
           $ionicHistory.clearCache();
           $ionicHistory.clearHistory();
 
-          loading.loadingBarFinish($scope);///////////////
+          // loading.loadingBarFinish($scope);///////////////
           Storage.set('TOKEN', data.result.substr(12));
           Storage.set('USERNAME', logOn.username);
           saveUID();
@@ -57,7 +59,7 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
           return;          
         }  
         if(data.data.result=='暂未激活'){
-          loading.loadingBarFinish($scope);///////////////
+          // loading.loadingBarFinish($scope);///////////////
           //Storage.set('TOKEN', data.result.substr(12));
           Storage.set('USERNAME', logOn.username);
           saveUID();
@@ -142,6 +144,7 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
     }
   };  
   $scope.infoSetup = function(userName,userGender){
+    $scope.logStatus='';
     if(userName!='' && userGender!='' && $scope.birthday!='' && $scope.birthday!='点击设置'){
       upload.UserName=userName;
       upload.Gender=userGender == '男'?1:2;
@@ -150,6 +153,7 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
         .then(function(data){
           if(data.result!=null){
             Storage.set('UID', data.result);
+            Storage.set('USERNAME', $rootScope.userId);
             upload.UserId=Storage.get('UID');
 
             // Users.myTrial(upload).then(function(data){
@@ -161,16 +165,23 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
             // });  
             
             Data.Users.SetPatBasicInfo( upload, function (success, headers) {
-               $scope.logStatus=success.result;
+              loading.loadingBarFinish($scope);
+              $scope.logStatus=success.result;
               if(success.result=="数据插入成功"){
                 $scope.logStatus='注册成功！';
                 $timeout(function(){$state.go('tab.tasklist');} , 500);
               }
+            },function(){
+              loading.loadingBarFinish($scope);
+              $scope.logStatus='网络错误！';              
             });
-
-
+          }else{
+            loading.loadingBarFinish($scope);
+            $scope.logStatus='系统错误！';
           }
         },function(data){
+          loading.loadingBarFinish($scope);
+          $scope.logStatus='网络错误！';
         });
       }
       // $rootScope.NAME=userName;
@@ -179,22 +190,52 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
       loading.loadingBarStart($scope);
       userservice.userRegister("PhoneNo",$rootScope.userId, userName, $rootScope.password,"Patient")
       .then(function(data){
-        loading.loadingBarFinish($scope);
+        // loading.loadingBarFinish($scope);
         console.log($rootScope.userId,$rootScope.password);
         userservice.userLogOn('PhoneNo' ,$rootScope.userId,$rootScope.password,'Patient').then(function(data){
           if(data.result.substr(0,4)=="登陆成功"){
             Storage.set('TOKEN', data.result.substr(12));
+            saveUID();
           }
+        },function(data){
+          if(data.data.result=='暂未激活'){            
+            //Storage.set('TOKEN', data.result.substr(12));
+            saveUID();
+          }else{
+            loading.loadingBarFinish($scope);
+            $scope.logStatus='网络错误！';
+          }          
         });
-        Storage.set('USERNAME', $rootScope.userId);
-        saveUID();
       },function(data){
-        loading.loadingBarFinish($scope);
-        if(data.data==null && data.status==0){
-          $scope.logStatus='连接超时！';
-          return;          
-        }     
-        $scope.logStatus=data.data.result;
+        if(data.data.result=='同一用户名的同一角色已经存在'){
+          userservice.userLogOn('PhoneNo' ,$rootScope.userId,$rootScope.password,'Patient')
+          .then(function(data){
+            if(data.result.substr(0,4)=="登陆成功"){
+              Storage.set('TOKEN', data.result.substr(12));
+              saveUID();
+            }
+          },function(data){
+            if(data.data.result=='暂未激活'){
+              //Storage.set('TOKEN', data.result.substr(12));
+              saveUID();
+            }else{
+              loading.loadingBarFinish($scope);
+              $scope.logStatus='网络错误！';
+            }
+          });
+        }else if(data.data==null && data.status==0){
+          loading.loadingBarFinish($scope);
+          $scope.logStatus='网络错误！';          
+        }else{
+          loading.loadingBarFinish($scope);
+          $scope.logStatus=data.data.result;          
+        }        
+        // loading.loadingBarFinish($scope);
+        // if(data.data==null && data.status==0){
+        //   $scope.logStatus='连接超时！';
+        //   return;          
+        // }     
+        // $scope.logStatus=data.data.result;
       });
     }else{
       $scope.logStatus='请输入完整信息！';
@@ -215,6 +256,7 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
   }
   $scope.setPassword={newPass:"" , confirm:""};
   $scope.resetPassword=function(setPassword){
+    $scope.logStatus='';
     if((setPassword.newPass!="") && (setPassword.confirm!="")){
       if(setPassword.newPass == setPassword.confirm){
         if(setPassState=='register'){
@@ -238,8 +280,6 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
             }
             $scope.logStatus=data.data.result;
           });
-          //以下临时跳转
-          //$timeout(function(){$state.go('tab.tasks');} , 3000);
         }
       }else{
         $scope.logStatus="两次输入的密码不一致";
@@ -256,6 +296,7 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
   $scope.ishide=true;
   $scope.change={oldPassword:"",newPassword:"",confirmPassword:""};
   $scope.passwordCheck = function(change){
+    $scope.logStatus1='';
     loading.loadingBarStart($scope);
     var promiseold=userservice.userLogOn('PhoneNo',Storage.get('USERNAME'),change.oldPassword,'Patient');
     promiseold.then(function(data){
@@ -264,22 +305,23 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
       //$scope.ishide=false;
       $timeout(function(){$scope.ishide=false;} , 500);
     },function(data){
-        loading.loadingBarFinish($scope);
-        if(data.data.result=="暂未激活")
-        {
-          $scope.logStatus1='验证成功';
-          $timeout(function(){$scope.ishide=false;} , 500);
-          return;
-       } 
+      loading.loadingBarFinish($scope);
       if(data.data==null && data.status==0){
         $scope.logStatus='连接超时！';
         return;          
-      }
+      }      
+      if(data.data.result=="暂未激活")
+      {
+        $scope.logStatus1='验证成功';
+        $timeout(function(){$scope.ishide=false;} , 500);
+        return;
+       } 
       $scope.logStatus1='密码错误';
     });
   }
 
   $scope.gotoChange = function(change){
+    $scope.logStatus2='';
     if((change.newPassword!="") && (change.confirmPassword!="")){
       if(change.newPassword == change.confirmPassword){
         loading.loadingBarStart($scope);
@@ -353,7 +395,7 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
       .then(function(data){
         loading.loadingBarFinish($scope);
         unablebutton();        
-        if(data.result[0]=='您'){
+        if(data[0]=='您'){
           $scope.logStatus="您的验证码已发送，重新获取请稍后";
         }else{
           $scope.logStatus='验证码发送成功！';
@@ -436,7 +478,6 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
     })
   }
 }])
-
 // --------任务列表-马志彬----------------
 //侧边提醒
 .controller('SlidePageCtrl', ['$scope', '$ionicHistory', '$timeout', '$ionicModal', '$ionicSideMenuDelegate', '$http','NotificationService','$ionicListDelegate','PlanInfo','extraInfo','$ionicPopup', '$state', 'Storage',
@@ -3007,28 +3048,104 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
                  console.log("通知医生失败");
               });
             }
-           },function(err) {   
+           },function(err) {  
+             $ionicLoading.show({
+               template: err.data.result,
+               noBackdrop: false,
+               duration: 1000,
+               hideOnStateChange: true
+             }); 
          }); 
 
         } //else end
       } //function end
 
 
+     //解除关系
+     $scope.removeModuleCandicate=[];
+     $scope.remove={selectedModoule: ''};
+
      //解除关系-弹框
      $scope.showRemovePop = function() {
-        var RemovePop = $ionicPopup.show({
-            template:'', 
-            title: '解除专员', 
-            scope: $scope,
-            buttons: [{text: '确定解除',
-                       type: 'button-assertive',
-                       onTap: function(e) {
-                        //RemoveHealthCoach();
-                      }
-                   },{
-                   text: '<b>取消</b>',
-                   type: 'button-positive'}]
-            });
+        //restful获取可解除的模块
+        var promise =  Users.HModulesByID(Storage.get("UID"), Storage.get("HealthCoachID")); 
+         promise.then(function(data)
+         { 
+           if((data != "") && (data != null)){
+                //console.log('有关联模块');
+                $scope.removeModuleCandicate=data;
+                var RemovePop = $ionicPopup.show({
+                  template:"<div class='list'><div class='item item-divider item-calm'> 选择模块</div><ion-radio ng-repeat='item in removeModuleCandicate' ng-value='item.CategoryCode' ng-model='remove.selectedModoule'> {{ item.Modules }}</ion-radio></div>", 
+                  title: '解除专员', 
+                  scope: $scope,
+                  buttons: [{text: '确定解除',
+                             type: 'button-assertive',
+                             onTap: function(e) {
+                              //console.log($scope.remove.selectedModoule);
+                              RemoveHealthCoach();
+                            } //onTap end
+                         },{
+                         text: '取消',
+                         type: 'button-positive'}]
+                }); //$ionicPopup.show end
+
+                $timeout(function() {
+                  RemovePop.close(); // 30秒后自动关闭弹窗
+                }, 30000);
+
+              }
+            else{ 
+                //console.log('无');
+                $ionicLoading.show({
+                   template: '没有可解除的模块！',
+                   noBackdrop: false,
+                   duration: 1000,
+                   hideOnStateChange: true
+                });
+                
+              }
+          },function(err) {  
+           console.log(err);
+        }); 
+  
+     }
+
+     //解除关系-RESTFUL
+     var RemoveHealthCoach = function(){
+        if($scope.remove.selectedModoule!='')
+        {
+           var promiseRemove =  Users.RemoveHealthCoach(Storage.get("UID"), Storage.get("HealthCoachID"), $scope.remove.selectedModoule);
+            promiseRemove.then(function(data)
+            { 
+                $ionicLoading.show({
+                   template: data.result,
+                   noBackdrop: false,
+                   duration: 1000,
+                   hideOnStateChange: true
+                });
+
+              },function(err) {  
+                //console.log(err.data.result);
+                $ionicLoading.show({
+                   template: err.data.result,
+                   noBackdrop: false,
+                   duration: 1000,
+                   hideOnStateChange: true
+                });
+               
+            }).finally(function () {
+
+            }); //promiseRemove end
+        }
+        else
+        {
+          $ionicLoading.show({
+             template: '请选择要解除的模块！',
+             noBackdrop: false,
+             duration: 1000,
+             hideOnStateChange: true
+          });
+        }
      }
 
       //弹出预约框
@@ -3041,6 +3158,7 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
                scope: $scope,
                buttons: [
                   {text: '提交预约',
+                   type: 'button-assertive',
                  　onTap: function(e) {
                       if($scope.reserve.Description.length >100)
                       {
@@ -3058,7 +3176,7 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
         　　　　    }
                    },
                  {
-                   text: '<b>取消预约</b>',
+                   text: '取消预约',
                    type: 'button-positive',
                }]
            });
