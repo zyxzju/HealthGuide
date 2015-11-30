@@ -1366,6 +1366,7 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
                       });
                     $scope.Temp.Temperature="";
                     $scope.status="";
+                    $scope.Temp.result="";
                   })
                 }
               },
