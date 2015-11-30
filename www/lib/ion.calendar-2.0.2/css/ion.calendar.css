@@ -141,7 +141,7 @@
         cursor: pointer;
     }
     .ic__days .ic__day_undone {
-        background: #E874BC;
+        background: #FFA500;
         cursor: pointer;
     }
     .ic__days .ic__day:hover {

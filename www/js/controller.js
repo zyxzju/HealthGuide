@@ -2140,13 +2140,15 @@ function($scope, $cordovaCalendar,PlanInfo) {
     {
       console.log(date);
       $scope.showiniticon=false;
-      $scope.showtasklist=[];
+      $scope.showtasklist=new Array();
+      $scope.$apply();
       if(date.optiondata != null)
       {
         var option = {PlanNo:date.optiondata.PlanNo,ParentCode:'T',Date:date.optiondata.Date};
-        console.log(option);
+        //console.log(option);
         PlanInfo.PlanInfoChartDtl(option).then(function(s){
-          console.log(s);
+          $scope.notaskicon=false;
+          //console.log(s);
           for(var i=0;i<s.length;i++)
           {
             s[i].index = i;
@@ -2159,6 +2161,7 @@ function($scope, $cordovaCalendar,PlanInfo) {
         });
       }else{
         $scope.notaskicon=true;
+        $scope.$apply();
       }
       // console.log($scope.showtasklist);
     }
@@ -2257,10 +2260,15 @@ function($scope, $cordovaCalendar,PlanInfo) {
       $http.get('data/guide-bloodGlucose.json').success(function(data) {
          BloodSugarGuide=data;
        });
+
+      $http.get('data/guide-temperature.json').success(function(data) {
+         TemperatureGuide=data;
+       });
        
        $scope.options = [{"SignName":"收缩压", "ItemType":"Bloodpressure", "ItemCode":"Bloodpressure_1"},
                          {"SignName":"舒张压", "ItemType":"Bloodpressure","ItemCode":"Bloodpressure_2"},
                          {"SignName":"脉率", "ItemType":"Pulserate", "ItemCode":"Pulserate_1"},
+                         {"SignName":"体温","ItemType":"Temperature","ItemCode":"Temperature_1"},
                          {"SignName":"凌晨血糖", "ItemType":"BloodSugar","ItemCode":"BloodSugar_2"}, 
                          {"SignName":"睡前血糖","ItemType":"BloodSugar","ItemCode":"BloodSugar_3"},
                          {"SignName":"早餐前血糖","ItemType":"BloodSugar","ItemCode":"BloodSugar_4"},
@@ -2362,7 +2370,7 @@ function($scope, $cordovaCalendar,PlanInfo) {
        //同时修改初始值和目标值，有显示，无则隐藏  未做
        if(ItemCode=="Bloodpressure_1")
         {
-          init_graph(UserId, PlanNo, StartDate, EndDate, ItemType, ItemCode, SBPGuide,80,210,"收缩压 （单位：mmHg）");
+          init_graph(UserId, PlanNo, StartDate, EndDate, ItemType, ItemCode, SBPGuide,60,200,"收缩压 （单位：mmHg）");
           //chart_graph.panels[0].title="收缩压 （单位：mmHg）";
           //chart_graph.panels[0].valueAxes[0].minimum=80;
           //chart_graph.panels[0].valueAxes[0].maximum=200;
@@ -2377,6 +2385,10 @@ function($scope, $cordovaCalendar,PlanInfo) {
         else if(ItemCode=="Pulserate_1")
         {
           init_graph(UserId, PlanNo, StartDate, EndDate, ItemType, ItemCode, PulseGuide,0,150,"脉率 （单位：次/分）");
+        }
+        else if(ItemCode=="Temperature_1")
+        {
+          init_graph(UserId, PlanNo, StartDate, EndDate, ItemType, ItemCode, TemperatureGuide,34,42,"体温 （单位：℃）");
         }
         else
         {
@@ -2613,26 +2625,27 @@ function($scope, $cordovaCalendar,PlanInfo) {
         }
         var theDate=theyear.toString()+themonth.toString()+theday.toString();
  
-        //console.log(theDate);
-        PlanInfo.PlanInfoChartDtl(PlanNo,"T", theDate).then(function(data) { 
+        //console.log(PlanNo);
+        var option = {PlanNo:PlanNo, ParentCode:'T', Date:theDate};
+        PlanInfo.PlanInfoChartDtl(option).then(function(data) { 
                 if((data!=null)&&(data!='')){
-                  template = '<ion-popover-view style="opacity:1"><ion-header-bar class="bar-calm"> <h1 class="title">'+theDate+'</h1> </ion-header-bar> <ion-content><div class="list padding">'; 
+                  template = '<ion-popover-view style="opacity:1"><ion-header-bar class="bar-calm"> <h1 class="title">'+theDate+'</h1></ion-header-bar><ion-content><br><div class="list padding">'; 
                    for(var i=0;i<data.length;i++)
                   {
                       template +=' <div class="item item-divider" style="background:#5151A2; color:#FFF">'+data[i].Name +'</div>';
                       for(var j=0;j<data[i].SubTasks.length;j++)
                      {
                          if(data[i].SubTasks[j].Status=="1")
-                         template +='<div class="item">'+"✔"+data[i].SubTasks[j].Name+'</div>';
+                         template +='<div class="item">'+"✔ "+data[i].SubTasks[j].Name+'</div>';
                         else if(data[i].SubTasks[j].Status=="0")
-                        template +='<div class="item">'+"✘"+data[i].SubTasks[j].Name+'</div>';
+                        template +='<div class="item">'+"✘ "+data[i].SubTasks[j].Name+'</div>';
                      } 
                   }
                    template +='</div></ion-content></ion-popover-view>';
                    popover.remove();
                    popover=$ionicPopover.fromTemplate(template);
                    popover.show();
-                 }
+                }
                  
               }, function(data) {}     
             );
