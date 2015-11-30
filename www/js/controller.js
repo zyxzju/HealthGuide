@@ -1208,6 +1208,204 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
       $scope.modal.hide();
     };
 }])
+//温度
+.controller('temperaturecontroller',['$scope',  '$http','Storage','VitalInfo','$rootScope','extraInfo','$ionicLoading','$ionicPopup',
+  function($scope,  $http, Storage, VitalInfo, $rootScope,extraInfo,$ionicLoading,$ionicPopup){
+  
+   console.log('temperaturecontroller');
+   var UserId =Storage.get("UID");
+   var result={};
+   $scope.status="请输入";
+   $scope.Temp={Temperature:"",result:""};
+   $http.get('data/Teresult.json').success(function(data){
+        result = data;
+        console.log(result);
+      });
+  $scope.check = function(c)
+  {
+    chart.dataProvider[0].bullet=$scope.Temp.Temperature;
+    chart.validateData();
+    fever();
+    if(!c)$scope.twcheck='';
+    else $scope.twcheck='required';
+  }
+
+   //画体温计
+    var chart = AmCharts.makeChart("temperaturechartdiv", {
+    "type": "serial",
+    "theme": "light",
+    "autoMargins": false,
+    "marginTop": 30,
+    "marginLeft": 80,
+    "marginBottom": 30,
+    "marginRight": 50,
+    "dataProvider": [{
+        "category": "体温测量",
+        "limit": 39,
+        "full": 100,
+        "bullet": 37,
+        "minimum":35
+    }],
+    "valueAxes": [{
+        "maximum": 42,
+        "minimum":35,
+        "stackType": "regular",
+        "gridAlpha": 0.5,
+        "axisAlpha":1 
+    }],
+    "startDuration": 1,
+    "graphs": [{
+        "columnWidth": 0.8,
+        "lineColor": "#FF0000",
+        "lineThickness": 3,
+        "noStepRisers": true,
+        "stackable": false,
+        "type": "step",
+        "valueField": "limit"
+        },{
+        "valueField": "full",
+        "showBalloon": false,
+        "type": "column",
+        "lineAlpha": 0,
+        "fillAlphas": 0.7,
+        "fillColors": ["#19d228", "#f6d32b","#FFFF00" ,"#fb2316"],
+        "gradientOrientation": "vertical",
+    }, {
+        "clustered": false,
+        "columnWidth": 0.3,
+        "fillAlphas": 1,
+        "lineColor": "#0000FF",
+        "stackable": false,
+        "type": "column",
+        "valueField": "bullet"
+    }],
+    "rotate": false,
+    "columnWidth": 1,
+    "categoryField": "category",
+    "categoryAxis": {
+        "gridAlpha": 0,
+        "axisAlpha": 0.5,
+        "position": "left"
+    }
+});
+
+  
+  //保存体温值
+// var saveTemp = function()
+//   {
+    // chart.dataProvider[0].bullet=$scope.Temp.Temperature;
+    // chart.validateData();
+    // fever();
+    //console.log(c);
+    
+      // var save = [{
+      //   "UserId": UserId,
+      //   "RecordDate": extraInfo.DateTimeNow().fulldate,
+      //   "RecordTime": extraInfo.DateTimeNow().fulltime,
+      //   "ItemType": "Temperature",
+      //   "ItemCode": 'Temperature_1',
+      //   "Value": ""+$scope.Temp.Temperature+"",
+      //   "Unit": "℃",
+      //   "revUserId": "UserId",
+      //   "TerminalName": "sample string 9",
+      //   "TerminalIP": "sample string 10",
+      //   "DeviceType": 11
+      // }]
+      // VitalInfo.PostPatientVitalSigns(save[0]).then(function(data){
+      //   console.log(data);
+      //   $ionicLoading.show({
+      //       template: '保存成功',
+      //       noBackdrop: true,
+      //       duration: 700
+      //     });
+      //   $scope.Temp.Temperature="";
+      //   $scope.status="";
+      // })
+    // else
+    // {
+    //   $ionicLoading.show({
+    //         template: '保存失败',
+    //         noBackdrop: true,
+    //         duration: 700
+    //       });
+    //   $scope.Temp.Temperature="";
+    //   $scope.status="请重新输入";
+    // }
+  // }
+  //  confirm 对话框
+           $scope.showConfirm = function(c) {
+             if(c)
+             {
+             var confirmPopup = $ionicPopup.confirm({
+               title: '确认提交?',
+               template: '您测的体温是  '+$scope.Temp.Temperature+"℃",
+               scope: $scope,
+               buttons: [
+                  {text: '提交',
+                 　onTap: function(e) {
+    
+                   var save = [{
+                      "UserId": UserId,
+                      "RecordDate": extraInfo.DateTimeNow().fulldate,
+                      "RecordTime": extraInfo.DateTimeNow().fulltime,
+                      "ItemType": "Temperature",
+                      "ItemCode": 'Temperature_1',
+                      "Value": ""+$scope.Temp.Temperature+"",
+                      "Unit": "℃",
+                      "revUserId": UserId,
+                      "TerminalName": "sample string 9",
+                      "TerminalIP": "sample string 10",
+                      "DeviceType": 11
+                    }]
+                  VitalInfo.PostPatientVitalSigns(save[0]).then(function(data){
+                    console.log(data);
+                    $ionicLoading.show({
+                        template: '保存成功',
+                        noBackdrop: true,
+                        duration: 700
+                      });
+                    $scope.Temp.Temperature="";
+                    $scope.status="";
+                  })
+                }
+              },
+                 {
+                   text: '<b>取消</b>',
+                   type: 'button-positive',
+               }]
+             });
+           }
+         };
+ //根据体温值，给出相应的提示信息
+  var fever = function()
+  {   
+      if($scope.Temp.Temperature>=35 && $scope.Temp.Temperature<=36.2)
+        {
+          $scope.Temp.result = result.result4;
+        }
+      else if($scope.Temp.Temperature>36.2 && $scope.Temp.Temperature<=37.2)
+        {
+          $scope.Temp.result = result.result5;
+        }
+      else if($scope.Temp.Temperature>37.2 && $scope.Temp.Temperature<38.2)
+        {
+          $scope.Temp.result = result.result1;
+        }
+      else if($scope.Temp.Temperature>=38.2 && $scope.Temp.Temperature<39.2)
+        {
+          $scope.Temp.result =  result.result2;
+        }
+      else if( $scope.Temp.Temperature<=42 && $scope.Temp.Temperature>=39.2)
+        {
+          $scope.Temp.result = result.result3;
+        } 
+      else 
+      {
+        $scope.Temp.result=result.result6;
+      }
+  };
+
+}])
 
 .controller('healtheducationcontroller',['$scope', '$cordovaInAppBrowser', '$cordovaMedia', '$http', '$ionicModal',function($scope, $cordovaInAppBrowser, $cordovaMedia, $http, $ionicModal){
   $http.get('testdata/HElist.json').success(function(data){

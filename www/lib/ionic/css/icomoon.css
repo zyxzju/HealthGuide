@@ -1,0 +1,158 @@
+@font-face {
+	font-family: "icomoon";
+	src:url("../fonts/icomoon.eot?8m7xl9");
+	src:url("../fonts/icomoon.eot?8m7xl9#iefix") format("embedded-opentype"),
+		url("../fonts/icomoon.ttf?8m7xl9") format("truetype"),
+		url("../fonts/icomoon.woff?8m7xl9") format("woff"),
+		url("../fonts/icomoon.svg?8m7xl9#icomoon") format("svg");
+	font-weight: normal;
+	font-style: normal;
+}
+
+[class^="icon-"], [class*=" icon-"] {
+    /* use !important to prevent issues with browser extensions that change fonts */
+	font-family: "icomoon" !important;
+	speak: none;
+	font-style: normal;
+	font-weight: normal;
+	font-variant: normal;
+	text-transform: none;
+	font-size: 50px;
+	line-height: 1;
+
+	/* Better Font Rendering =========== */
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+.icon-iconfont-3:before {
+	content: "\e90b";
+}
+.icon-iconfont-atmaway2:before {
+	content: "\e90c";
+}
+.icon-iconfont-bmi:before {
+	content: "\e90d";
+}
+.icon-iconfont-body_pressure:before {
+	content: "\e90e";
+}
+.icon-iconfont-emoji2:before {
+	content: "\e90f";
+}
+.icon-iconfont-filter2:before {
+	content: "\e910";
+}
+.icon-iconfont-guolv:before {
+	content: "\e911";
+}
+.icon-iconfont-iconfont1zhuanhuan:before {
+	content: "\e912";
+}
+.icon-iconfont-interactivescreen3:before {
+	content: "\e913";
+}
+.icon-iconfont-jiadiantizhongcheng:before {
+	content: "\e914";
+}
+.icon-iconfont-jiadianxinlv:before {
+	content: "\e915";
+}
+.icon-iconfont-liangxieya:before {
+	content: "\e916";
+}
+.icon-iconfont-miaojiesellercalendar2:before {
+	content: "\e917";
+}
+.icon-iconfont-order2:before {
+	content: "\e918";
+}
+.icon-iconfont-paixu:before {
+	content: "\e919";
+}
+.icon-iconfont-people22:before {
+	content: "\e91a";
+}
+.icon-iconfont-pulse:before {
+	content: "\e91b";
+}
+.icon-iconfont-rectangle52rectangle52:before {
+	content: "\e91c";
+}
+.icon-iconfont-shaixuan:before {
+	content: "\e91d";
+}
+.icon-iconfont-shengao:before {
+	content: "\e91e";
+}
+.icon-iconfont-sitting2:before {
+	content: "\e91f";
+}
+.icon-iconfont-thermometer:before {
+	content: "\e920";
+}
+.icon-iconfont-tiwenji2:before {
+	content: "\e921";
+	color: blue; 
+}
+.icon-iconfont-toys2:before {
+	content: "\e922";
+}
+.icon-iconfont-wenduji:before {
+	content: "\e923";
+}
+.icon-iconfont-xietang:before {
+	content: "\e924";
+}
+.icon-iconfont-xietangicon:before {
+	content: "\e925";
+}
+.icon-iconfont-xietangyi:before {
+	content: "\e926";
+}
+.icon-iconfont-xieya1:before {
+	content: "\e927";
+}
+.icon-iconfont-xieya:before {
+	content: "\e928";
+}
+.icon-iconfont-xieyaicon:before {
+	content: "\e929";
+}
+.icon-iconfont-zonghepaixu:before {
+	content: "\e92a";
+}
+.icon-iconfont-tiwenji:before {
+	content: "\e90a";
+}
+.icon-iconfont-atmaway:before {
+	content: "\e902";
+}
+.icon-iconfont-emoji:before {
+	content: "\e903";
+}
+.icon-iconfont-filter:before {
+	content: "\e904";
+}
+.icon-iconfont-interactivescreen2:before {
+	content: "\e905";
+}
+.icon-iconfont-order:before {
+	content: "\e906";
+}
+.icon-iconfont-people2:before {
+	content: "\e907";
+}
+.icon-iconfont-sitting:before {
+	content: "\e908";
+}
+.icon-iconfont-toys:before {
+	content: "\e909";
+}
+.icon-iconfont-miaojiesellercalendar:before {
+	content: "\e901";
+}
+.icon-iconfont-interactivescreen:before {
+	content: "\e900";
+}
+
