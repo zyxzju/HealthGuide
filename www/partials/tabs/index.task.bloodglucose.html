@@ -19,7 +19,7 @@
 							<form name="myForm">
 								<div class="row" style="margin-top:-20px">
 									<div class="col col-25" style="text-align: center;">
-										<button ng-click="savebloodglucose(myForm.$valid)" id="submitbg">提交</button>
+										<button ng-click="savebloodglucose(myForm.$valid)" id="submitbg" style="color:white;margin:9px;">提交</button>
 									</div>
 									<div class="col col-45" style="padding:auto;text-align:right;">
 										<div class="row" style="margin:0px">
@@ -31,7 +31,7 @@
 											</div>
 										</div>
 									</div>
-									<div class="col col-35" style="text-align: center;" ng-click="nextSlide()">
+									<div class="col col-35" style="text-align: center;margin:10px;" ng-click="nextSlide()">
 										<i class="icon ion-chevron-right"></i>
 									</div>
 								</div>
@@ -41,15 +41,15 @@
 					<ion-slide>
 						<div class="mslidebox">
 							<div class="row" style="margin-top:-20px">
-								<div class="col col-20" style="text-align: center;" ng-click="previousSlide()">
+								<div class="col col-20" style="text-align: center;margin:10px;" ng-click="previousSlide()">
 									<i class="icon ion-chevron-left"></i>
 								</div>
 								<div class="col col-60" style="text-align: center;">
-									<button class="button button-balanced mbutton" ng-click="startwhmeasure()">开始测量</button>
+									<button class="button button-balanced mbutton" ng-click="getlatestbgvalue()">测量</button>
 									<i class="icon ion-record buttonicon" id="buttonicon"></i>
 								</div>
-								<div class="col col-20" style="text-align: center;">
-									<button ng-click="saveWH(false)" id="submitbg2">提交</button>
+								<div class="col col-20" style="text-align: center;margin:9px;">
+									<button ng-click="binddevice()" id="submitbg2">绑定</button>
 								</div>
 							</div>
 						</div>
@@ -79,7 +79,7 @@
 		position: absolute;
 		/*left: 50%;*/
 		width: 100%;
-		height: 70%;
+		height: 65%;
 		/*border-style: solid;*/
 	}
 	#bloodglucosechartsdiv{

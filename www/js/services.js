@@ -140,18 +140,22 @@ angular.module('zjubme.services', ['ionic','ngResource'])
         PostPatBasicInfoDetail: {method:'POST', params:{route:'BasicDtlInfo'}, timeout:10000},
         GetHealthCoaches: {method:'GET',isArray: true,params:{route: 'HealthCoaches'}, timeout:100000},
         GetHealthCoachInfo: {method:'GET',params:{route: 'GetHealthCoachInfo', HealthCoachID:'@HealthCoachID'}, timeout:1000},
-        GetCommentList: {method:'GET',isArray: true,params:{route: 'GetCommentList'}, timeout:10000},
+        GetCommentList: {method:'GET',isArray: true,params:{route: 'GetCommentList'}, timeout:100000},
         SetComment: {method:'POST', params:{route:'SetComment'}, timeout:10000},
         ReserveHealthCoach: {method:'POST', params:{route:'ReserveHealthCoach'}, timeout:10000},
-        BasicDtlValue: {method:'GET', params:{route:'BasicDtlValue'}, timeout:10000}
+        BasicDtlValue: {method:'GET', params:{route:'BasicDtlValue'}, timeout:10000},
+        RemoveHealthCoach: {method:'GET', params:{route:'RemoveHealthCoach'}, timeout:10000},
+        HModulesByID: {method:'GET', params:{route:'HModulesByID'}, isArray:true, timeout:10000}
       });
     };
     var Service = function(){
       return $resource(CONFIG.baseUrl + ':path/:route',{
         path:'Service',
       },{
-              sendSMS:{method:'POST',headers:{token:getToken()}, params:{route: 'sendSMS',phoneNo:'@phoneNo',smsType:'@smsType'}, timeout: 10000},
+              sendSMS:{method:'POST',headers:{token:getToken()}, params:{route: 'sendSMS',mobile:'@mobile',smsType:'@smsType',content:'{content}'}, timeout: 10000},
               checkverification:{method:'POST',headers:{token:getToken()}, params:{route: 'checkverification', mobile:'@mobile',smsType: '@smsType', verification:'@verification'},timeout: 10000},
+              BindMeasureDevice:{method:'GET',params:{route:'GetPatientInfo',PatientId:'@PatientId'},timeout:10000},
+              PushNotification: {method:'GET', params:{route:'PushNotification'}, timeout:10000}
       })
     };
     var VitalInfo = function () {
@@ -252,8 +256,43 @@ angular.module('zjubme.services', ['ionic','ngResource'])
 
 
 // 用户操作函数
+
+.factory('Service', ['$q', '$http', 'Data',function ( $q,$http, Data) {
+  var self = this;
+  self.PushNotification = function (platform, Alias, notification, title, id) {
+    var deferred = $q.defer();
+    Data.Service.PushNotification({platform:platform, Alias:Alias, notification:notification, title:title, id:id}, function (data, headers) {
+      deferred.resolve(data);
+    }, function (err) {
+      deferred.reject(err);
+    });
+    return deferred.promise;
+  };
+  return self;
+}])
+
 .factory('Users', ['$q', '$http', 'Data',function ( $q,$http, Data) {
   var self = this;
+
+  self.HModulesByID = function (PatientId, DoctorId) {
+      var deferred = $q.defer();
+      Data.Users.HModulesByID({PatientId:PatientId, DoctorId:DoctorId}, function (data, headers) {
+        deferred.resolve(data);
+      }, function (err) {
+      deferred.reject(err);
+      });
+      return deferred.promise;
+  };
+
+  self.RemoveHealthCoach = function (PatientId, DoctorId, CategoryCode) {
+      var deferred = $q.defer();
+      Data.Users.RemoveHealthCoach({PatientId:PatientId, DoctorId:DoctorId, CategoryCode:CategoryCode}, function (data, headers) {
+        deferred.resolve(data);
+      }, function (err) {
+      deferred.reject(err);
+      });
+      return deferred.promise;
+  };
 
   self.BasicDtlValue = function (UserId, CategoryCode, ItemCode, ItemSeq) {//U201511120002 HM1 Doctor 1
       var deferred = $q.defer();
@@ -275,9 +314,9 @@ angular.module('zjubme.services', ['ionic','ngResource'])
       return deferred.promise;
   };
 
-self.GetHealthCoaches = function () {
+self.GetHealthCoaches = function (top, skip, filter) {
       var deferred = $q.defer();
-      Data.Users.GetHealthCoaches( function (data, headers) {
+      Data.Users.GetHealthCoaches({$top:top, $skip:skip, $filter:filter},function (data, headers) {
         deferred.resolve(data);
       }, function (err) {
       deferred.reject(err);
@@ -425,7 +464,7 @@ self.GetHealthCoaches = function () {
         }
         
         var deferred = $q.defer();
-        Data.Service.sendSMS({phoneNo: _phoneNo, smsType:_smsType},
+        Data.Service.sendSMS({mobile: _phoneNo, smsType:_smsType},
         function(data,status){
           deferred.resolve(data,status);
         },
@@ -470,6 +509,16 @@ self.GetHealthCoaches = function () {
       return deferred.promise;
     }
 
+    serve.BindMeasureDevice = function(uid){
+      var deferred = $q.defer();
+      Data.Service.BindMeasureDevice({"PatientId":uid},
+        function(s){
+          deferred.resolve(s);
+        },function(e){
+          deferred.reject(e);
+        })
+      return deferred.promise;
+    }
 
     //var passReg1=/([a-zA-Z]+[0-9]+|[0-9]+[a-zA-Z]+)/;
     //var passReg2=/^.[A-Za-z0-9]+$/;
@@ -807,14 +856,14 @@ self.GetHealthCoaches = function () {
   self.InsertServerData = function()
   {
     var insertserverdata={};
-    insertserverdata.UserId=extraInfo.PatientId();
+    insertserverdata.UserId=window.localStorage['UID'];
     insertserverdata.RecordDate=extraInfo.DateTimeNow().year+extraInfo.DateTimeNow().month+extraInfo.DateTimeNow().day;
     insertserverdata.RecordTime=extraInfo.DateTimeNow().hour+extraInfo.DateTimeNow().minute+extraInfo.DateTimeNow().second;
     insertserverdata.ItemType='';
     insertserverdata.ItemCode='';
     insertserverdata.Value='';
     insertserverdata.Unit='';
-    insertserverdata.revUserId=extraInfo.revUserId();
+    insertserverdata.revUserId=window.localStorage['UID'];
     insertserverdata.TerminalName=extraInfo.TerminalName();
     insertserverdata.TerminalIP=extraInfo.TerminalIP();
     // insertserverdata.DeviceType=parseInt(extraInfo.DeviceType());

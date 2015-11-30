@@ -1,10 +1,10 @@
-<ion-view view-title="健康专员简介" hide-nav-bar="true">
-  <ion-content scroll='true'>
+<ion-view view-title="健康专员简介" hide-nav-bar="true" cache-view="false">
 
-    <div class="bar bar-calm item-input-inset">
-     <button class="button button-icon icon ion-ios-arrow-left" style="text-align:left;padding-right:20px" ng-click="nvGoback()">返回</button> 
-     <h1 class="title">健康专员简介</h1>
-    </div>
+<ion-header-bar class="bar bar-calm bar-header">
+        <button class="button button-icon icon ion-ios-arrow-left" ng-click="nvGoback()">返回</button>
+        <h2 class="title">健康专员简介</h2>
+    </ion-header-bar>
+  <ion-content scroll='true'>
 
      <div class="list card">
 
@@ -17,15 +17,14 @@
             
         </ion-item> 
      
-
         <div class="item item-body">
           <!-- <p><i class="icon ion-thumbsup assertive"></i>负责模块：{{HealthCoachInfo.module}}</p> -->
-          <p><i class="icon ion-thumbsup assertive"></i>身份信息：{{HealthCoachInfo.UnitName}} /{{HealthCoachInfo.Dept}}/{{HealthCoachInfo.JobTitle}}({{HealthCoachInfo.Level}})</p>
-          <p><i class="icon ion-thumbsup assertive"></i>负责模块：高血压模块/糖尿病模块/心力衰竭模块</p>
-          <p><i class="icon ion-thumbsup assertive"></i>总体评分：{{HealthCoachInfo.generalscore}}</p>
-          <p><i class="icon ion-thumbsup assertive"></i>整体评价：{{HealthCoachInfo.generalComment}}</p>
+          <p><i class="icon ion-thumbsup assertive"></i> 身份信息：{{HealthCoachInfo.UnitName}} /{{HealthCoachInfo.Dept}}/{{HealthCoachInfo.JobTitle}}({{HealthCoachInfo.Level}})</p>
+          <p><i class="icon ion-thumbsup assertive"></i> 负责模块：高血压模块/糖尿病模块/心力衰竭模块</p>
+          <p><i class="icon ion-thumbsup assertive"></i> 总体评分：{{HealthCoachInfo.generalscore}}</p>
+          <p><i class="icon ion-thumbsup assertive"></i> 整体评价：{{HealthCoachInfo.generalComment}}</p>
           <!-- <p>活跃度：{{HealthCoachInfo.activityDegree}}</p> -->
-          <p><i class="icon ion-android-happy assertive"></i>{{HealthCoachInfo.Description}}</p>
+          <p><i class="icon ion-android-happy assertive"></i> {{HealthCoachInfo.Description}}</p>
        <!--  </div> -->
          
           <a class="item item-icon-left item-icon-right assertive" href="#/healthCoach/commentList">
@@ -36,7 +35,7 @@
        <!--  </div> -->
 
         <ion-item class="item-avatar" ng-repeat="comment in CommentList " class="item-avatar">
-            <img src="{{comment.imageURL}}">
+            <img src={{comment.imageURL}}>
             <h2>{{comment.Name}} </h2>
             <p>{{comment.Score}}分 {{comment.CommentTime}}</p>
             <p>{{comment.Comment}}</p>
@@ -44,13 +43,17 @@
         <!-- </div> -->
      
         <div class="item tabs tabs-secondary tabs-icon-left">
-          <a class="tab-item" ng-click="showPopup()" >
+          <a class="tab-item" ng-click="showreservePop()" style="font-size:14px;">
             <i class="icon ion-thumbsup"></i>
             预约计划
           </a>
-          <a class="tab-item" href="#/healthCoach/setComment">
+          <a class="tab-item" href="#/healthCoach/setComment" style="font-size:14px;">
             <i class="icon ion-chatbox"></i>
             评价
+          </a>
+          <a class="tab-item" ng-click="showRemovePop()" style="font-size:14px;">
+            <i class="icon ion-trash-a"></i>
+            解除关系
           </a>
         </div>
 
