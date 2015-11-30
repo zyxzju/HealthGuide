@@ -16,7 +16,8 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
   }else{
     $scope.logOn={username:"",password:""};
   }
-  $scope.signIn = function(logOn) {
+  $scope.signIn = function(logOn) {  
+    $scope.logStatus='';
     if((logOn.username!="") && (logOn.password!="")){ 
       var saveUID = function(){
         var UIDpromise=userservice.UID('PhoneNo',logOn.username);
@@ -39,12 +40,13 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
       }
       loading.loadingBarStart($scope);/////////////////
       promise.then(function(data){
+        loading.loadingBarFinish($scope);
         $scope.logStatus=data.result.substr(0,4);
         if($scope.logStatus=="登陆成功"){
           $ionicHistory.clearCache();
           $ionicHistory.clearHistory();
 
-          loading.loadingBarFinish($scope);///////////////
+          // loading.loadingBarFinish($scope);///////////////
           Storage.set('TOKEN', data.result.substr(12));
           Storage.set('USERNAME', logOn.username);
           saveUID();
@@ -57,7 +59,7 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
           return;          
         }  
         if(data.data.result=='暂未激活'){
-          loading.loadingBarFinish($scope);///////////////
+          // loading.loadingBarFinish($scope);///////////////
           //Storage.set('TOKEN', data.result.substr(12));
           Storage.set('USERNAME', logOn.username);
           saveUID();
@@ -142,6 +144,7 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
     }
   };  
   $scope.infoSetup = function(userName,userGender){
+    $scope.logStatus='';
     if(userName!='' && userGender!='' && $scope.birthday!='' && $scope.birthday!='点击设置'){
       upload.UserName=userName;
       upload.Gender=userGender == '男'?1:2;
@@ -150,6 +153,7 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
         .then(function(data){
           if(data.result!=null){
             Storage.set('UID', data.result);
+            Storage.set('USERNAME', $rootScope.userId);
             upload.UserId=Storage.get('UID');
 
             // Users.myTrial(upload).then(function(data){
@@ -161,16 +165,23 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
             // });  
             
             Data.Users.SetPatBasicInfo( upload, function (success, headers) {
-               $scope.logStatus=success.result;
+              loading.loadingBarFinish($scope);
+              $scope.logStatus=success.result;
               if(success.result=="数据插入成功"){
                 $scope.logStatus='注册成功！';
                 $timeout(function(){$state.go('tab.tasklist');} , 500);
               }
+            },function(){
+              loading.loadingBarFinish($scope);
+              $scope.logStatus='网络错误！';              
             });
-
-
+          }else{
+            loading.loadingBarFinish($scope);
+            $scope.logStatus='系统错误！';
           }
         },function(data){
+          loading.loadingBarFinish($scope);
+          $scope.logStatus='网络错误！';
         });
       }
       // $rootScope.NAME=userName;
@@ -179,22 +190,52 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
       loading.loadingBarStart($scope);
       userservice.userRegister("PhoneNo",$rootScope.userId, userName, $rootScope.password,"Patient")
       .then(function(data){
-        loading.loadingBarFinish($scope);
+        // loading.loadingBarFinish($scope);
         console.log($rootScope.userId,$rootScope.password);
         userservice.userLogOn('PhoneNo' ,$rootScope.userId,$rootScope.password,'Patient').then(function(data){
           if(data.result.substr(0,4)=="登陆成功"){
             Storage.set('TOKEN', data.result.substr(12));
+            saveUID();
           }
+        },function(data){
+          if(data.data.result=='暂未激活'){            
+            //Storage.set('TOKEN', data.result.substr(12));
+            saveUID();
+          }else{
+            loading.loadingBarFinish($scope);
+            $scope.logStatus='网络错误！';
+          }          
         });
-        Storage.set('USERNAME', $rootScope.userId);
-        saveUID();
       },function(data){
-        loading.loadingBarFinish($scope);
-        if(data.data==null && data.status==0){
-          $scope.logStatus='连接超时！';
-          return;          
-        }     
-        $scope.logStatus=data.data.result;
+        if(data.data.result=='同一用户名的同一角色已经存在'){
+          userservice.userLogOn('PhoneNo' ,$rootScope.userId,$rootScope.password,'Patient')
+          .then(function(data){
+            if(data.result.substr(0,4)=="登陆成功"){
+              Storage.set('TOKEN', data.result.substr(12));
+              saveUID();
+            }
+          },function(data){
+            if(data.data.result=='暂未激活'){
+              //Storage.set('TOKEN', data.result.substr(12));
+              saveUID();
+            }else{
+              loading.loadingBarFinish($scope);
+              $scope.logStatus='网络错误！';
+            }
+          });
+        }else if(data.data==null && data.status==0){
+          loading.loadingBarFinish($scope);
+          $scope.logStatus='网络错误！';          
+        }else{
+          loading.loadingBarFinish($scope);
+          $scope.logStatus=data.data.result;          
+        }        
+        // loading.loadingBarFinish($scope);
+        // if(data.data==null && data.status==0){
+        //   $scope.logStatus='连接超时！';
+        //   return;          
+        // }     
+        // $scope.logStatus=data.data.result;
       });
     }else{
       $scope.logStatus='请输入完整信息！';
@@ -215,6 +256,7 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
   }
   $scope.setPassword={newPass:"" , confirm:""};
   $scope.resetPassword=function(setPassword){
+    $scope.logStatus='';
     if((setPassword.newPass!="") && (setPassword.confirm!="")){
       if(setPassword.newPass == setPassword.confirm){
         if(setPassState=='register'){
@@ -238,8 +280,6 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
             }
             $scope.logStatus=data.data.result;
           });
-          //以下临时跳转
-          //$timeout(function(){$state.go('tab.tasks');} , 3000);
         }
       }else{
         $scope.logStatus="两次输入的密码不一致";
@@ -256,6 +296,7 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
   $scope.ishide=true;
   $scope.change={oldPassword:"",newPassword:"",confirmPassword:""};
   $scope.passwordCheck = function(change){
+    $scope.logStatus1='';
     loading.loadingBarStart($scope);
     var promiseold=userservice.userLogOn('PhoneNo',Storage.get('USERNAME'),change.oldPassword,'Patient');
     promiseold.then(function(data){
@@ -264,22 +305,23 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
       //$scope.ishide=false;
       $timeout(function(){$scope.ishide=false;} , 500);
     },function(data){
-        loading.loadingBarFinish($scope);
-        if(data.data.result=="暂未激活")
-        {
-          $scope.logStatus1='验证成功';
-          $timeout(function(){$scope.ishide=false;} , 500);
-          return;
-       } 
+      loading.loadingBarFinish($scope);
       if(data.data==null && data.status==0){
         $scope.logStatus='连接超时！';
         return;          
-      }
+      }      
+      if(data.data.result=="暂未激活")
+      {
+        $scope.logStatus1='验证成功';
+        $timeout(function(){$scope.ishide=false;} , 500);
+        return;
+       } 
       $scope.logStatus1='密码错误';
     });
   }
 
   $scope.gotoChange = function(change){
+    $scope.logStatus2='';
     if((change.newPassword!="") && (change.confirmPassword!="")){
       if(change.newPassword == change.confirmPassword){
         loading.loadingBarStart($scope);
@@ -353,7 +395,7 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
       .then(function(data){
         loading.loadingBarFinish($scope);
         unablebutton();        
-        if(data.result[0]=='您'){
+        if(data[0]=='您'){
           $scope.logStatus="您的验证码已发送，重新获取请稍后";
         }else{
           $scope.logStatus='验证码发送成功！';
@@ -436,7 +478,6 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
     })
   }
 }])
-
 // --------任务列表-马志彬----------------
 //侧边提醒
 .controller('SlidePageCtrl', ['$scope', '$ionicHistory', '$timeout', '$ionicModal', '$ionicSideMenuDelegate', '$http','NotificationService','$ionicListDelegate','PlanInfo','extraInfo','$ionicPopup', '$state', 'Storage',
@@ -445,6 +486,7 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
       // $http.get('testdata/tasklist.json').success(function(data){
       //  $scope.tasklist = data;
       // })
+      $scope.tmzb = 'test';
       ///获取菜单栏列表数据
       $http.get('data/catalog.json').success(function(data){
         $scope.catalog = data;
@@ -1830,9 +1872,108 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
   //   $ionicHistory.goBack();
   // }
   // $scope.lastviewtitle = $ionicHistory.backTitle();
+   // $cordovaCalendar.createCalendar({
+   //  calendarName: 'Cordova Calendar',
+   //  calendarColor: '#FF0000'
+   //  }).then(function (result) {
+   //    // success
+   //  }, function (err) {
+   //    // error
+   //  });
 }])
 
+.controller('calendarcontroller',['$scope', '$cordovaCalendar','PlanInfo',
+function($scope, $cordovaCalendar,PlanInfo) {
 
+    $scope.showiniticon = true;
+    $scope.notaskicon = false;
+    var data = {
+      PatientId:'U201511120002',
+      StartDate:'20151101',
+      EndDate:'20151130',
+      Module:'M1'
+    };
+
+    var doneflag = [];
+    var doneflag_a = [];
+
+    var nextmonth = new Date();
+    nextmonth.setDate(1);
+    nextmonth.setMonth(nextmonth.getMonth()+1);
+    nextmonth.setDate(nextmonth.getDate()-1)
+    console.log(nextmonth);
+
+    PlanInfo.GetComplianceListInC(data).then(function(s){
+      console.log(s);
+      doneflag_a = s;
+      if(doneflag_a.length == 0)
+      {
+          doneflag = [];
+      }else{
+         for(var i=0;i<doneflag_a.length;i++)
+          {
+              doneflag[doneflag_a[i].Date%100] = doneflag_a[i];
+          }
+          // console.log(doneflag);
+          $("#myCalendar-1").ionCalendar({
+              lang: "ch",                     // language
+              sundayFirst: false,             // first week day
+              years: "80",                    // years diapason
+              format: "YYYY.MM.DD",           // date format
+              onClick: function(date){        // click on day returns date
+                  getselecteddaytask(date);
+              }
+          },PlanInfo,doneflag);
+      }
+    },function(e){
+      console.log(e);
+      $("#myCalendar-1").ionCalendar({
+              lang: "ch",                     // language
+              sundayFirst: false,             // first week day
+              years: "80",                    // years diapason
+              format: "YYYY.MM.DD",           // date format
+              onClick: function(date){        // click on day returns date
+                  getselecteddaytask(date);
+              }
+          },PlanInfo,[]);
+    });
+    var getselecteddaytask = function(date)
+    {
+      console.log(date);
+      $scope.showiniticon=false;
+      $scope.showtasklist=[];
+      if(date.optiondata != null)
+      {
+        var option = {PlanNo:date.optiondata.PlanNo,ParentCode:'T',Date:date.optiondata.Date};
+        console.log(option);
+        PlanInfo.PlanInfoChartDtl(option).then(function(s){
+          console.log(s);
+          for(var i=0;i<s.length;i++)
+          {
+            s[i].index = i;
+            s[i].showdetail = false;
+          }
+          $scope.showtasklist = s;
+          $scope.notaskicon=false;
+        },function(e){
+          console.log(e);
+        });
+      }else{
+        $scope.notaskicon=true;
+      }
+      // console.log($scope.showtasklist);
+    }
+    var lastindex = null;
+    $scope.showdetail = function(index)
+    {
+      if(lastindex!=null && lastindex!=index)
+      {
+        $scope.showtasklist[lastindex].showdetail = false;
+      }
+      $scope.showtasklist[index].showdetail = !$scope.showtasklist[index].showdetail;
+      lastindex = index;
+    }
+}])
 // --------依从率图-李山----------------
 //目标公共界面
 .controller('TargetCtrl', ['$scope', '$http','$ionicSideMenuDelegate','$timeout','$ionicPopup',
@@ -2741,17 +2882,18 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
       
       $scope.healthCoachList = new Array();
       $scope.moreHealthCoach=false;  //上拉加载更多，没有更多数据标志
-
+      $scope.filterCondition = "sex ge '' "; //筛选初始值
+      $scope.alertText='正在努力加载中...';
       $scope.nvGoback = function() {
         $ionicHistory.goBack();
       } 
 
-     $scope.$watch('$viewContentLoaded', function() {GetHealthCoaches(10, 0); });      
+     $scope.$watch('$viewContentLoaded', function() {GetHealthCoaches(10, 0, $scope.filterCondition); });      //num、skip、filter
 
      //获取所有专员列表
-     GetHealthCoaches = function(num, skip)  
+     GetHealthCoaches = function(num, skip, filter)  
      {
-         var promise = Users.GetHealthCoaches(num, skip); 
+         var promise = Users.GetHealthCoaches(num, skip, filter); 
          promise.then(function(data){ 
             for(var i=0;i<data.length;i++){
                if((data[i].imageURL=="")||(data[i].imageURL==null)){
@@ -2765,6 +2907,7 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
             //本次获取的数量少于num，则说明没有更多数据了
             if(data.length < num){
                 $scope.moreHealthCoach=false;
+                $scope.alertText='没有更多数据';
                 // $ionicLoading.show({
                 //   template: '没有更多数据',
                 //   noBackdrop: false,
@@ -2793,15 +2936,15 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
     //下拉刷新列表
      $scope.refreshHealthCoachList = function() {
         $scope.healthCoachList = new Array();
+        $scope.alertText='正在努力加载中...';
         $scope.moreHealthCoach=false;
-        GetHealthCoaches(10, 0); 
+        GetHealthCoaches(10, 0, $scope.filterCondition); 
      };
 
     //上拉加载更多评论
      $scope.loadMoreHealthCoach = function () { 
-        console.log($scope.healthCoachList.length);
         //console.log(333);
-        GetHealthCoaches(5, $scope.healthCoachList.length);
+        GetHealthCoaches(5, $scope.healthCoachList.length, $scope.filterCondition);
       }
 
        //排序
@@ -2812,52 +2955,49 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
       });
 
       $scope.sideList = [
-        { text: "姓名顺序排列", value: "name" ,reverse:false},
-        { text: "姓名逆序排列", value: "name" ,reverse:true},
-        { text: "年龄最高", value: "age",reverse:true },
-        { text: "年龄最低", value: "age",reverse:false },
-        { text: "评分最高", value: "score" ,reverse:true},
-        { text: "评分最低", value: "score" ,reverse:false},
-      ];
+        { text: "姓名顺序排列", value: "name" },
+        { text: "姓名逆序排列", value: "-name" },
+        { text: "评分最高", value: "-score" },
+        { text: "评分最低", value: "score" },
+        { text: "年龄最高", value: "-age" },
+        { text: "年龄最低", value: "age" }];
+
       $scope.orderProp = 'name';
       
       $scope.sideChange = function(item) {
           $scope.orderProp= item.value;
-          $scope.reverse=item.reverse;
       }; 
 
       //筛选
-      $scope.query = '';
-
-       $ionicPopover.fromTemplateUrl('templates/popover-select.html', {
+     $ionicPopover.fromTemplateUrl('templates/popover-select.html', {
         scope: $scope,
       }).then(function(popover1) {
         $scope.popover1 = popover1;
       });
-      $scope.sexList = [{ text: "男", value: '男' },{ text: "女", value: '女' }];
-      $scope.SS={selectedSex:'男'};
-      $scope.filter= function(){
-        $scope.query = $scope.SS.selectedSex;
-        $scope.popover1.hide();
-      }
 
-      //弹出界面
-       $ionicModal.fromTemplateUrl('partials/healthCoach/filterHealthCoach.html', {
-           scope: $scope,
-           animation: 'slide-in-up'
-       }).then(function(modal) {
-          $scope.modal = modal;
-         });
+      //筛选-性别
+      $scope.sexList = [
+        { text: "全部", value: 'all' },
+        { text: "男", value: '1' },
+        { text: "女", value: '2' }
+        ];
+      $scope.selectMenu={selectedSex:'all'};
 
-         $scope.openModal = function() {
-           $scope.modal.show();
-         };
-         $scope.closeModal = function() {
-         $scope.modal.hide();
-          };
-         $scope.finish = function() {
-           $scope.modal.hide();
-         };  
+       //筛选函数
+       $scope.selectFunction = function(){
+           if($scope.selectFunction.selectedSex=="all")
+           {
+             $scope.filterCondition = "sex ge '1' ";
+           }
+           else
+           {
+              $scope.filterCondition = "sex eq  '"+$scope.selectMenu.selectedSex+"'";
+           } 
+           $scope.healthCoachList = new Array();
+           $scope.alertText='正在努力加载中...';
+           GetHealthCoaches(10, 0, $scope.filterCondition);
+           $scope.popover1.hide();
+        }
   }])
 
 //专员简介（预约）
@@ -3008,28 +3148,104 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
                  console.log("通知医生失败");
               });
             }
-           },function(err) {   
+           },function(err) {  
+             $ionicLoading.show({
+               template: err.data.result,
+               noBackdrop: false,
+               duration: 1000,
+               hideOnStateChange: true
+             }); 
          }); 
 
         } //else end
       } //function end
 
 
+     //解除关系
+     $scope.removeModuleCandicate=[];
+     $scope.remove={selectedModoule: ''};
+
      //解除关系-弹框
      $scope.showRemovePop = function() {
-        var RemovePop = $ionicPopup.show({
-            template:'', 
-            title: '解除专员', 
-            scope: $scope,
-            buttons: [{text: '确定解除',
-                       type: 'button-assertive',
-                       onTap: function(e) {
-                        //RemoveHealthCoach();
-                      }
-                   },{
-                   text: '<b>取消</b>',
-                   type: 'button-positive'}]
-            });
+        //restful获取可解除的模块
+        var promise =  Users.HModulesByID(Storage.get("UID"), Storage.get("HealthCoachID")); 
+         promise.then(function(data)
+         { 
+           if((data != "") && (data != null)){
+                //console.log('有关联模块');
+                $scope.removeModuleCandicate=data;
+                var RemovePop = $ionicPopup.show({
+                  template:"<div class='list'><div class='item item-divider item-calm'> 选择模块</div><ion-radio ng-repeat='item in removeModuleCandicate' ng-value='item.CategoryCode' ng-model='remove.selectedModoule'> {{ item.Modules }}</ion-radio></div>", 
+                  title: '解除专员', 
+                  scope: $scope,
+                  buttons: [{text: '确定解除',
+                             type: 'button-assertive',
+                             onTap: function(e) {
+                              //console.log($scope.remove.selectedModoule);
+                              RemoveHealthCoach();
+                            } //onTap end
+                         },{
+                         text: '取消',
+                         type: 'button-positive'}]
+                }); //$ionicPopup.show end
+
+                $timeout(function() {
+                  RemovePop.close(); // 30秒后自动关闭弹窗
+                }, 30000);
+
+              }
+            else{ 
+                //console.log('无');
+                $ionicLoading.show({
+                   template: '没有可解除的模块！',
+                   noBackdrop: false,
+                   duration: 1000,
+                   hideOnStateChange: true
+                });
+                
+              }
+          },function(err) {  
+           console.log(err);
+        }); 
+  
+     }
+
+     //解除关系-RESTFUL
+     var RemoveHealthCoach = function(){
+        if($scope.remove.selectedModoule!='')
+        {
+           var promiseRemove =  Users.RemoveHealthCoach(Storage.get("UID"), Storage.get("HealthCoachID"), $scope.remove.selectedModoule);
+            promiseRemove.then(function(data)
+            { 
+                $ionicLoading.show({
+                   template: data.result,
+                   noBackdrop: false,
+                   duration: 1000,
+                   hideOnStateChange: true
+                });
+
+              },function(err) {  
+                //console.log(err.data.result);
+                $ionicLoading.show({
+                   template: err.data.result,
+                   noBackdrop: false,
+                   duration: 1000,
+                   hideOnStateChange: true
+                });
+               
+            }).finally(function () {
+
+            }); //promiseRemove end
+        }
+        else
+        {
+          $ionicLoading.show({
+             template: '请选择要解除的模块！',
+             noBackdrop: false,
+             duration: 1000,
+             hideOnStateChange: true
+          });
+        }
      }
 
       //弹出预约框
@@ -3042,6 +3258,7 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
                scope: $scope,
                buttons: [
                   {text: '提交预约',
+                   type: 'button-assertive',
                  　onTap: function(e) {
                       if($scope.reserve.Description.length >100)
                       {
@@ -3059,7 +3276,7 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
         　　　　    }
                    },
                  {
-                   text: '<b>取消预约</b>',
+                   text: '取消预约',
                    type: 'button-positive',
                }]
            });
@@ -3075,13 +3292,14 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
 }])
 
 //专员的评价列表
-.controller('CommentListCtrl',['$scope', '$ionicHistory', '$ionicSideMenuDelegate','Users','Storage', 'CONFIG', '$ionicScrollDelegate', '$ionicLoading',
-   function($scope, $ionicHistory, $ionicSideMenuDelegate, Users, Storage, CONFIG, $ionicScrollDelegate, $ionicLoading) {
+.controller('CommentListCtrl',['$scope', '$ionicHistory', '$ionicSideMenuDelegate','Users','Storage', 'CONFIG', '$ionicScrollDelegate', '$ionicLoading', '$ionicPopover',
+   function($scope, $ionicHistory, $ionicSideMenuDelegate, Users, Storage, CONFIG, $ionicScrollDelegate, $ionicLoading, $ionicPopover) {
     
+      $scope.setting={selectedModoule:" "}; //默认加载全部模块
       $scope.scrollToTop=false; //“回到顶部按钮”初始隐藏
-      var CategoryCode = ""; //后期作为筛选
       $scope.CommentList = new Array();
       $scope.moreComment=false;  //上拉加载更多，没有更多数据标志
+      $scope.alertText='正在努力加载中...';
 
       //回到顶部函数
       $scope.scrollTop = function() {
@@ -3107,19 +3325,21 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
       //下拉刷新评论
       $scope.refreshComment = function() {
          $scope.CommentList=new Array();
+         //$scope.alertText='正在努力加载中...';
          $scope.moreComment=false;
-         GetCommentList(Storage.get("HealthCoachID"), CategoryCode, 10, 0);
+         GetCommentList(Storage.get("HealthCoachID"),  $scope.setting.selectedModoule, 10, 0);
        }
 
       //上啦加载更多评论
        $scope.loadMoreComment = function () {
            //console.log(333);
-           GetCommentList(Storage.get("HealthCoachID"), CategoryCode, 5, $scope.CommentList.length);    
+           GetCommentList(Storage.get("HealthCoachID"),  $scope.setting.selectedModoule, 5, $scope.CommentList.length);    
         }
 
       //restful获取评论列表
       var GetCommentList= function(DoctorId ,CategoryCode,num, skip)
        {
+           $scope.alertText='正在努力加载中...';
            var promise =  Users.GetCommentList(DoctorId ,CategoryCode, num, skip); 
            promise.then(function(data)
           { 
@@ -3137,6 +3357,7 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
             //本次获取的数量少于num，则说明没有更多数据了
             if(data.length < num){
                 $scope.moreComment=false;
+                      $scope.alertText='没有更多数据...';
                 $ionicLoading.show({
                   template: '没有更多数据',
                   noBackdrop: false,
@@ -3158,7 +3379,27 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
 
       //初始化
       GetCommentList(Storage.get("HealthCoachID"), '', 10, 0);
+      
+      //筛选
+      $ionicPopover.fromTemplateUrl('templates/popover-sort.html', {
+          scope: $scope,
+        }).then(function(popover) {
+          $scope.popover = popover;
+      });
        
+      $scope.modouleList = [
+        { text: "全部", value: " " },
+        { text: "高血压", value: "HM1" },
+        { text: "糖尿病", value: "HM2"},
+        { text: "心衰", value: "HM3" },
+      ];
+
+      $scope.filterModoule= function(){
+        $scope.CommentList=new Array();
+        //$scope.alertText='正在努力加载中...';
+        GetCommentList(Storage.get("HealthCoachID"), $scope.setting.selectedModoule, 10, 0); 
+        $scope.popover.hide();
+      };
 }])
 
 //写评论

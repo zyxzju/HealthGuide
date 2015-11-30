@@ -140,18 +140,19 @@ angular.module('zjubme.services', ['ionic','ngResource'])
         PostPatBasicInfoDetail: {method:'POST', params:{route:'BasicDtlInfo'}, timeout:10000},
         GetHealthCoaches: {method:'GET',isArray: true,params:{route: 'HealthCoaches'}, timeout:100000},
         GetHealthCoachInfo: {method:'GET',params:{route: 'GetHealthCoachInfo', HealthCoachID:'@HealthCoachID'}, timeout:1000},
-        GetCommentList: {method:'GET',isArray: true,params:{route: 'GetCommentList'}, timeout:10000},
+        GetCommentList: {method:'GET',isArray: true,params:{route: 'GetCommentList'}, timeout:100000},
         SetComment: {method:'POST', params:{route:'SetComment'}, timeout:10000},
         ReserveHealthCoach: {method:'POST', params:{route:'ReserveHealthCoach'}, timeout:10000},
         BasicDtlValue: {method:'GET', params:{route:'BasicDtlValue'}, timeout:10000},
-        RemoveHealthCoach: {method:'POST', params:{route:'RemoveHealthCoach'}, timeout:10000},
+        RemoveHealthCoach: {method:'GET', params:{route:'RemoveHealthCoach'}, timeout:10000},
+        HModulesByID: {method:'GET', params:{route:'HModulesByID'}, isArray:true, timeout:10000}
       });
     };
     var Service = function(){
       return $resource(CONFIG.baseUrl + ':path/:route',{
         path:'Service',
       },{
-              sendSMS:{method:'POST',headers:{token:getToken()}, params:{route: 'sendSMS',phoneNo:'@phoneNo',smsType:'@smsType'}, timeout: 10000},
+              sendSMS:{method:'POST',headers:{token:getToken()}, params:{route: 'sendSMS',mobile:'@mobile',smsType:'@smsType',content:'{content}'}, timeout: 10000},
               checkverification:{method:'POST',headers:{token:getToken()}, params:{route: 'checkverification', mobile:'@mobile',smsType: '@smsType', verification:'@verification'},timeout: 10000},
               BindMeasureDevice:{method:'GET',params:{route:'GetPatientInfo',PatientId:'@PatientId'},timeout:10000},
               PushNotification: {method:'GET', params:{route:'PushNotification'}, timeout:10000}
@@ -184,7 +185,8 @@ angular.module('zjubme.services', ['ionic','ngResource'])
               PlanInfoChart: {method:'GET', params:{route: 'PlanInfoChart'},timeout: 10000, isArray:true},                
               Target: {method:'GET', params:{route: 'Target'},timeout: 10000},
               PlanInfoChartDtl: {method:'GET', params:{route: 'PlanInfoChartDtl'},timeout: 10000, isArray:true},
-              GetExecutingPlan: {method:'GET', isArray:true ,params:{route: 'Plan'},timeout: 10000}        
+              GetExecutingPlan: {method:'GET', isArray:true ,params:{route: 'Plan'},timeout: 10000},
+              GetComplianceListInC:{method:'GET', isArray:true ,params:{route: 'GetComplianceListInC'},timeout: 10000}
         });
     };
 
@@ -273,6 +275,16 @@ angular.module('zjubme.services', ['ionic','ngResource'])
 .factory('Users', ['$q', '$http', 'Data',function ( $q,$http, Data) {
   var self = this;
 
+  self.HModulesByID = function (PatientId, DoctorId) {
+      var deferred = $q.defer();
+      Data.Users.HModulesByID({PatientId:PatientId, DoctorId:DoctorId}, function (data, headers) {
+        deferred.resolve(data);
+      }, function (err) {
+      deferred.reject(err);
+      });
+      return deferred.promise;
+  };
+
   self.RemoveHealthCoach = function (PatientId, DoctorId, CategoryCode) {
       var deferred = $q.defer();
       Data.Users.RemoveHealthCoach({PatientId:PatientId, DoctorId:DoctorId, CategoryCode:CategoryCode}, function (data, headers) {
@@ -303,9 +315,9 @@ angular.module('zjubme.services', ['ionic','ngResource'])
       return deferred.promise;
   };
 
-self.GetHealthCoaches = function () {
+self.GetHealthCoaches = function (top, skip, filter) {
       var deferred = $q.defer();
-      Data.Users.GetHealthCoaches( function (data, headers) {
+      Data.Users.GetHealthCoaches({$top:top, $skip:skip, $filter:filter},function (data, headers) {
         deferred.resolve(data);
       }, function (err) {
       deferred.reject(err);
@@ -453,7 +465,7 @@ self.GetHealthCoaches = function () {
         }
         
         var deferred = $q.defer();
-        Data.Service.sendSMS({phoneNo: _phoneNo, smsType:_smsType},
+        Data.Service.sendSMS({mobile: _phoneNo, smsType:_smsType},
         function(data,status){
           deferred.resolve(data,status);
         },
@@ -1025,9 +1037,9 @@ self.GetHealthCoaches = function () {
     });
     return deferred.promise;
   };
-  self.PlanInfoChartDtl = function (PlanNo,ParentCode,Date) {
+  self.PlanInfoChartDtl = function (option) {
     var deferred = $q.defer();
-    Data.PlanInfo.PlanInfoChartDtl({PlanNo:PlanNo,ParentCode:ParentCode,Date:Date}, function (data, headers) {
+    Data.PlanInfo.PlanInfoChartDtl(option, function (data, headers) {
       deferred.resolve(data);
     }, function (err) {
       deferred.reject(err);
@@ -1038,6 +1050,16 @@ self.GetHealthCoaches = function () {
   {
     var deferred = $q.defer();
     Data.PlanInfo.GetExecutingPlan(data,function(s){
+      deferred.resolve(s);
+    },function(e){
+      deferred.reject(e);
+    })
+    return deferred.promise;
+  }
+  self.GetComplianceListInC = function(data)
+  {
+    var deferred = $q.defer();
+    Data.PlanInfo.GetComplianceListInC(data,function(s){
       deferred.resolve(s);
     },function(e){
       deferred.reject(e);
