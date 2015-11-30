@@ -693,7 +693,8 @@ self.GetHealthCoaches = function (top, skip, filter) {
         "TF0002":"#/tab/task/bpm",
         "TF0003":"#/tab/task/bloodglucose",
         "TA0001":"#/tab/task/measureweight",
-        "TG0001":"#/tab/task/riskinfo"
+        "TG0001":"#/tab/task/riskinfo",
+        "TF0004":"#/tab/task/temperature"
       }
       var r='';
       angular.forEach(dictionary,function(value,key){
