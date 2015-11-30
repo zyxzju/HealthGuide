@@ -486,6 +486,7 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
       // $http.get('testdata/tasklist.json').success(function(data){
       //  $scope.tasklist = data;
       // })
+      $scope.tmzb = 'test';
       ///获取菜单栏列表数据
       $http.get('data/catalog.json').success(function(data){
         $scope.catalog = data;
@@ -2070,9 +2071,108 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
   //   $ionicHistory.goBack();
   // }
   // $scope.lastviewtitle = $ionicHistory.backTitle();
+   // $cordovaCalendar.createCalendar({
+   //  calendarName: 'Cordova Calendar',
+   //  calendarColor: '#FF0000'
+   //  }).then(function (result) {
+   //    // success
+   //  }, function (err) {
+   //    // error
+   //  });
 }])
 
+.controller('calendarcontroller',['$scope', '$cordovaCalendar','PlanInfo',
+function($scope, $cordovaCalendar,PlanInfo) {
 
+    $scope.showiniticon = true;
+    $scope.notaskicon = false;
+    var data = {
+      PatientId:'U201511120002',
+      StartDate:'20151101',
+      EndDate:'20151130',
+      Module:'M1'
+    };
+
+    var doneflag = [];
+    var doneflag_a = [];
+
+    var nextmonth = new Date();
+    nextmonth.setDate(1);
+    nextmonth.setMonth(nextmonth.getMonth()+1);
+    nextmonth.setDate(nextmonth.getDate()-1)
+    console.log(nextmonth);
+
+    PlanInfo.GetComplianceListInC(data).then(function(s){
+      console.log(s);
+      doneflag_a = s;
+      if(doneflag_a.length == 0)
+      {
+          doneflag = [];
+      }else{
+         for(var i=0;i<doneflag_a.length;i++)
+          {
+              doneflag[doneflag_a[i].Date%100] = doneflag_a[i];
+          }
+          // console.log(doneflag);
+          $("#myCalendar-1").ionCalendar({
+              lang: "ch",                     // language
+              sundayFirst: false,             // first week day
+              years: "80",                    // years diapason
+              format: "YYYY.MM.DD",           // date format
+              onClick: function(date){        // click on day returns date
+                  getselecteddaytask(date);
+              }
+          },PlanInfo,doneflag);
+      }
+    },function(e){
+      console.log(e);
+      $("#myCalendar-1").ionCalendar({
+              lang: "ch",                     // language
+              sundayFirst: false,             // first week day
+              years: "80",                    // years diapason
+              format: "YYYY.MM.DD",           // date format
+              onClick: function(date){        // click on day returns date
+                  getselecteddaytask(date);
+              }
+          },PlanInfo,[]);
+    });
+    var getselecteddaytask = function(date)
+    {
+      console.log(date);
+      $scope.showiniticon=false;
+      $scope.showtasklist=[];
+      if(date.optiondata != null)
+      {
+        var option = {PlanNo:date.optiondata.PlanNo,ParentCode:'T',Date:date.optiondata.Date};
+        console.log(option);
+        PlanInfo.PlanInfoChartDtl(option).then(function(s){
+          console.log(s);
+          for(var i=0;i<s.length;i++)
+          {
+            s[i].index = i;
+            s[i].showdetail = false;
+          }
+          $scope.showtasklist = s;
+          $scope.notaskicon=false;
+        },function(e){
+          console.log(e);
+        });
+      }else{
+        $scope.notaskicon=true;
+      }
+      // console.log($scope.showtasklist);
+    }
+    var lastindex = null;
+    $scope.showdetail = function(index)
+    {
+      if(lastindex!=null && lastindex!=index)
+      {
+        $scope.showtasklist[lastindex].showdetail = false;
+      }
+      $scope.showtasklist[index].showdetail = !$scope.showtasklist[index].showdetail;
+      lastindex = index;
+    }
+}])
 // --------依从率图-李山----------------
 //目标公共界面
 .controller('TargetCtrl', ['$scope', '$http','$ionicSideMenuDelegate','$timeout','$ionicPopup',
