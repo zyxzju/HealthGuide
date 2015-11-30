@@ -33,6 +33,9 @@ describe('\nTests for "controllers"', function(){
       		expect(scope.save(false));
       		expect(scope.checkalert).toEqual("required");
    		});
+   		it('test for a sigle value', function() {
+      		expect(scope.tmzb).toEqual("test");
+   		});
 
    		describe(" $scope.save() when true and update",function(){
 			beforeEach(function(){

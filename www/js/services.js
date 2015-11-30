@@ -185,7 +185,8 @@ angular.module('zjubme.services', ['ionic','ngResource'])
               PlanInfoChart: {method:'GET', params:{route: 'PlanInfoChart'},timeout: 10000, isArray:true},                
               Target: {method:'GET', params:{route: 'Target'},timeout: 10000},
               PlanInfoChartDtl: {method:'GET', params:{route: 'PlanInfoChartDtl'},timeout: 10000, isArray:true},
-              GetExecutingPlan: {method:'GET', isArray:true ,params:{route: 'Plan'},timeout: 10000}        
+              GetExecutingPlan: {method:'GET', isArray:true ,params:{route: 'Plan'},timeout: 10000},
+              GetComplianceListInC:{method:'GET', isArray:true ,params:{route: 'GetComplianceListInC'},timeout: 10000}
         });
     };
 
@@ -693,7 +694,8 @@ self.GetHealthCoaches = function (top, skip, filter) {
         "TF0002":"#/tab/task/bpm",
         "TF0003":"#/tab/task/bloodglucose",
         "TA0001":"#/tab/task/measureweight",
-        "TG0001":"#/tab/task/riskinfo"
+        "TG0001":"#/tab/task/riskinfo",
+        "TF0004":"#/tab/task/temperature"
       }
       var r='';
       angular.forEach(dictionary,function(value,key){
@@ -1036,9 +1038,9 @@ self.GetHealthCoaches = function (top, skip, filter) {
     });
     return deferred.promise;
   };
-  self.PlanInfoChartDtl = function (PlanNo,ParentCode,Date) {
+  self.PlanInfoChartDtl = function (option) {
     var deferred = $q.defer();
-    Data.PlanInfo.PlanInfoChartDtl({PlanNo:PlanNo,ParentCode:ParentCode,Date:Date}, function (data, headers) {
+    Data.PlanInfo.PlanInfoChartDtl(option, function (data, headers) {
       deferred.resolve(data);
     }, function (err) {
       deferred.reject(err);
@@ -1049,6 +1051,16 @@ self.GetHealthCoaches = function (top, skip, filter) {
   {
     var deferred = $q.defer();
     Data.PlanInfo.GetExecutingPlan(data,function(s){
+      deferred.resolve(s);
+    },function(e){
+      deferred.reject(e);
+    })
+    return deferred.promise;
+  }
+  self.GetComplianceListInC = function(data)
+  {
+    var deferred = $q.defer();
+    Data.PlanInfo.GetComplianceListInC(data,function(s){
       deferred.resolve(s);
     },function(e){
       deferred.reject(e);
