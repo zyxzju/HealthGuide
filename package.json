@@ -35,7 +35,7 @@
     "android"
   ],
   "scripts": {
-    "test": "karma start mzb_test/karma-unit-test.config.js",
+    "test": "karma start test/karma-unit-all.config.js",
     "protractor": "protractor tests/e2e-tests.conf.js"
   }
 }
