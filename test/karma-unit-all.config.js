@@ -44,7 +44,8 @@ module.exports = function(config) {
         "www/lib/ionic-timepicker/dist/ionic-timepicker.bundle.min.js",
 
 
-        'mzb_test/unit-tests/controllertest.js'
+        'test/unit-tests/mzb.js',
+        'test/unit-tests/zyx.js'
     ],
 
 

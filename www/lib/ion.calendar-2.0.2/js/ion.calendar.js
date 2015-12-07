@@ -226,10 +226,10 @@
                             } else {
                                 // console.log(doneflag[i]);
                                 if(doneflag[i] != undefined)
-                                    if(doneflag[i].Compliance==0)
-                                        html += '<td class="ic__day ic__day_undone">' + i + '</td>';
-                                    else
+                                    if(doneflag[i].Compliance==1)
                                         html += '<td class="ic__day ic__day_done">' + i + '</td>';
+                                    else
+                                        html += '<td class="ic__day ic__day_undone">' + i + '</td>';
                                 else
                                     html += '<td class="ic__day">' + i + '</td>';
                             }
