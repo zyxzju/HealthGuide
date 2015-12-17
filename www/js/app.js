@@ -22,8 +22,8 @@ angular.module('zjubme', ['ionic','zjubme.services', 'zjubme.directives', 'zjubm
     //启动极光推送服务
     document.addEventListener('jpush.openNotification', onOpenNotification, false); //监听打开推送消息事件
     //document.addEventListener('jpush.receiveNotification', onreceiveNotification, false); //监听接受推送消息事件
-    window.plugins.jPushPlugin.init();
-    window.plugins.jPushPlugin.setDebugMode(true);
+    //window.plugins.jPushPlugin.init();
+    //window.plugins.jPushPlugin.setDebugMode(true);
   });
 
   window.onerror = function(msg, url, line) {  
