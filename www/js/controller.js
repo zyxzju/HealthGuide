@@ -25,8 +25,8 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
           if(data.result!=null){
             Storage.set('UID', data.result);
             //启动极光推送服务
-            window.plugins.jPushPlugin.init();
-            window.plugins.jPushPlugin.setDebugMode(true);
+            //window.plugins.jPushPlugin.init();
+            //window.plugins.jPushPlugin.setDebugMode(true);
             window.plugins.jPushPlugin.setAlias(data.result);
           }
         },function(data){
@@ -480,8 +480,19 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
 }])
 // --------任务列表-马志彬----------------
 //侧边提醒
-.controller('SlidePageCtrl', ['$scope', '$ionicHistory', '$timeout', '$ionicModal', '$ionicSideMenuDelegate', '$http','NotificationService','$ionicListDelegate','PlanInfo','extraInfo','$ionicPopup', '$state', 'Storage',
-   function($scope, $ionicHistory, $timeout, $ionicModal, $ionicSideMenuDelegate, $http,NotificationService,$ionicListDelegate,PlanInfo,extraInfo, $ionicPopup,$state,Storage) {
+.controller('SlidePageCtrl', ['$scope', '$ionicHistory', '$timeout', '$ionicModal', '$ionicSideMenuDelegate', '$http','NotificationService','$ionicListDelegate','PlanInfo','extraInfo','$ionicPopup', '$state', 'Storage','Data', 
+   function($scope, $ionicHistory, $timeout, $ionicModal, $ionicSideMenuDelegate, $http,NotificationService,$ionicListDelegate,PlanInfo,extraInfo, $ionicPopup,$state,Storage, Data) {
+      
+      //获取一些普遍的基本信息，公用
+      Storage.set('PatientName','暂无姓名');
+      var urltemp1 = Storage.get("UID") + '/BasicInfo';
+      Data.Users.GetPatBasicInfo({route:urltemp1}, function (success, headers) {
+          Storage.set('PatientName',success.UserName);
+          $scope.qr_GenderText= success.GenderText;
+           }, function (err) {
+
+      });
+
       ////获取任务列表数据
       // $http.get('testdata/tasklist.json').success(function(data){
       //  $scope.tasklist = data;
@@ -2851,15 +2862,65 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
 
 // --------我的专员-苟玲----------------
 //我的专员消息列表
-.controller('contactListCtrl',function($scope, $http, $state, $stateParams, Users, Storage,CONFIG){
+.controller('contactListCtrl',function($scope, $http, $state, $stateParams, Users, Storage,CONFIG, MessageInfo){
     //console.log($stateParams.tt);
     $scope.chatImgUrl=CONFIG.ImageAddressIP + CONFIG.ImageAddressFile+'/';
     $scope.contactList = {};
     $scope.contactList.list = new Array();
 
+    // $scope.latestNotification ={Appointment:{ unreadShow:false, unreadCount:'', latestTime:'', latestTitle:'', latestContent:''}, 
+    //                             SystemNotification:{ unreadShow:false, unreadCount:'', latestTime:'', latestTitle:'', latestContent:''}};
+
+
+ 
     $scope.$watch('$viewContentLoaded', function() {  
         $scope.GetHealthCoachListByPatient();
+
+        //获取系统通知和预约提醒  未读条数和最新一条内容
+        //$scope.GetLatestNotification('SystemNotification', 0);
+        //$scope.GetLatestNotification('Appointment', 1);
+
     }); 
+
+    $scope.$on('$ionicView.enter', function() { 
+
+        //获取系统通知和预约提醒  未读条数和最新一条内容
+        $scope.GetLatestNotification('SystemNotification', 0);
+        $scope.GetLatestNotification('Appointment', 1);
+
+    });
+
+   $scope.latestNotification =[{NotificationType:'Appointment', unreadShow:false, unreadCount:'', latestTime:'', latestTitle:'', latestContent:''}, 
+                               {NotificationType:'SystemNotification',unreadShow:false, unreadCount:'', latestTime:'', latestTitle:'', latestContent:''}];
+
+   $scope.GetLatestNotification = function(NotificationType, i)
+   {
+       var promise = MessageInfo.GetDataByStatus(Storage.get("UID"), NotificationType, 0, 10, 0);  
+        promise.then(function(data) { 
+          if((data==null)||(data=='')||(data.length==0)){
+            $scope.latestNotification[i].unreadCount='';
+            $scope.latestNotification[i].unreadShow=false;
+            var promise1 = MessageInfo.GetDataByStatus(Storage.get("UID"), NotificationType, '1', 1, 0);  
+            promise1.then(function(data1) { 
+              if((data1!=null)&&(data1!='')&&(data1.length!=0)){
+                $scope.latestNotification[i].latestTime=data1[0].SendTime;
+                $scope.latestNotification[i].latestTitle=data1[0].Title;
+                $scope.latestNotification[i].latestContent=data1[0].Description;
+              }
+            });
+          }
+          else
+          {
+            $scope.latestNotification[i].unreadShow=true;
+            $scope.latestNotification[i].latestTime=data[0].SendTime;
+            $scope.latestNotification[i].latestTitle=data[0].Title;
+            $scope.latestNotification[i].latestContent=data[0].Description;
+            if(data.length==10) $scope.latestNotification[i].unreadCount='10+';
+            else $scope.latestNotification[i].unreadCount=data.length;
+          }
+        });
+    }
+
     $scope.GetHealthCoachListByPatient = function()
     {
         var PatientId = Storage.get("UID");
@@ -2922,6 +2983,7 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
 
 })
 
+//我的某专员详细消息列表
 .controller('ChatDetailCtrl' ,function($scope, $http, $stateParams, $resource, MessageInfo, $ionicScrollDelegate, CONFIG, Storage,Data) 
 {
 
@@ -3103,6 +3165,105 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
         });
     } 
 })
+
+//系统通知、预约信息
+.controller('NotificationCtrl',['$scope', '$stateParams', '$ionicScrollDelegate', '$ionicLoading', 'MessageInfo', 'Storage', function($scope, $stateParams, $ionicScrollDelegate, $ionicLoading, MessageInfo, Storage){
+    
+    $scope.scrollToTop=false; //“回到顶部按钮”初始隐藏
+    $scope.NotificationList = new Array();
+    $scope.notificationSetting={moreNotification:false, alertText:'正在努力加载中...', imageURL:'img/systemNotification.jpg'}; 
+
+    $scope.$watch('$viewContentLoaded', function() {  
+        $scope.GetNotificationList($stateParams.tt, 10, 0);
+    });
+
+    //推送消息点击查看详细，若未读则则置位为已读
+    $scope.NotificationClick = function(item) {
+      Storage.set('NotificationDetail', JSON.stringify(item));
+      if(item.Status == '0')
+      {
+        var promise = MessageInfo.ChangeStatus(item.AccepterID, item.NotificationType, item.SortNo,'1' , '', '', '', 1);  
+        promise.then(function(data) {
+          if(data=='状态修改成功'){
+            // for (var i = 0; i < $scope.NotificationList.length; i++) {
+            //   if ($scope.NotificationList[i] == item) {
+            //       $scope.NotificationList[i].Status='1';
+            //   }
+            // }
+          }
+        });
+      }
+    };
+
+    //回到顶部函数
+    $scope.scrollTop = function() {
+      $ionicScrollDelegate.scrollTop();
+    };
+
+    //滚动时获取滚动长度，超出某长度则显示“回到顶部按钮”
+     $scope.getScrollPosition = function() {
+        $scope.moveData = $ionicScrollDelegate.getScrollPosition().top;
+       
+        if($scope.moveData>=100){
+            $scope.scrollToTop=true;
+         }else if($scope.moveData<100){
+           $scope.scrollToTop=false;
+         }
+      };
+
+    $scope.GetNotificationList = function(NotificationType, top, skip)
+   {
+       var promise = MessageInfo.GetDataByStatus(Storage.get("UID"), NotificationType, '{Status}', 10, 0);  
+        promise.then(function(data) { 
+        if((data!=null)&&(data!='')&&(data.length!=0)){
+          for(var i=0;i<data.length;i++){
+            $scope.NotificationList.push(data[i]);
+          }
+          $scope.notificationSetting.alertText='';
+          //本次获取的数量少于num，则说明没有更多数据了
+          if(data.length < top){
+              $scope.notificationSetting.moreNotification=false;
+              //$scope.notificationSetting.alertText='';
+              $ionicLoading.show({
+                template: '没有更多数据',
+                noBackdrop: false,
+                duration: 1000,
+                hideOnStateChange: true
+              });
+          }
+          else
+          {
+             $scope.notificationSetting.moreNotification=true;
+          }
+        }
+        },function(err) {   
+        }).finally(function () {
+            $scope.$broadcast('scroll.refreshComplete');
+            $scope.$broadcast('scroll.infiniteScrollComplete');
+        }); 
+    }
+
+    //下拉刷新
+    $scope.refreshNotificationList = function() {
+       $scope.NotificationList=new Array();
+       //$scope.alertText='正在努力加载中...';
+       $scope.notificationSetting.moreNotification=false;
+       $scope.GetNotificationList($stateParams.tt, 10, 0);
+     }
+
+    //上啦加载更多
+     $scope.loadMoreNotification = function () {
+         $scope.GetNotificationList($stateParams.tt, 5, $scope.NotificationList.length);    
+      }
+
+}])
+
+//系统通知、预约详细信息
+.controller('NotificationDetailCtrl',['$scope', '$stateParams', '$ionicScrollDelegate', '$ionicLoading', 'MessageInfo', 'Storage', function($scope, $stateParams, $ionicScrollDelegate, $ionicLoading, MessageInfo, Storage){
+
+   $scope.notificationDetail = JSON.parse(Storage.get('NotificationDetail'));
+
+}])
 
 // --------专员选择-赵艳霞----------------
 //所有专员列表（排序、筛选）
@@ -3370,7 +3531,7 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
               });
 
               //推送通知
-              var promise1 =  Service.PushNotification('android', Storage.get("HealthCoachID"), $scope.reserve.Description, '来自'+Storage.get("UID")+'的预约', Storage.get("UID")); //获取患者评价专员的权限
+              var promise1 =  Service.PushNotification('android', Storage.get("HealthCoachID"), $scope.reserve.Description, '来自'+Storage.get("PatientName")+'的预约', Storage.get("UID")); //获取患者评价专员的权限
               promise1.then(function(data){ 
                 console.log("通知医生成功");
               },function(err) { 

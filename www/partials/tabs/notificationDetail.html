@@ -1,0 +1,24 @@
+<ion-view view-title="系统通知详细" cache-view="false">
+	<ion-content class="has-header" scroll='true'>
+	    <div class="list card">
+	    	<a class="item item-icon-left calm" href="#">
+	          <i class="icon ion-ios-email"></i>
+	          <p>来自： {{notificationDetail.SenderID}}</p>
+               <p>发送时间： {{notificationDetail.SendTime}} </p>
+            </a>
+	    	<div class="item item-body">
+	    		<h2><b>{{notificationDetail.Title}}</b></h2>
+				<p class="mainText">{{notificationDetail.Description}}</p>
+		    </div>
+		</div>
+	</ion-content>
+</ion-view>
+
+<style>
+.mainText{
+	/*text-indent:2em; */
+	padding:0px; 
+	margin:0px;
+	font-size:18px;
+}
+</style>
