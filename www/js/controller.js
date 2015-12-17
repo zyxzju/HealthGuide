@@ -2087,61 +2087,72 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
    //  });
 }])
 
-.controller('calendarcontroller',['$scope', '$cordovaCalendar','PlanInfo',
-function($scope, $cordovaCalendar,PlanInfo) {
+.controller('calendarcontroller',['$scope', '$cordovaCalendar','PlanInfo','extraInfo',
+function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
 
     $scope.showiniticon = true;
     $scope.notaskicon = false;
     var data = {
-      PatientId:'U201511120002',
-      StartDate:'20151101',
-      EndDate:'20151130',
+      PatientId:window.localStorage['UID'],
+      StartDate:'',
+      EndDate:'',
       Module:'M1'
     };
+    
 
     var doneflag = [];
     var doneflag_a = [];
 
-    var nextmonth = new Date();
-    nextmonth.setDate(1);
-    nextmonth.setMonth(nextmonth.getMonth()+1);
-    nextmonth.setDate(nextmonth.getDate()-1)
-    console.log(nextmonth);
+    // var nextmonth = new Date();
+    // nextmonth.setDate(1);
+    // nextmonth.setMonth(nextmonth.getMonth()+1);
+    // nextmonth.setDate(nextmonth.getDate()-1);
+    
 
-    PlanInfo.GetComplianceListInC(data).then(function(s){
-      console.log(s);
-      doneflag_a = s;
-      if(doneflag_a.length == 0)
-      {
-          doneflag = [];
-      }else{
-         for(var i=0;i<doneflag_a.length;i++)
-          {
-              doneflag[doneflag_a[i].Date%100] = doneflag_a[i];
-          }
-          // console.log(doneflag);
-          $("#myCalendar-1").ionCalendar({
-              lang: "ch",                     // language
-              sundayFirst: false,             // first week day
-              years: "80",                    // years diapason
-              format: "YYYY.MM.DD",           // date format
-              onClick: function(date){        // click on day returns date
-                  getselecteddaytask(date);
-              }
-          },PlanInfo,doneflag);
-      }
-    },function(e){
-      console.log(e);
-      $("#myCalendar-1").ionCalendar({
-              lang: "ch",                     // language
-              sundayFirst: false,             // first week day
-              years: "80",                    // years diapason
-              format: "YYYY.MM.DD",           // date format
-              onClick: function(date){        // click on day returns date
-                  getselecteddaytask(date);
-              }
-          },PlanInfo,[]);
-    });
+    // console.log(data);
+    $("#myCalendar-1").ionCalendar({
+        lang: "ch",                     // language
+        sundayFirst: false,             // first week day
+        years: "80",                    // years diapason
+        format: "YYYY.MM.DD",           // date format
+        onClick: function(date){        // click on day returns date
+            getselecteddaytask(date);
+        }
+    },PlanInfo,[],data);
+      // PlanInfo.GetComplianceListInC(data).then(function(s){
+      //   console.log(s);
+      //   doneflag_a = s;
+      //   if(doneflag_a.length == 0)
+      //   {
+      //       doneflag = [];
+      //   }else{
+      //      for(var i=0;i<doneflag_a.length;i++)
+      //       {
+      //           doneflag[doneflag_a[i].Date%100] = doneflag_a[i];
+      //       }
+      //       // console.log(doneflag);
+      //       $("#myCalendar-1").ionCalendar({
+      //           lang: "ch",                     // language
+      //           sundayFirst: false,             // first week day
+      //           years: "80",                    // years diapason
+      //           format: "YYYY.MM.DD",           // date format
+      //           onClick: function(date){        // click on day returns date
+      //               getselecteddaytask(date);
+      //           }
+      //       },PlanInfo,doneflag);
+      //   }
+      // },function(e){
+      //   console.log(e);
+      //   $("#myCalendar-1").ionCalendar({
+      //           lang: "ch",                     // language
+      //           sundayFirst: false,             // first week day
+      //           years: "80",                    // years diapason
+      //           format: "YYYY.MM.DD",           // date format
+      //           onClick: function(date){        // click on day returns date
+      //               getselecteddaytask(date);
+      //           }
+      //       },PlanInfo,[]);
+      // });
     var getselecteddaytask = function(date)
     {
       console.log(date);
