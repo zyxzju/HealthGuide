@@ -5,7 +5,7 @@
 // the 2nd parameter is an array of 'requires' 
 angular.module('zjubme', ['ionic','zjubme.services', 'zjubme.directives', 'zjubme.controllers','ngCordova','ionic-timepicker','monospaced.qrcode'])
 
-.run(function($ionicPlatform) {
+.run(function($ionicPlatform,extraInfo) {
   $ionicPlatform.ready(function() {
     // Hide the accessory bar by default (remove this to show the accessory bar above the keyboard
     // for form inputs)
@@ -15,8 +15,9 @@ angular.module('zjubme', ['ionic','zjubme.services', 'zjubme.directives', 'zjubm
     if(window.StatusBar) {
       StatusBar.styleDefault();
     }
-
-    
+    window.localStorage['DeviceType'] = ionic.Platform.platform();
+    window.localStorage['DeviceClientHeight']=document.documentElement.clientHeight;
+    // console.log(extraInfo.DeviceParams('DeviceClientHeight'));
   });
 })
 
@@ -90,6 +91,7 @@ angular.module('zjubme', ['ionic','zjubme.services', 'zjubme.directives', 'zjubm
             //case 'tasklist':return "partials/tabs/index.task.tasklist.html";break;
             //case 'healtheducation':return "partials/tabs/index.task.healtheducation.html";break;
             case 'bpm':return "partials/tabs/index.task.bpm.html";break;
+            case 'temperature':return "partials/tabs/index.task.temperature.html";break;
             case 'bloodglucose':return "partials/tabs/index.task.bloodglucose.html";break;
             case 'measureweight':return "partials/tabs/index.task.measureweight.html";break;
             case 'riskinfo':return "partials/tabs/index.task.riskinfo.html";break;
@@ -104,6 +106,7 @@ angular.module('zjubme', ['ionic','zjubme.services', 'zjubme.directives', 'zjubm
             case 'tasklist':return 'tasklistcontroller';break;
             //case 'healtheducation':return "healtheducationcontroller";break;
             case 'bpm':return "bpmcontroller";break;
+            case 'temperature':return "temperaturecontroller";break;
             case 'bloodglucose':return "bloodglucosecontroller";break;
             case 'measureweight':return "measureweightcontroller";break;
             case 'riskinfo':return "RiskCtrl";break;
