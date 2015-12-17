@@ -486,6 +486,7 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
       // $http.get('testdata/tasklist.json').success(function(data){
       //  $scope.tasklist = data;
       // })
+      $scope.tmzb = 'test';
       ///获取菜单栏列表数据
       $http.get('data/catalog.json').success(function(data){
         $scope.catalog = data;
@@ -2070,9 +2071,111 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
   //   $ionicHistory.goBack();
   // }
   // $scope.lastviewtitle = $ionicHistory.backTitle();
+   // $cordovaCalendar.createCalendar({
+   //  calendarName: 'Cordova Calendar',
+   //  calendarColor: '#FF0000'
+   //  }).then(function (result) {
+   //    // success
+   //  }, function (err) {
+   //    // error
+   //  });
 }])
 
+.controller('calendarcontroller',['$scope', '$cordovaCalendar','PlanInfo',
+function($scope, $cordovaCalendar,PlanInfo) {
 
+    $scope.showiniticon = true;
+    $scope.notaskicon = false;
+    var data = {
+      PatientId:'U201511120002',
+      StartDate:'20151101',
+      EndDate:'20151130',
+      Module:'M1'
+    };
+
+    var doneflag = [];
+    var doneflag_a = [];
+
+    var nextmonth = new Date();
+    nextmonth.setDate(1);
+    nextmonth.setMonth(nextmonth.getMonth()+1);
+    nextmonth.setDate(nextmonth.getDate()-1)
+    console.log(nextmonth);
+
+    PlanInfo.GetComplianceListInC(data).then(function(s){
+      console.log(s);
+      doneflag_a = s;
+      if(doneflag_a.length == 0)
+      {
+          doneflag = [];
+      }else{
+         for(var i=0;i<doneflag_a.length;i++)
+          {
+              doneflag[doneflag_a[i].Date%100] = doneflag_a[i];
+          }
+          // console.log(doneflag);
+          $("#myCalendar-1").ionCalendar({
+              lang: "ch",                     // language
+              sundayFirst: false,             // first week day
+              years: "80",                    // years diapason
+              format: "YYYY.MM.DD",           // date format
+              onClick: function(date){        // click on day returns date
+                  getselecteddaytask(date);
+              }
+          },PlanInfo,doneflag);
+      }
+    },function(e){
+      console.log(e);
+      $("#myCalendar-1").ionCalendar({
+              lang: "ch",                     // language
+              sundayFirst: false,             // first week day
+              years: "80",                    // years diapason
+              format: "YYYY.MM.DD",           // date format
+              onClick: function(date){        // click on day returns date
+                  getselecteddaytask(date);
+              }
+          },PlanInfo,[]);
+    });
+    var getselecteddaytask = function(date)
+    {
+      console.log(date);
+      $scope.showiniticon=false;
+      $scope.showtasklist=new Array();
+      $scope.$apply();
+      if(date.optiondata != null)
+      {
+        var option = {PlanNo:date.optiondata.PlanNo,ParentCode:'T',Date:date.optiondata.Date};
+        //console.log(option);
+        PlanInfo.PlanInfoChartDtl(option).then(function(s){
+          $scope.notaskicon=false;
+          //console.log(s);
+          for(var i=0;i<s.length;i++)
+          {
+            s[i].index = i;
+            s[i].showdetail = false;
+          }
+          $scope.showtasklist = s;
+          $scope.notaskicon=false;
+        },function(e){
+          console.log(e);
+        });
+      }else{
+        $scope.notaskicon=true;
+        $scope.$apply();
+      }
+      // console.log($scope.showtasklist);
+    }
+    var lastindex = null;
+    $scope.showdetail = function(index)
+    {
+      if(lastindex!=null && lastindex!=index)
+      {
+        $scope.showtasklist[lastindex].showdetail = false;
+      }
+      $scope.showtasklist[index].showdetail = !$scope.showtasklist[index].showdetail;
+      lastindex = index;
+    }
+}])
 // --------依从率图-李山----------------
 //目标公共界面
 .controller('TargetCtrl', ['$scope', '$http','$ionicSideMenuDelegate','$timeout','$ionicPopup',
@@ -2157,10 +2260,15 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
       $http.get('data/guide-bloodGlucose.json').success(function(data) {
          BloodSugarGuide=data;
        });
+
+      $http.get('data/guide-temperature.json').success(function(data) {
+         TemperatureGuide=data;
+       });
        
        $scope.options = [{"SignName":"收缩压", "ItemType":"Bloodpressure", "ItemCode":"Bloodpressure_1"},
                          {"SignName":"舒张压", "ItemType":"Bloodpressure","ItemCode":"Bloodpressure_2"},
                          {"SignName":"脉率", "ItemType":"Pulserate", "ItemCode":"Pulserate_1"},
+                         {"SignName":"体温","ItemType":"Temperature","ItemCode":"Temperature_1"},
                          {"SignName":"凌晨血糖", "ItemType":"BloodSugar","ItemCode":"BloodSugar_2"}, 
                          {"SignName":"睡前血糖","ItemType":"BloodSugar","ItemCode":"BloodSugar_3"},
                          {"SignName":"早餐前血糖","ItemType":"BloodSugar","ItemCode":"BloodSugar_4"},
@@ -2262,7 +2370,7 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
        //同时修改初始值和目标值，有显示，无则隐藏  未做
        if(ItemCode=="Bloodpressure_1")
         {
-          init_graph(UserId, PlanNo, StartDate, EndDate, ItemType, ItemCode, SBPGuide,80,210,"收缩压 （单位：mmHg）");
+          init_graph(UserId, PlanNo, StartDate, EndDate, ItemType, ItemCode, SBPGuide,60,200,"收缩压 （单位：mmHg）");
           //chart_graph.panels[0].title="收缩压 （单位：mmHg）";
           //chart_graph.panels[0].valueAxes[0].minimum=80;
           //chart_graph.panels[0].valueAxes[0].maximum=200;
@@ -2277,6 +2385,10 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
         else if(ItemCode=="Pulserate_1")
         {
           init_graph(UserId, PlanNo, StartDate, EndDate, ItemType, ItemCode, PulseGuide,0,150,"脉率 （单位：次/分）");
+        }
+        else if(ItemCode=="Temperature_1")
+        {
+          init_graph(UserId, PlanNo, StartDate, EndDate, ItemType, ItemCode, TemperatureGuide,34,42,"体温 （单位：℃）");
         }
         else
         {
@@ -2513,26 +2625,27 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
         }
         var theDate=theyear.toString()+themonth.toString()+theday.toString();
  
-        //console.log(theDate);
-        PlanInfo.PlanInfoChartDtl(PlanNo,"T", theDate).then(function(data) { 
+        //console.log(PlanNo);
+        var option = {PlanNo:PlanNo, ParentCode:'T', Date:theDate};
+        PlanInfo.PlanInfoChartDtl(option).then(function(data) { 
                 if((data!=null)&&(data!='')){
-                  template = '<ion-popover-view style="opacity:1"><ion-header-bar class="bar-calm"> <h1 class="title">'+theDate+'</h1> </ion-header-bar> <ion-content><div class="list padding">'; 
+                  template = '<ion-popover-view style="opacity:1"><ion-header-bar class="bar-calm"> <h1 class="title">'+theDate+'</h1></ion-header-bar><ion-content><br><div class="list padding">'; 
                    for(var i=0;i<data.length;i++)
                   {
                       template +=' <div class="item item-divider" style="background:#5151A2; color:#FFF">'+data[i].Name +'</div>';
                       for(var j=0;j<data[i].SubTasks.length;j++)
                      {
                          if(data[i].SubTasks[j].Status=="1")
-                         template +='<div class="item">'+"✔"+data[i].SubTasks[j].Name+'</div>';
+                         template +='<div class="item">'+"✔ "+data[i].SubTasks[j].Name+'</div>';
                         else if(data[i].SubTasks[j].Status=="0")
-                        template +='<div class="item">'+"✘"+data[i].SubTasks[j].Name+'</div>';
+                        template +='<div class="item">'+"✘ "+data[i].SubTasks[j].Name+'</div>';
                      } 
                   }
                    template +='</div></ion-content></ion-popover-view>';
                    popover.remove();
                    popover=$ionicPopover.fromTemplate(template);
                    popover.show();
-                 }
+                }
                  
               }, function(data) {}     
             );

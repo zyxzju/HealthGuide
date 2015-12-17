@@ -139,6 +139,15 @@ angular.module('zjubme', ['ionic','zjubme.services', 'zjubme.directives', 'zjubm
           }
         }
     })
+    .state('tab.calendar', {
+        url: '/calendar',
+        views: {
+          'tab-target': {
+            templateUrl: 'partials/catalog/catalog.calendar.html',
+            controller: 'calendarcontroller'
+          }
+        }
+    })
 .state('tab.chats', {
       url: '/chats',
       abstract: true,
