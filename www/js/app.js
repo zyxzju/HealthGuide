@@ -5,7 +5,7 @@
 // the 2nd parameter is an array of 'requires' 
 angular.module('zjubme', ['ionic','zjubme.services', 'zjubme.directives', 'zjubme.controllers','ngCordova','ionic-timepicker','monospaced.qrcode'])
 
-.run(function($ionicPlatform,extraInfo) {
+.run(function($ionicPlatform, extraInfo, jpushService, $state) {
   $ionicPlatform.ready(function() {
     // Hide the accessory bar by default (remove this to show the accessory bar above the keyboard
     // for form inputs)
@@ -18,7 +18,62 @@ angular.module('zjubme', ['ionic','zjubme.services', 'zjubme.directives', 'zjubm
     window.localStorage['DeviceType'] = ionic.Platform.platform();
     window.localStorage['DeviceClientHeight']=document.documentElement.clientHeight;
     // console.log(extraInfo.DeviceParams('DeviceClientHeight'));
+
+    //启动极光推送服务
+    document.addEventListener('jpush.openNotification', onOpenNotification, false); //监听打开推送消息事件
+    //document.addEventListener('jpush.receiveNotification', onreceiveNotification, false); //监听接受推送消息事件
+    window.plugins.jPushPlugin.init();
+    window.plugins.jPushPlugin.setDebugMode(true);
   });
+
+  window.onerror = function(msg, url, line) {  
+   var idx = url.lastIndexOf("/");  
+   if(idx > -1) {  
+    url = url.substring(idx+1);  
+   }  
+   alert("ERROR in " + url + " (line #" + line + "): " + msg);  
+   return false;  
+  };
+  
+  function onOpenNotification(){
+    var Content;
+    var alertContent;
+    var title;
+    var SenderID;
+    if(device.platform == "Android"){
+        alertContent = window.plugins.jPushPlugin.openNotification.alert;
+        Content=window.plugins.jPushPlugin.openNotification.extras;
+        angular.forEach(Content,function(value,key){
+          if (key=="cn.jpush.android.EXTRA")
+          {
+            title = value.type;
+            SenderID = value.SenderID;
+          }
+        }) 
+        
+    }else{
+        alertContent   = event.aps.alert;
+        Content = event.aps.extras;
+        angular.forEach(Content,function(value,key){
+          if (key=="cn.jpush.android.EXTRA")
+          {
+            title = value.type;
+            SenderID = value.SenderID;
+          }
+        }) 
+    }
+    if (title.indexOf('来自') > -1)
+    {
+      //Storage.set('HealthCoachID', SenderID);
+      //$state.go('tab.chats.contactList');//targetGraph
+      window.location.href = "#/tab/chats/contactList";
+
+    }
+    // alert("open Notificaiton:"+alertContent);
+    //$state.go('coach.i');
+  }// function end
+
+
 })
 
 // --------路由, url模式设置----------------
@@ -165,7 +220,18 @@ angular.module('zjubme', ['ionic','zjubme.services', 'zjubme.directives', 'zjubm
       {
         return 'partials/tabs/contactList.html';
         
-      }else
+      }
+      else if(($stateParams.tt=='SystemNotification') || ($stateParams.tt=='Appointment'))
+      {
+        return 'partials/tabs/Notification.html';
+       
+      } 
+      else if(($stateParams.tt=='NotificationDetail'))
+      {
+        return 'partials/tabs/notificationDetail.html';
+       
+      } 
+      else
       {
         return 'partials/tabs/chat-detail.html';
        
@@ -175,7 +241,16 @@ angular.module('zjubme', ['ionic','zjubme.services', 'zjubme.directives', 'zjubm
       if($stateParams.tt=='contactList')
       {
         return 'contactListCtrl';
-      }else
+      }
+      else if(($stateParams.tt=='SystemNotification') || ($stateParams.tt=='Appointment'))
+      {
+        return 'NotificationCtrl';
+      } 
+      else if($stateParams.tt=='NotificationDetail')
+      {
+        return 'NotificationDetailCtrl';
+      } 
+      else
       {
         return 'ChatDetailCtrl';
       }
