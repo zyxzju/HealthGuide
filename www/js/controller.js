@@ -1216,6 +1216,7 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
    console.log('temperaturecontroller');
    var UserId =Storage.get("UID");
    var result={};
+   $scope.label="必填";
    $scope.status="请输入";
    $scope.Temp={Temperature:"",result:""};
    $http.get('data/Teresult.json').success(function(data){
@@ -1376,6 +1377,11 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
                    type: 'button-positive',
                }]
              });
+           }else 
+           {
+
+            $scope.twcheck = 'required';
+            $scope.label="有误";
            }
          };
  //根据体温值，给出相应的提示信息
