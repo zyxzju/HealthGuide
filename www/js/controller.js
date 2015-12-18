@@ -483,6 +483,13 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
 .controller('SlidePageCtrl', ['$scope', '$ionicHistory', '$timeout', '$ionicModal', '$ionicSideMenuDelegate', '$http','NotificationService','$ionicListDelegate','PlanInfo','extraInfo','$ionicPopup', '$state', 'Storage','Data', 
    function($scope, $ionicHistory, $timeout, $ionicModal, $ionicSideMenuDelegate, $http,NotificationService,$ionicListDelegate,PlanInfo,extraInfo, $ionicPopup,$state,Storage, Data) {
       
+      //我的专员未读消息
+       $scope.unreadMessageSum='';
+      
+       $scope.$on('transfer.unreadMessageSum', function(event, data) {  
+          $scope.unreadMessageSum = data;  
+        });  
+
       //获取一些普遍的基本信息，公用
       Storage.set('PatientName','暂无姓名');
       var urltemp1 = Storage.get("UID") + '/BasicInfo';
@@ -1227,6 +1234,7 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
    console.log('temperaturecontroller');
    var UserId =Storage.get("UID");
    var result={};
+   $scope.label="必填";
    $scope.status="请输入";
    $scope.Temp={Temperature:"",result:""};
    $http.get('data/Teresult.json').success(function(data){
@@ -1387,6 +1395,11 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
                    type: 'button-positive',
                }]
              });
+           }else 
+           {
+
+            $scope.twcheck = 'required';
+            $scope.label="有误";
            }
          };
  //根据体温值，给出相应的提示信息
@@ -2092,61 +2105,72 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
    //  });
 }])
 
-.controller('calendarcontroller',['$scope', '$cordovaCalendar','PlanInfo',
-function($scope, $cordovaCalendar,PlanInfo) {
+.controller('calendarcontroller',['$scope', '$cordovaCalendar','PlanInfo','extraInfo',
+function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
 
     $scope.showiniticon = true;
     $scope.notaskicon = false;
     var data = {
-      PatientId:'U201511120002',
-      StartDate:'20151101',
-      EndDate:'20151130',
+      PatientId:window.localStorage['UID'],
+      StartDate:'',
+      EndDate:'',
       Module:'M1'
     };
+    
 
     var doneflag = [];
     var doneflag_a = [];
 
-    var nextmonth = new Date();
-    nextmonth.setDate(1);
-    nextmonth.setMonth(nextmonth.getMonth()+1);
-    nextmonth.setDate(nextmonth.getDate()-1)
-    console.log(nextmonth);
+    // var nextmonth = new Date();
+    // nextmonth.setDate(1);
+    // nextmonth.setMonth(nextmonth.getMonth()+1);
+    // nextmonth.setDate(nextmonth.getDate()-1);
+    
 
-    PlanInfo.GetComplianceListInC(data).then(function(s){
-      console.log(s);
-      doneflag_a = s;
-      if(doneflag_a.length == 0)
-      {
-          doneflag = [];
-      }else{
-         for(var i=0;i<doneflag_a.length;i++)
-          {
-              doneflag[doneflag_a[i].Date%100] = doneflag_a[i];
-          }
-          // console.log(doneflag);
-          $("#myCalendar-1").ionCalendar({
-              lang: "ch",                     // language
-              sundayFirst: false,             // first week day
-              years: "80",                    // years diapason
-              format: "YYYY.MM.DD",           // date format
-              onClick: function(date){        // click on day returns date
-                  getselecteddaytask(date);
-              }
-          },PlanInfo,doneflag);
-      }
-    },function(e){
-      console.log(e);
-      $("#myCalendar-1").ionCalendar({
-              lang: "ch",                     // language
-              sundayFirst: false,             // first week day
-              years: "80",                    // years diapason
-              format: "YYYY.MM.DD",           // date format
-              onClick: function(date){        // click on day returns date
-                  getselecteddaytask(date);
-              }
-          },PlanInfo,[]);
-    });
+    // console.log(data);
+    $("#myCalendar-1").ionCalendar({
+        lang: "ch",                     // language
+        sundayFirst: false,             // first week day
+        years: "80",                    // years diapason
+        format: "YYYY.MM.DD",           // date format
+        onClick: function(date){        // click on day returns date
+            getselecteddaytask(date);
+        }
+    },PlanInfo,[],data);
+      // PlanInfo.GetComplianceListInC(data).then(function(s){
+      //   console.log(s);
+      //   doneflag_a = s;
+      //   if(doneflag_a.length == 0)
+      //   {
+      //       doneflag = [];
+      //   }else{
+      //      for(var i=0;i<doneflag_a.length;i++)
+      //       {
+      //           doneflag[doneflag_a[i].Date%100] = doneflag_a[i];
+      //       }
+      //       // console.log(doneflag);
+      //       $("#myCalendar-1").ionCalendar({
+      //           lang: "ch",                     // language
+      //           sundayFirst: false,             // first week day
+      //           years: "80",                    // years diapason
+      //           format: "YYYY.MM.DD",           // date format
+      //           onClick: function(date){        // click on day returns date
+      //               getselecteddaytask(date);
+      //           }
+      //       },PlanInfo,doneflag);
+      //   }
+      // },function(e){
+      //   console.log(e);
+      //   $("#myCalendar-1").ionCalendar({
+      //           lang: "ch",                     // language
+      //           sundayFirst: false,             // first week day
+      //           years: "80",                    // years diapason
+      //           format: "YYYY.MM.DD",           // date format
+      //           onClick: function(date){        // click on day returns date
+      //               getselecteddaytask(date);
+      //           }
+      //       },PlanInfo,[]);
+      // });
     var getselecteddaytask = function(date)
     {
       console.log(date);
@@ -2304,7 +2328,7 @@ function($scope, $cordovaCalendar,PlanInfo) {
       //     }
           
       // });
-      $scope.$on('$ionicView.afterEnter', function() {   //$viewContentLoaded
+      $scope.$on('$ionicView.afterEnter', function() {   //$viewContentLoaded  
           console.log("enter graphView") ;
           $scope.graphData&&AmCharts.makeChart("chartdiv_graph", $scope.graphData);
       });
@@ -2851,21 +2875,9 @@ function($scope, $cordovaCalendar,PlanInfo) {
     $scope.contactList = {};
     $scope.contactList.list = new Array();
 
-    // $scope.latestNotification ={Appointment:{ unreadShow:false, unreadCount:'', latestTime:'', latestTitle:'', latestContent:''}, 
-    //                             SystemNotification:{ unreadShow:false, unreadCount:'', latestTime:'', latestTitle:'', latestContent:''}};
-
-
- 
-    $scope.$watch('$viewContentLoaded', function() {  
-        $scope.GetHealthCoachListByPatient();
-
-        //获取系统通知和预约提醒  未读条数和最新一条内容
-        //$scope.GetLatestNotification('SystemNotification', 0);
-        //$scope.GetLatestNotification('Appointment', 1);
-
-    }); 
-
     $scope.$on('$ionicView.enter', function() { 
+
+         $timeout(function(){$scope.GetHealthCoachListByPatient();}, 100);
 
         //获取系统通知和预约提醒  未读条数和最新一条内容
         $scope.GetLatestNotification('SystemNotification', 0);
@@ -2875,7 +2887,6 @@ function($scope, $cordovaCalendar,PlanInfo) {
 
    $scope.latestNotification =[{NotificationType:'Appointment', unreadShow:false, unreadCount:'', latestTime:'', latestTitle:'', latestContent:''}, 
                                {NotificationType:'SystemNotification',unreadShow:false, unreadCount:'', latestTime:'', latestTitle:'', latestContent:''}];
-
    $scope.GetLatestNotification = function(NotificationType, i)
    {
        var promise = MessageInfo.GetDataByStatus(Storage.get("UID"), NotificationType, 0, 10, 0);  
@@ -2949,6 +2960,7 @@ function($scope, $cordovaCalendar,PlanInfo) {
             } 
             
             $scope.$broadcast('scroll.refreshComplete');
+            GetSMSCountForAll();
         }, function(data) {  
         });      
     }
@@ -2963,11 +2975,80 @@ function($scope, $cordovaCalendar,PlanInfo) {
    {
       location.reload(); 
    }
+   
+   //获取未读消息总数
+    function GetSMSCountForAll ()
+    {
+        var promise = MessageInfo.GetSMSCount(Storage.get("UID"),"NULL");  
+        promise.then(function(data) { 
+            $scope.$emit('transfer.unreadMessageSum', data.result);                  
+        }, function(data) {  
+        });  
+    }
 
+    //获取一对一未读消息数
+    function GetSMSCountForOne (i, SendBy)
+    {
+        var promise = MessageInfo.GetSMSCount(Storage.get("UID"),SendBy);  
+        promise.then(function(data) { 
+            $scope.contactList.list[i].Count = data.result;
+            GetSMSCountForAll();
+        }, function(data) {  
+        });  
+    }
+
+
+    var WsUserId = Storage.get("UID");
+    var WsUserName = Storage.get("UID"); //最好是患者姓名
+    var wsServerIP = CONFIG.wsServerIP; 
+    SocketInit();
+     //socket初始化
+    function SocketInit()
+    {
+        $scope.socket = io.connect(wsServerIP);
+          
+        //告诉服务器由用户登陆
+        $scope.socket.emit('login', {userid:WsUserId, username:WsUserName});                
+          
+        //监听消息
+        $scope.socket.on('message', function(obj){
+            var DataArry = obj.content.split("||");
+            if(DataArry[0] == 'Appointment'){
+                  if(DataArry[1] == WsUserId){
+                      $scope.GetLatestNotification('Appointment', 1);
+                  }
+            }
+            else if(DataArry[0] == 'SystemNotification'){
+                      $scope.GetLatestNotification('SystemNotification', 0);
+            }
+            else
+            {
+                if (DataArry[0] == WsUserId)
+                {
+                    for (var i=0; i<$scope.contactList.list.length; i++)
+                    {
+                        if (DataArry[1] == $scope.contactList.list[i].HealthCoachID)
+                        {
+                            playBeep();
+                            $scope.contactList.list[i].Content = DataArry[3];
+                            $scope.contactList.list[i].SendDateTime = DataArry[4];
+                            GetSMSCountForOne(i, DataArry[1]);
+                        }
+                    }                         
+                } //if end 
+            }  
+        });
+    } // funtion end
+
+    // 蜂鸣1次，震动2秒
+    function playBeep() {
+        navigator.notification.beep(1); 
+        //navigator.notification.vibrate(2000);
+    } 
 })
 
 //我的某专员详细消息列表
-.controller('ChatDetailCtrl' ,function($scope, $http, $stateParams, $resource, MessageInfo, $ionicScrollDelegate, CONFIG, Storage,Data) 
+.controller('ChatDetailCtrl' ,function($scope, $http, $stateParams, $resource, MessageInfo, $ionicScrollDelegate, CONFIG, Storage, Data) 
 {
 
     $scope.setCurrent = function(healthCoachID){
@@ -2987,6 +3068,14 @@ function($scope, $cordovaCalendar,PlanInfo) {
     var WsUserId = $scope.PatientId;
     var WsUserName = $scope.PatientId; //最好是患者姓名
     var wsServerIP = CONFIG.wsServerIP; 
+    var piUserId = "1";
+    var piTerminalName = "1";
+    var piTerminalIP = "1";
+    var piDeviceType = 19;
+    SetSMSRead();
+    $scope.$on('$ionicView.leave', function(){
+        SetSMSRead();
+    })
 
     $scope.myImage = "img/DefaultAvatar.jpg";
 
@@ -3009,7 +3098,7 @@ function($scope, $cordovaCalendar,PlanInfo) {
       });  
 
     $scope.Dialog.DisplayOnes=new Array(); //显示的消息
-    $scope.Dialog.UnitCount = 9;//每次点击加载的条数
+    $scope.Dialog.UnitCount = 6;//每次点击加载的条数
     $scope.Dialog.Skip = $scope.Dialog.UnitCount;//跳过的条数
     //加载更多
     $scope.DisplayMore = function ()
@@ -3039,10 +3128,11 @@ function($scope, $cordovaCalendar,PlanInfo) {
               {
                   $scope.Dialog.DisplayOnes.push({"IDFlag": "Receive","SendDateTime": DataArry[2],"Content":DataArry[3]});
                   //console.log($scope.Dialog);
-                  $ionicScrollDelegate.scrollBottom(true);
                   $scope.$apply();
+                  $ionicScrollDelegate.scrollBottom(true);
+                  
                   //SetSMSRead(ThisUserId, TheOtherId);//改写阅读状态
-                  //playBeep();
+                  playBeep();
               }              
             }   
         });
@@ -3070,12 +3160,16 @@ function($scope, $cordovaCalendar,PlanInfo) {
                 var NewData = data.reverse(); //倒序
                 if($scope.Dialog.DisplayOnes)
                 {
-                    $scope.Dialog.DisplayOnes = NewData.concat($scope.Dialog.DisplayOnes);
+                    $scope.Dialog.DisplayOnes = NewData.concat($scope.Dialog.DisplayOnes);                                       
                 }
                 else
                 {
-                    $scope.Dialog.DisplayOnes = NewData;
-                }
+                    $scope.Dialog.DisplayOnes = NewData;                   
+                } 
+                if (skip == 0)
+                {
+                    $ionicScrollDelegate.scrollBottom(true); 
+                }              
             } 
             $scope.$broadcast('scroll.refreshComplete');           
             //$ionicScrollDelegate.scrollBottom(true);
@@ -3097,10 +3191,6 @@ function($scope, $cordovaCalendar,PlanInfo) {
     $scope.submitSMS = function() {
         var SendBy = $scope.PatientId;
         var Receiver = $scope.DoctorId;
-        var piUserId = "1";
-        var piTerminalName = "1";
-        var piTerminalIP = "1";
-        var piDeviceType = 19;
         if($scope.Dialog.SMScontent != "")
         {
             var promise = MessageInfo.submitSMS(SendBy,$scope.Dialog.SMScontent,Receiver,piUserId,piTerminalName,piTerminalIP,piDeviceType);  
@@ -3113,7 +3203,7 @@ function($scope, $cordovaCalendar,PlanInfo) {
                     }
                     $scope.Dialog.DisplayOnes.push({"IDFlag": "Send","Time": data.Time,"Content":$scope.Dialog.SMScontent});
                     $ionicScrollDelegate.scrollBottom(true);
-                    $scope.SocketSubmit(Receiver +  "||" + SendBy + "||" + data.Time + "||" + $scope.Dialog.SMScontent);
+                    $scope.SocketSubmit(Receiver +  "||" + SendBy + "||" + data.Time + "||" + $scope.Dialog.SMScontent + "||" + data.SendDateTime);
                     $scope.Dialog.SMScontent = "";
                 }              
             }, function(data) {   
@@ -3147,11 +3237,49 @@ function($scope, $cordovaCalendar,PlanInfo) {
             txtInput[0].focus();
         });
     } 
+
+    //将消息设为已读
+    function SetSMSRead ()
+    {
+        var data = {
+                      "MessageNo": "sample string 1",
+                      "MessageType": 2,
+                      "SendStatus": 3,
+                      "ReadStatus": 4,
+                      "SendBy": $scope.DoctorId,
+                      "SendByName": "sample string 6",
+                      "SendDateTime": "sample string 7",
+                      "Title": "sample string 8",
+                      "Content": "sample string 9",
+                      "Receiver": $scope.PatientId,
+                      "ReceiverName": "sample string 11",
+                      "SMSFlag": 12,
+                      "IDFlag": "sample string 13",
+                      "Flag": "sample string 14",
+                      "Count": "sample string 15",
+                      "Time": "sample string 16",
+                      "piUserId": piUserId,
+                      "piTerminalName": piTerminalName,
+                      "piTerminalIP": piTerminalIP,
+                      "piDeviceType": piDeviceType
+                    }
+        //var promise = MessageInfo.SetSMSRead($scope.PatientId, $scope.DoctorId, piUserId, piTerminalName, piTerminalIP, piDeviceType);
+        var promise = MessageInfo.SetSMSRead(data);
+        promise.then(function(data) {}, 
+        function(data) {   
+        });      
+    }
+
+    // 蜂鸣1次，震动2秒
+    function playBeep() { 
+        navigator.notification.beep(1); 
+        //navigator.notification.vibrate(2000);
+    } 
 })
 
 //系统通知、预约信息
 .controller('NotificationCtrl',['$scope', '$stateParams', '$ionicScrollDelegate', '$ionicLoading', 'MessageInfo', 'Storage', function($scope, $stateParams, $ionicScrollDelegate, $ionicLoading, MessageInfo, Storage){
-    
+
     $scope.scrollToTop=false; //“回到顶部按钮”初始隐藏
     $scope.NotificationList = new Array();
     $scope.notificationSetting={moreNotification:false, alertText:'正在努力加载中...', imageURL:'img/systemNotification.jpg'}; 
@@ -3207,12 +3335,13 @@ function($scope, $cordovaCalendar,PlanInfo) {
           if(data.length < top){
               $scope.notificationSetting.moreNotification=false;
               //$scope.notificationSetting.alertText='';
-              $ionicLoading.show({
-                template: '没有更多数据',
-                noBackdrop: false,
-                duration: 1000,
-                hideOnStateChange: true
-              });
+              
+              // $ionicLoading.show({
+              //   template: '没有更多数据',
+              //   noBackdrop: false,
+              //   duration: 1000,
+              //   hideOnStateChange: true
+              // });
           }
           else
           {

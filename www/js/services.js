@@ -176,7 +176,9 @@ angular.module('zjubme.services', ['ionic','ngResource'])
                 ChangeStatus: {method:'POST', params:{route: 'ChangeStatus'},timeout: 10000},
                 GetDataByStatus: {method:'GET', params:{route: 'GetDataByStatus'},timeout: 10000, isArray:true},
                 submitSMS: {method:'POST', params:{route: 'message'},timeout: 10000},
-                GetSMSDialogue:{method:'GET', isArray:true, params:{route: 'messages'},timeout: 10000}
+                GetSMSDialogue:{method:'GET', isArray:true, params:{route: 'messages'},timeout: 10000},
+                GetSMSCount:{method:'GET', params:{route: 'messageNum'},timeout: 10000},
+                SetSMSRead:{method:'PUT', params:{route: 'message'},timeout: 10000}
         
         });
     };
@@ -638,6 +640,26 @@ self.GetHealthCoaches = function (top, skip, filter) {
       return deferred.promise;
     };
 
+    self.GetSMSCount = function (Reciever,SendBy) {
+      var deferred = $q.defer();
+      Data.MessageInfo.GetSMSCount({Reciever:Reciever,SendBy:SendBy}, function (data, headers) {
+        deferred.resolve(data);
+      }, function (err) {
+        deferred.reject(err);
+      });
+      return deferred.promise;
+    };
+
+    self.SetSMSRead = function (data) {
+      var deferred = $q.defer();
+      Data.MessageInfo.SetSMSRead(data, function (data, headers) {
+        deferred.resolve(data);
+      }, function (err) {
+        deferred.reject(err);
+      });
+      return deferred.promise;
+    };
+    
     return self;
 }])
 
