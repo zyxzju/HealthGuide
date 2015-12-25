@@ -733,7 +733,7 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
       clearcache: 'yes',
       toolbar: 'yes'
     };
-    $cordovaInAppBrowser.open(extraInfo.TransformUrl(url), '_self', options);
+    $cordovaInAppBrowser.open(extraInfo.TransformUrl(url), '_blank', options);
   }
   ////////////////////////////////
   ionic.DomUtil.ready(function(){
@@ -1424,6 +1424,7 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
     location: 'no',
     clearcache: 'yes',
     toolbar: 'no'};
+  $scope.forunittest=false;
   $scope.play = function(r)
   {
     if(r.Type=='mp3'||r.Type=='mp4')
@@ -1432,8 +1433,11 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
       $scope.modal.show();
       $scope.mediatitle=r.name;
       $scope.mediadescribe=r.describe;
-      document.getElementById("myVideo").src=r.Url;
-      document.getElementById("myVideo").poster=r.poster;
+      if($scope.forunittest==false)
+      {
+        document.getElementById("myVideo").src=r.Url;
+        document.getElementById("myVideo").poster=r.poster;
+      }
       //$cordovaInAppBrowser.open(url, '_blank', options);
     }else if(r.Type=='jpg')
     {
