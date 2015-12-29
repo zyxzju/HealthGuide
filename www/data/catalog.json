@@ -20,6 +20,11 @@
 		"url":"img/icon/password.png"
 	},
 	{
+		"catalog":"地图",
+		"catalogID":"map",
+		"url":"img/icon/map.png"
+	},
+	{
 		"catalog":"退出当前账号",
 		"catalogID":"logout",
 		"url":"img/icon/singout.png"
