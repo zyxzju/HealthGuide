@@ -498,17 +498,19 @@
     };
     var mzbtest;
     var m_data = {
-      PatientId:'U201511120002',
-      StartDate:'20151101',
-      EndDate:'20151130',
+      PatientId:'',
+      StartDate:'',
+      EndDate:'',
       Module:'M1'
     };
     var doneflag = [];
     var doneflag_a = [];
-    $.fn.ionCalendar = function(method,v,d){
+    $.fn.ionCalendar = function(method,v,d,data){
         // console.log(v);
         mzbtest = v;
         doneflag = d;
+        m_data.PatientId = data.PatientId;
+        // console.log(m_data);
         // var nm = new Date();
         // nm.setDate(1);
         // nm.setMonth(nm.getMonth()+1);
