@@ -4785,10 +4785,7 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
         $ionicHistory.goBack();
        }
       // 收缩框
-      var show1 = false;
-      $scope.toggle1 = function() {
-        show1 = !show1;
-      };
+      var show1 = true;
       $scope.isShown1 = function() {
         return show1;
       };
@@ -4827,7 +4824,7 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
               $scope.BloodTypes = success;  
               // console.log($scope.BloodTypes); 
       }); 
-      // 获取医保类型
+      // 获取性别类型
       $scope.Genders = {}; // 初始化
       Data.Dict.GetTypeList({Category:"SexType"}, 
             function (success) {
@@ -4926,7 +4923,7 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
       //////////////////////////////////////////////////////////////////////////
       // 修改信息后的保存
       $scope.SaveInfo = function(a,b,c){
-        console.log(a);
+        // console.log(a);
         if (a == true){
           $ionicLoading.show({
            template: '保存失败,请输入正确的身份证号',
