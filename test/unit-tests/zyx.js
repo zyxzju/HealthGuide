@@ -292,6 +292,8 @@ describe('\n"11.temperaturecontroller"',function(){
       });
    });
 });
+
+/*-------------------------------------------*/
 describe('\nTests for "controllers"', function(){
 
     var scope, ctrl, $httpBackend;
