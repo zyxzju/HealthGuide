@@ -2876,7 +2876,7 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
 
 // --------我的专员-苟玲----------------
 //我的专员消息列表
-.controller('contactListCtrl',function($scope, $http, $state, $stateParams, Users, Storage,CONFIG, MessageInfo){
+.controller('contactListCtrl',function($scope, $http, $state, $stateParams, Users, Storage,CONFIG, MessageInfo, $timeout){
     //console.log($stateParams.tt);
     $scope.chatImgUrl=CONFIG.ImageAddressIP + CONFIG.ImageAddressFile+'/';
     $scope.contactList = {};
