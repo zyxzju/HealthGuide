@@ -13,6 +13,7 @@ describe('\nTests for "controllers"', function(){
 				"catalogID":"personalInfo",
 				"url":"img/icon/personalInfo.png"
 			});
+			$httpBackend.whenGET('http://121.43.107.106:9000/Api/v1/Users/testUID%2FBasicInfo').respond(200, '');
 			$httpBackend.whenGET(/partials\/.*/).respond(200, '');
 	        $controller('SlidePageCtrl', {$scope: scope});
 	    }));

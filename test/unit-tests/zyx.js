@@ -32,7 +32,7 @@ describe('\n"2.VitalInfo"',function(){
           vitalinfo = VitalInfo;
       $httpBackend.whenPOST(baseurl+"/VitalInfo/VitalSign")
         .respond({result:'数据插入成功'});
-         $httpBackend.whenGET(/partials\/.*/).respond(200, '');
+      $httpBackend.whenGET(/partials\/.*/).respond(200, '');
         }));
       it('体温数据插入数据库,PostPatientVitalSigns() method should get temperature lists.', function() {
            var temperaturelist={"UserId": "U201511170004",
@@ -542,7 +542,7 @@ describe('\n"recordListcontroller"',function(){
           scope = $rootScope.$new();
           $httpBackend = _$httpBackend_; 
           ///$httpBackend.whenGET(/partials\/.*/).respond(200, '');
-          $httpBackend.whenGET("http://121.43.107.106:9000/Api/v1/VitalInfo/VitalSigns?$skip=0&$top=10&EndDate=20151229&StartDate=20151228&UserId=U201511170002")
+          $httpBackend.whenGET("http://121.43.107.106:9000/Api/v1/VitalInfo/VitalSigns?$skip=0&$top=10&EndDate=20151230&StartDate=20151229&UserId=U201511170002")
           .respond([
                       {
                       "UserId": null,
@@ -571,7 +571,7 @@ describe('\n"recordListcontroller"',function(){
                       "SignType": null
                     }
            ]);
-          $httpBackend.whenGET("http://121.43.107.106:9000/Api/v1/VitalInfo/VitalSigns?$skip=10&$top=10&EndDate=20151229&StartDate=20151228&UserId=U201511170002")
+          $httpBackend.whenGET("http://121.43.107.106:9000/Api/v1/VitalInfo/VitalSigns?$skip=10&$top=10&EndDate=20151230&StartDate=20151229&UserId=U201511170002")
           .respond([]);
           $httpBackend.whenGET(/partials\/.*/).respond(200, ''); 
           $controller('recordListcontroller', {$scope: scope});
