@@ -2232,7 +2232,7 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
     function($scope, $http, $ionicSideMenuDelegate,$timeout, $state, $window, $ionicPopover, PlanInfo, $ionicLoading, Storage) {
 
       //固定变量guide 也可读自json文件
-      var  UserId= Storage.get('UID');
+       var UserId= Storage.get('UID');
        var SBPGuide='';
        var DBPGuide='';
        var PulseGuide='';
