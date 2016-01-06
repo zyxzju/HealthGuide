@@ -13,6 +13,7 @@ describe('\nTests for "controllers"', function(){
 				"catalogID":"personalInfo",
 				"url":"img/icon/personalInfo.png"
 			});
+			$httpBackend.whenGET('http://121.43.107.106:9000/Api/v1/Users/testUID%2FBasicInfo').respond(200, '');
 			$httpBackend.whenGET(/partials\/.*/).respond(200, '');
 	        $controller('SlidePageCtrl', {$scope: scope});
 	    }));
@@ -60,37 +61,171 @@ describe('\nTests for "controllers"', function(){
 	   		});
    		});
 	});
-	// describe('\nTest for tasklistcontroller',function(){
+	describe('\nTest for tasklistcontroller',function(){
+		var PlanInfo,tscope;
+		beforeEach(angular.mock.inject(function($rootScope, $controller, _PlanInfo_){
+			
+	        scope = $rootScope.$new();
+			PlanInfo = _PlanInfo_;
+	        $controller('tasklistcontroller', {$scope: scope});
+			var getep = {
+			    PatientId:window.localStorage['UID'],
+			    PlanNo:'NULL',
+			    Module:'M1',
+			    Status:'3'
+			  }
+			tscope = $rootScope.$new();
+	        
+		}));
 
-	// 	beforeEach(angular.mock.inject(function($rootScope, $controller){
-	// 		scope = $rootScope.$new();
-	//         $controller('tasklistcontroller', {$scope: scope});
-	// 	}));
-	// 	describe('\n数据初始化是否正确?',function(){
-	// 		beforeEach(function(){
-	// 			scope.doRefresh();
-	// 		});
-	// 		it('\n请求服务器数据的参数',function(){
-	// 			expect(getexecutingplan).toHaveBeenCalled();
-	// 		});
-	// 	});
-	// });
-	// describe('\nTest for taskdetailcontroller',function(){
+		describe('\ninit',function(){
+			
+			beforeEach(function(){
+				tscope.getexecutingplan = function()
+			  {
+			    PlanInfo.GetExecutingPlan(getep).then(function(s){
+			      console.log(s[0]);
+			      if((s!=null)&&(s!=""))
+			      {
+			        $scope.unTaskList=false;
+			        extraInfo.PlanNo(s[0]);
+			        data.PlanNo=s[0].PlanNo;
+			        gettasklist();
+			      }
+			      else
+			      {
+			        console.log("getexecutingplan err");
+			        $scope.unTaskList=true;
+			        $scope.$broadcast('scroll.refreshComplete');
+			        showrefreshresult('刷新成功');
+			      }
+			    },function(e){
+			      console.log(e);
+			      $scope.unTaskList=true;
+			      $scope.$broadcast('scroll.refreshComplete');
+			      showrefreshresult('刷新失败');
 
-	// 	beforeEach(angular.mock.inject(function($rootScope, $controller){
-	// 		scope = $rootScope.$new();
-	//         $controller('taskdetailcontroller', {$scope: scope});
-	// 	}));
-	// 	describe('\n刷新任务列表?',function(){
-	// 		beforeEach(function(){
-	// 			scope.doRefresh();
-	// 			spyOn(extraInfo,'PlanNo');
-	// 		});
-	// 		it('\n请求服务器数据的参数',function(){
-	// 			// expect().toHaveBeenCalled();
-	// 		});
-	// 	});
-	// });
+			    })
+			  }
+				// getexecutingplan = jasmine.createSpy('whatAmI');
+				spyOn(tscope,'getexecutingplan');  //foo为spy函数
+				tscope.getexecutingplan();
+			});
+
+			it('\n请求服务器数据的参数',function(){
+				expect(tscope.getexecutingplan).toHaveBeenCalled();
+			});
+		});
+	});
+	describe('\ntaskdetailcontroller',function(){//测试 taskdetailcontroller
+		
+		beforeEach(angular.mock.inject(function($rootScope, $controller, _$httpBackend_){
+			scope = $rootScope.$new();
+			$httpBackend = _$httpBackend_;
+	        $controller('taskdetailcontroller', {$scope: scope});
+
+	        $httpBackend.whenGET(/partials\/.*/).respond(200, '');//模拟路由
+	        $httpBackend.whenGET('helist.html').respond(200, '');//模拟控制器中调用模板页面
+
+		}));
+		describe('\n$scope.openHeModal',function(){//测试 $scope.openHeModal() 方法
+			beforeEach(function(){
+				$httpBackend.whenGET("http://121.43.107.106:9000/Api/v1/PlanInfo/Tasks?$filter=InvalidFlag+eq+'1'&Date=NOW&ParentCode=1&PatientId=testUID")
+				.respond([{respond:'success'}]);//配置返回值
+				scope.modal = //模拟 $scope.modal.show();
+				{
+					show:function()
+					{
+						console.log('call $scope.modal.show()');//用于查看该函数是否被调用
+					}
+				};
+				scope.openHeModal('1');//模拟调用 $scope.openHeModal() 方法
+			});
+			it('',function(){
+				$httpBackend.flush();//触发请求
+				expect(scope.helist[0].respond).toBe('success');//调用成功后输出结果	
+			});
+		});
+		describe('\n$scope.closeHeModal',function(){//测试 $scope.closeHeModal() 方法
+			beforeEach(function(){
+				scope.modal = //模拟 $scope.modal.show();
+				{
+					hide:function()
+					{
+						console.log('call $scope.modal.hide()');//用于查看该函数是否被调用
+					}
+				};
+			});
+			it('',function(){
+				scope.closeHeModal();//模拟调用 $scope.openHeModal() 方法
+			});
+		});
+		describe('\n$scope.openUrl',function(){//测试 $scope.openUrl() 方法
+			xit('',function(){//此处暂时屏蔽，需要的时候去掉x可以进行测试，因为每次都会打开新的窗口影响进度
+				scope.openUrl('');//模拟调用 $scope.openUrl() 方法
+			});
+		});
+		describe('\n$scope.doRefresh',function(){//测试 $scope.doRefresh() 方法
+			beforeEach(function(){
+				$httpBackend.whenGET("http://121.43.107.106:9000/Api/v1/PlanInfo/Tasks?$filter=InvalidFlag+eq+'1'&Date=NOW&PatientId=testUID")
+				.respond([{respond:'success'}]);//配置返回值
+				scope.doRefresh();
+			});
+			it('',function(){//此处暂时屏蔽，需要的时候去掉x可以进行测试，因为每次都会打开新的窗口影响进度
+				$httpBackend.flush();
+				expect(scope.taskdetaillist[0].respond).toEqual("success");
+			});
+		});
+		describe('\n$scope.done',function(){//测试 $scope.done() 方法
+			beforeEach(function(){
+				scope.taskdetaillist = [];
+				scope.taskdetaillist[0] = {test:'testOK'};//配置必要的参数 
+				$httpBackend.whenPOST("http://121.43.107.106:9000/Api/v1/PlanInfo/ComplianceDetail")
+				.respond({respond:'success'});//配置返回值
+				scope.done(0);//模拟调用函数
+			});
+			it('',function(){
+				$httpBackend.flush();//触发发送
+				expect(scope.taskdetaillist[0].Status).toEqual("1");//检查调用后的结果
+			});
+		});
+	});
+	describe('\nhealtheducationcontroller',function(){//测试 healtheducationcontroller
+
+		beforeEach(angular.mock.inject(function($rootScope, $controller, _$httpBackend_){
+			scope = $rootScope.$new();
+			$httpBackend = _$httpBackend_;
+	        $controller('healtheducationcontroller', {$scope: scope});
+
+		}));
+		describe('\n$scope.play',function(){//测试 $scope.play
+			var t1,t2,t3;
+			beforeEach(function(){
+				t1 = {Type:'mp3',name:'t1'};//配置必要的参数
+				t2 = {Type:'mp4',name:'t2'};
+				t3 = {Type:'jpg',name:'t3'};
+				scope.modal = //模拟函数
+				{
+					show:function(){
+						console.log('call $scope.modal.show()');//用以标记调用情况
+					}
+				};
+				scope.forunittest = true;
+			});
+			it('',function(){
+				scope.play(t1);//模拟一种调用情况
+				expect(scope.mediatitle).toBe('t1');//调用成功后输出结果
+			});
+			it('',function(){
+				scope.play(t2);
+				expect(scope.mediatitle).toBe('t2');//调用成功后输出结果
+			});
+			xit('',function(){//此处先屏蔽掉，否则每次弹出页面影响进度，需要时删除x
+				scope.play(t3);
+				expect(scope.mediatitle).toBe('t3');//调用成功后输出结果
+			});
+		});
+	});
 });
 describe('\nTests for "services"', function(){
     

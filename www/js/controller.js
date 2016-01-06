@@ -751,7 +751,7 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
       clearcache: 'yes',
       toolbar: 'yes'
     };
-    $cordovaInAppBrowser.open(extraInfo.TransformUrl(url), '_self', options);
+    $cordovaInAppBrowser.open(extraInfo.TransformUrl(url), '_blank', options);
   }
   ////////////////////////////////
   ionic.DomUtil.ready(function(){
@@ -1450,6 +1450,7 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
     location: 'no',
     clearcache: 'yes',
     toolbar: 'no'};
+  $scope.forunittest=false;
   $scope.play = function(r)
   {
     if(r.Type=='mp3'||r.Type=='mp4')
@@ -1458,8 +1459,11 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
       $scope.modal.show();
       $scope.mediatitle=r.name;
       $scope.mediadescribe=r.describe;
-      document.getElementById("myVideo").src=r.Url;
-      document.getElementById("myVideo").poster=r.poster;
+      if($scope.forunittest==false)
+      {
+        document.getElementById("myVideo").src=r.Url;
+        document.getElementById("myVideo").poster=r.poster;
+      }
       //$cordovaInAppBrowser.open(url, '_blank', options);
     }else if(r.Type=='jpg')
     {
@@ -2228,7 +2232,7 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
     function($scope, $http, $ionicSideMenuDelegate,$timeout, $state, $window, $ionicPopover, PlanInfo, $ionicLoading, Storage) {
 
       //固定变量guide 也可读自json文件
-      var  UserId= Storage.get('UID');
+       var UserId= Storage.get('UID');
        var SBPGuide='';
        var DBPGuide='';
        var PulseGuide='';
@@ -2872,7 +2876,7 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
 
 // --------我的专员-苟玲----------------
 //我的专员消息列表
-.controller('contactListCtrl',function($scope, $http, $state, $stateParams, Users, Storage,CONFIG, MessageInfo){
+.controller('contactListCtrl',function($scope, $http, $state, $stateParams, Users, Storage,CONFIG, MessageInfo, $timeout){
     //console.log($stateParams.tt);
     $scope.chatImgUrl=CONFIG.ImageAddressIP + CONFIG.ImageAddressFile+'/';
     $scope.contactList = {};
@@ -4781,10 +4785,7 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
         $ionicHistory.goBack();
        }
       // 收缩框
-      var show1 = false;
-      $scope.toggle1 = function() {
-        show1 = !show1;
-      };
+      var show1 = true;
       $scope.isShown1 = function() {
         return show1;
       };
@@ -4823,7 +4824,7 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
               $scope.BloodTypes = success;  
               // console.log($scope.BloodTypes); 
       }); 
-      // 获取医保类型
+      // 获取性别类型
       $scope.Genders = {}; // 初始化
       Data.Dict.GetTypeList({Category:"SexType"}, 
             function (success) {
@@ -4922,7 +4923,7 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
       //////////////////////////////////////////////////////////////////////////
       // 修改信息后的保存
       $scope.SaveInfo = function(a,b,c){
-        console.log(a);
+        // console.log(a);
         if (a == true){
           $ionicLoading.show({
            template: '保存失败,请输入正确的身份证号',
