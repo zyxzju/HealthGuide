@@ -13,6 +13,9 @@
             on-refresh="doRefresh()">
         </ion-refresher>
         <ion-list>
+            <a class="button button-assertive button-small button-full" style="margin:0px;" ng-click="showtaskchangedetail()">
+                点击查看任务变更详情
+            </a>
             <ion-item ng-if=(unTaskList) class="item item-thumbnail-left item-icon-right">
                 <img ng-src="img/icon/TF0000.png">
                 <h2>暂时没有要完成的任务
@@ -22,6 +25,7 @@
             <!-- <ion-item href="" ng-repeat="task in tasklist" class="item-thumbnail-left" ng-click='openModal()'> -->
                 <img ng-src="img/icon/{{task.Code}}.png">
                 <h2>{{task.Name}}</h2>
+                <span class="badge badge-assertive">{{task.markstatistics}}</span>
             </ion-item>
         </ion-list>
     </ion-content>

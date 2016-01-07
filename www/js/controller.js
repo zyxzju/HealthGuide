@@ -646,7 +646,7 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
   var getexecutingplan = function()
   {
     PlanInfo.GetExecutingPlan(getep).then(function(s){
-      console.log(s[0]);
+      // console.log(s[0]);
       if((s!=null)&&(s!=""))
       {
         $scope.unTaskList=false;
@@ -672,10 +672,17 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
   var gettasklist = function()
   {
     TaskInfo.GetTasklist(data).then(function(s){
-      console.log(s);
+      // console.log(s);
       $scope.$broadcast('scroll.refreshComplete');
       $scope.tasklist = s;
       showrefreshresult('刷新成功');
+      TaskInfo.GetDTaskByPlanNo('PLN201601050001').then(function(s){
+        // console.log(s);
+        $scope.detaillist = extraInfo.TransformChangeMarks(s);
+        // console.log($scope.detaillist);
+      },function(e){
+        console.log(e);
+      });
     },function(e){
       console.log(e);
       $scope.$broadcast('scroll.refreshComplete');
@@ -697,6 +704,21 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
     // $http.get('testdata/tasklist.json').success(function(data){
     //  $scope.tasklist = TaskInfo.insertstate(data);
     // })
+  $ionicModal.fromTemplateUrl('partials/other/taskchangedetail.html', {
+    scope: $scope,
+    animation: 'slide-in-up'
+  }).then(function(modal) {
+    $scope.modal = modal;
+  });
+  $scope.showtaskchangedetail = function()
+  {
+    $scope.modal.show();
+  }
+  $scope.closetaskchangedetail = function()
+  {
+    $scope.modal.hide();
+  }
+  $scope.testlist = [{t:'100圈到200全'},{t:'100圈到300全'},{t:'100圈到400全'},{t:'100圈到500全'}];
 }])
 
 //任务详细

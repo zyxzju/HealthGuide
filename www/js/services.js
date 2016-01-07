@@ -186,7 +186,8 @@ angular.module('zjubme.services', ['ionic','ngResource'])
               Target: {method:'GET', params:{route: 'Target'},timeout: 10000},
               PlanInfoChartDtl: {method:'GET', params:{route: 'PlanInfoChartDtl'},timeout: 10000, isArray:true},
               GetExecutingPlan: {method:'GET', isArray:true ,params:{route: 'Plan'},timeout: 10000},
-              GetComplianceListInC:{method:'GET', isArray:true ,params:{route: 'GetComplianceListInC'},timeout: 10000}
+              GetComplianceListInC:{method:'GET', isArray:true ,params:{route: 'GetComplianceListInC'},timeout: 10000},
+              getDTaskByPlanNo: {method:'GET',isArray:true, params:{route:'GetDTaskByPlanNo'},timeout: 10000}
         });
     };
 
@@ -742,6 +743,67 @@ self.GetHealthCoaches = function (top, skip, filter) {
       }else {
         window.localStorage['refreshstatus'] = angular.toJson(status);
       }
+    },
+    TransformChangeMarks:function(data){
+      var marklength = data.length;
+      var statistics = {};
+      var classification=[];
+      classification[0] =new Array();//新增
+      classification[1] =new Array();//删除
+      classification[2] =new Array();//修改
+      for(var i=0;i<marklength;i++)
+      {
+        if(data[i].Code!=null)
+        {
+          if(data[i].Code.charAt(5)!='0')//排除诸如 TA0000 TB0000这类外层数据
+          {
+            if(statistics[data[i].Code]!=null)//判断该类型数据是否已经在结果中出现
+            {//出现两次的数据进行排序
+              if(statistics[data[i].Code][0].Edition<data[i].Edition)//以Edition排序，Edition大的为修改后的数据
+              {
+                statistics[data[i].Code][1]=statistics[data[i].Code][0];//修改后的数据放在前边
+                statistics[data[i].Code][0]=data[i];
+              }else
+              {
+                statistics[data[i].Code][1]=data[i];//修改前的数据放在前边
+              }
+            }else
+            {
+              statistics[data[i].Code]=new Array();//单词出现的数据
+              statistics[data[i].Code][0]=data[i];
+            }
+          }
+        }
+      }
+      // console.log(statistics);
+      angular.forEach(statistics,function(value,key){
+        if(value.length==1)//新增或删除的项目
+        {
+          if(value[0].Edition==1)
+          {
+            classification[1].push(value[0]);//删除
+          }else
+          {
+            classification[0].push(value[0]);//新增
+          }
+        }else if(value.length==2)//修改的项目
+        {
+          classification[2].push(value[0]);
+        }
+      });
+      // console.log(classification);
+      return classification;
+    },
+    InsertChangeMarks2tasklist:function(arr,markstatistics)
+    {
+      var l=arr.length;
+      for (var i=0;i<l;i++)
+      {
+        if(markstatistics[arr[i].Code]!=null)
+        {
+          arr[i].markstatistics = markstatistics[arr[i].Code];
+        }
+      }
     }
   }
 })
@@ -944,6 +1006,15 @@ self.GetHealthCoaches = function (top, skip, filter) {
     console.log(arr.Status);
     var deferred = $q.defer();
       Data.TaskInfo.Done(data,function(s){
+        deferred.resolve(s);
+      },function(e){
+        deferred.reject(e);
+    });
+    return deferred.promise;
+  }
+  self.GetDTaskByPlanNo = function(planno){
+    var deferred = $q.defer();
+      Data.PlanInfo.getDTaskByPlanNo({PlanNo:planno},function(s){
         deferred.resolve(s);
       },function(e){
         deferred.reject(e);
