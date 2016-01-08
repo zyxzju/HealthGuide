@@ -682,6 +682,10 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
         // console.log($scope.detaillist);
       },function(e){
         console.log(e);
+        $scope.detaillist = [];
+        $scope.detaillist[0] =new Array();//新增
+        $scope.detaillist[1] =new Array();//删除
+        $scope.detaillist[2] =new Array();//修改
       });
     },function(e){
       console.log(e);
@@ -726,7 +730,7 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
 function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,TaskInfo,$ionicListDelegate,Storage,$ionicLoading, $ionicPopup) {
   var data={"ParentCode":$stateParams.tl,"PlanNo":extraInfo.PlanNo().PlanNo,"Date":"NOW","PatientId":Storage.get("UID")};//
   var detail={"ParentCode":'',"PlanNo":extraInfo.PlanNo().PlanNo,"Date":"NOW","PatientId":Storage.get("UID")};//extraInfo.PlanNo().PlanNo
-
+  $scope.pagetitle = extraInfo.TransformCode2Name($stateParams.tl);
   ////////////////////////////////////
   $ionicModal.fromTemplateUrl('helist.html', {
     scope: $scope,
@@ -823,6 +827,19 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
       function(res) {
         //
     });
+  }
+  $scope.openaddalertmodal = function(a)
+  {
+    var content = {
+      title:'任务提醒：'+a.Name,
+      detail:'记得完成相应任务!',
+      time:new Date(),
+      hour:(new Date()).getHours(),
+      minute:(new Date()).getMinutes(),
+      index:0,
+      ID:parseInt(Math.random()*1000+1)
+    };
+    $scope.openModal(content);
   }
 }])
 

@@ -1,4 +1,4 @@
-<ion-view view-title='详细'>
+<ion-view view-title={{pagetitle}}>
     <ion-content scroll="true">
         <ion-refresher
             pulling-text="下拉刷新。。。"
@@ -26,7 +26,7 @@
                 <!-- </a> -->
                 <p class="swipeleft">左划惊喜</p>
                 <ion-option-button class="button-assertive" ng-click="done({{task.index}})">完成</ion-option-button>
-                <ion-option-button class="button-positive" ng-click="openModal()">添加提醒</ion-option-button>
+                <ion-option-button class="button-positive" ng-click="openaddalertmodal({{task}})">添加提醒</ion-option-button>
             </ion-item>
         </ion-list>
     </ion-content>

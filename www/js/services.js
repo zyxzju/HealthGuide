@@ -791,7 +791,7 @@ self.GetHealthCoaches = function (top, skip, filter) {
           classification[2].push(value[0]);
         }
       });
-      // console.log(classification);
+      console.log(classification);
       return classification;
     },
     InsertChangeMarks2tasklist:function(arr,markstatistics)
@@ -803,6 +803,25 @@ self.GetHealthCoaches = function (top, skip, filter) {
         {
           arr[i].markstatistics = markstatistics[arr[i].Code];
         }
+      }
+    },
+    TransformCode2Name:function(code)
+    {
+      var codelist = {
+        TA0000:'体重管理',
+        TB0000:'合理饮食',
+        TC0000:'锻炼',
+        TD0000:'健康教育',
+        TE0000:'药物治疗',
+        TF0000:'体征测量',
+        TG0000:'风险评估'
+      }
+      if(codelist[code]!=null)
+      {
+        return codelist[code];
+      }else
+      {
+        return '详细';
       }
     }
   }
