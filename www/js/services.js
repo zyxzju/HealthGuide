@@ -172,8 +172,13 @@ angular.module('zjubme.services', ['ionic','ngResource'])
     var MessageInfo = function () {
         return $resource(CONFIG.baseUrl + ':path/:route', {path:'MessageInfo'},
               {
+                PostNotification: {method:'POST', params:{route: 'PostNotification'},timeout: 10000},
+                ChangeStatus: {method:'POST', params:{route: 'ChangeStatus'},timeout: 10000},
+                GetDataByStatus: {method:'GET', params:{route: 'GetDataByStatus'},timeout: 10000, isArray:true},
                 submitSMS: {method:'POST', params:{route: 'message'},timeout: 10000},
-                GetSMSDialogue:{method:'GET', isArray:true, params:{route: 'messages'},timeout: 10000}
+                GetSMSDialogue:{method:'GET', isArray:true, params:{route: 'messages'},timeout: 10000},
+                GetSMSCount:{method:'GET', params:{route: 'messageNum'},timeout: 10000},
+                SetSMSRead:{method:'PUT', params:{route: 'message'},timeout: 10000}
         
         });
     };
@@ -595,6 +600,27 @@ self.GetHealthCoaches = function (top, skip, filter) {
 // --------交流-苟玲----------------
 .factory('MessageInfo', ['$q', '$http', 'Data',function ( $q,$http, Data) {
     var self = this;
+
+    self.ChangeStatus = function (AccepterID, NotificationType, SortNo, Status, revUserId, TerminalName, TerminalIP, DeviceType) {
+      var deferred = $q.defer();
+      Data.MessageInfo.ChangeStatus({AccepterID:AccepterID, NotificationType:NotificationType, SortNo:SortNo, Status:Status, revUserId:revUserId, TerminalName:TerminalName, TerminalIP:TerminalIP, DeviceType:DeviceType}, function (data, headers) {
+        deferred.resolve(data);
+      }, function (err) {
+      deferred.reject(err);
+      });
+      return deferred.promise;
+    };
+
+    self.GetDataByStatus = function (AccepterID, NotificationType, Status, top, skip) {
+      var deferred = $q.defer();
+      Data.MessageInfo.GetDataByStatus({AccepterID:AccepterID, NotificationType:NotificationType, Status:Status, $orderby:"SendTime desc", $top:top, $skip:skip}, function (data, headers) {
+        deferred.resolve(data);
+      }, function (err) {
+      deferred.reject(err);
+      });
+      return deferred.promise;
+    };
+
     self.submitSMS = function (SendBy,Content,Receiver,piUserId,piTerminalName,piTerminalIP,piDeviceType) {
       var deferred = $q.defer();
       Data.MessageInfo.submitSMS({SendBy:SendBy,Content:Content,Receiver:Receiver,piUserId:piUserId,piTerminalName:piTerminalName,piTerminalIP:piTerminalIP,piDeviceType:piDeviceType}, function (data, headers) {
@@ -615,6 +641,26 @@ self.GetHealthCoaches = function (top, skip, filter) {
       return deferred.promise;
     };
 
+    self.GetSMSCount = function (Reciever,SendBy) {
+      var deferred = $q.defer();
+      Data.MessageInfo.GetSMSCount({Reciever:Reciever,SendBy:SendBy}, function (data, headers) {
+        deferred.resolve(data);
+      }, function (err) {
+        deferred.reject(err);
+      });
+      return deferred.promise;
+    };
+
+    self.SetSMSRead = function (data) {
+      var deferred = $q.defer();
+      Data.MessageInfo.SetSMSRead(data, function (data, headers) {
+        deferred.resolve(data);
+      }, function (err) {
+        deferred.reject(err);
+      });
+      return deferred.promise;
+    };
+    
     return self;
 }])
 
