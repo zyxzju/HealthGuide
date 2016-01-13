@@ -915,9 +915,12 @@ self.GetHealthCoaches = function (top, skip, filter) {
     BPConclusion:function(h,l){
       if(parseInt(h)<130&&parseInt(l)<85)
       {
-        return '您的血压属于正常\n范围，请继续保持';
+        if(parseInt(h)==0)
+          return '设备异常，请重新测量';
+        else
+          return '您的血压属于正常\n范围，请继续保持';
       }else {
-        return '您的血压偏高，请注意降压';
+        return '您的血压不正常，请注意控制！';
       }
     },
     FindCommand: function() {
