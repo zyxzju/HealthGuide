@@ -1204,6 +1204,7 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
         escape(BPdata[16])!=0?highbp.Value=escape(BPdata[16]):highbp='';
         escape(BPdata[17])!=0?lowbp.Value=escape(BPdata[17]):lowbp='';
         escape(BPdata[19])!=0?jn.Value=escape(BPdata[19]):jn='';
+        if(highbp.Value>=200)highbp.Value=0;
         validatechart(highbp.Value,lowbp.Value,jn.Value);
       }, 500);
     }
