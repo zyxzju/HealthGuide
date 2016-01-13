@@ -301,7 +301,7 @@
                                         doneflag[doneflag_a[i].Date%100] = doneflag_a[i];
                                     } 
                                 }
-                                // console.log(doneflag);
+                                console.log(doneflag);
                                 removeHTML();
                             },function(e){
                                 console.log(e);
@@ -488,6 +488,39 @@
                 // yarrr!
                 prepareData();
                 prepareCalendar();
+                // console.log(m_data);//以下代码初次进来时调用
+                var nm = new Date();
+                nm.setDate(1);
+                nm.setMonth(nm.getMonth()+1);
+                nm.setDate(nm.getDate()-1);
+                var m_year = nm.getFullYear().toString();
+                var m_month = nm.getMonth()+1;
+                if(m_month<10)m_month = '0'+m_month;
+                var m_monthlastday = nm.getDate();
+                if(m_monthlastday<10)m_monthlastday = '0'+m_monthlastday;
+                console.log(m_year+m_month+m_monthlastday);
+
+                m_data.StartDate = m_year+m_month+'01';
+                m_data.EndDate = m_year+m_month+m_monthlastday;
+                console.log(m_data);
+                mzbtest.GetComplianceListInC(m_data).then(function(s){
+                    console.log(s);
+                    doneflag_a = s;
+                    if(doneflag_a.length == 0)
+                    {
+                        doneflag = [];
+                    }else{
+                       for(var i=0;i<doneflag_a.length;i++)
+                        {
+                            doneflag[doneflag_a[i].Date%100] = doneflag_a[i];
+                        } 
+                    }
+                    console.log(doneflag);
+                    removeHTML();
+                },function(e){
+                    console.log(e);
+                });
+                ////以上代码初次进来时调用
             });
         },
         update: function(options){

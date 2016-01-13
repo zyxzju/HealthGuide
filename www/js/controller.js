@@ -679,7 +679,11 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
       TaskInfo.GetDTaskByPlanNo('PLN201601050001').then(function(s){
         // console.log(s);
         $scope.detaillist = extraInfo.TransformChangeMarks(s);
+        window.localStorage['taskchangedetaillist']=angular.toJson($scope.detaillist);
         // console.log($scope.detaillist);
+        console.log($scope.tasklist);
+        extraInfo.InsertChangeMarks2tasklist($scope.tasklist,$scope.detaillist);
+        console.log($scope.tasklist);
       },function(e){
         console.log(e);
         $scope.detaillist = [];
@@ -780,9 +784,13 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
   var getlist = function()
   {
     TaskInfo.GetTasklist(data).then(function(s){
-      console.log(s);
+      // console.log(s);
       $scope.$broadcast('scroll.refreshComplete');
       $scope.taskdetaillist = extraInfo.TransformInstruction(TaskInfo.insertstate(s));
+      console.log($scope.taskdetaillist);
+      $scope.detaillist=angular.fromJson(window.localStorage['taskchangedetaillist']);
+      $scope.taskdetaillist=extraInfo.InsertChangeMarks2tasklist($scope.taskdetaillist,$scope.detaillist);
+      console.log($scope.taskdetaillist);
       var i=0;
       if(s.length)getdetail(i);
       extraInfo.refreshstatus('刷新成功');
@@ -1083,6 +1091,7 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
         $cordovaBluetoothSerial.read().then(
           function(data){
             (data==null)?btstart[i]=0x00:btstart[i]=data.charCodeAt(0);
+            console.log(data);
           },
           function(){}
         );
@@ -1091,6 +1100,7 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
         $cordovaBluetoothSerial.read().then(
           function(data){
             (data==null)?BPdata[i]=0x00:BPdata[i]=data.charCodeAt(0);
+            console.log(data);
           },
           function(){}
         );

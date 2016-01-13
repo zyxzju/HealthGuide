@@ -765,7 +765,7 @@ self.GetHealthCoaches = function (top, skip, filter) {
                 statistics[data[i].Code][0]=data[i];
               }else
               {
-                statistics[data[i].Code][1]=data[i];//修改前的数据放在前边
+                statistics[data[i].Code][1]=data[i];//修改前的数据放在后边
               }
             }else
             {
@@ -791,19 +791,56 @@ self.GetHealthCoaches = function (top, skip, filter) {
           classification[2].push(value[0]);
         }
       });
-      console.log(classification);
+      // console.log(classification);
       return classification;
     },
-    InsertChangeMarks2tasklist:function(arr,markstatistics)
+    InsertChangeMarks2tasklist:function(arr,markstatistics)//根据获得的任务变更情况，在相应的任务中添加标志位，用来在显示时进行提示
     {
-      var l=arr.length;
-      for (var i=0;i<l;i++)
+      var ms = markstatistics[0];
+      for(var i=0;i<markstatistics[2].length;i++)
       {
-        if(markstatistics[arr[i].Code]!=null)
+        ms.push(markstatistics[2][i]);
+      }
+      // console.log(ms);
+      if(arr[0].Code.charAt(5)=="0")
+      {
+        var Typestatistics = {};//第一层任务列表
+        for(var i=0;i<ms.length;i++)
         {
-          arr[i].markstatistics = markstatistics[arr[i].Code];
+          if(Typestatistics[ms[i].Type]==null)
+          {
+            Typestatistics[ms[i].Type]='1';
+          }
+        }
+        // console.log(Typestatistics);
+        for (var i=0;i<arr.length;i++)
+        {
+          if(Typestatistics[arr[i].Type]=='1')
+          {
+            // console.log(Typestatistics[arr[i].Type]);
+            arr[i].markstatistics = '1';
+          }
+        }
+      }else{
+        var Typestatistics = {};//第二层任务列表
+        for(var i=0;i<ms.length;i++)
+        {
+          if(Typestatistics[ms[i].Code]==null)
+          {
+            Typestatistics[ms[i].Code]='1';
+          }
+        }
+        // console.log(Typestatistics);
+        for (var i=0;i<arr.length;i++)
+        {
+          if(Typestatistics[arr[i].Code]=='1')
+          {
+            // console.log(Typestatistics[arr[i].Code]);
+            arr[i].markstatistics = '1';
+          }
         }
       }
+      return arr;
     },
     TransformCode2Name:function(code)
     {
