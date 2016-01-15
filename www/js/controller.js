@@ -1587,9 +1587,9 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
   }]
   VitalInfo.GetLatestPatientVitalSigns(get[0]).then(function(s){
     console.log(s);
-    $scope.BMI.weight = parseInt(s.result);
+    $scope.BMI.weight = parseInt(s.Value);
     VitalInfo.GetLatestPatientVitalSigns(get[1]).then(function(s){
-      $scope.BMI.height = parseInt(s.result);
+      $scope.BMI.height = parseInt(s.Value);
       setTimeout(function() {mathbmi();setchartband();setchartValue();}, 1000);
       console.log(s);
     });
