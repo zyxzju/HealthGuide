@@ -664,7 +664,7 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
   var getexecutingplan = function()
   {
     PlanInfo.GetExecutingPlan(getep).then(function(s){
-      console.log(s[0]);
+      // console.log(s[0]);
       if((s!=null)&&(s!=""))
       {
         $scope.unTaskList=false;
@@ -690,10 +690,25 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
   var gettasklist = function()
   {
     TaskInfo.GetTasklist(data).then(function(s){
-      console.log(s);
+      // console.log(s);
       $scope.$broadcast('scroll.refreshComplete');
       $scope.tasklist = s;
       showrefreshresult('刷新成功');
+      TaskInfo.GetDTaskByPlanNo('PLN201601050001').then(function(s){
+        // console.log(s);
+        $scope.detaillist = extraInfo.TransformChangeMarks(s);
+        window.localStorage['taskchangedetaillist']=angular.toJson($scope.detaillist);
+        // console.log($scope.detaillist);
+        console.log($scope.tasklist);
+        extraInfo.InsertChangeMarks2tasklist($scope.tasklist,$scope.detaillist);
+        console.log($scope.tasklist);
+      },function(e){
+        console.log(e);
+        $scope.detaillist = [];
+        $scope.detaillist[0] =new Array();//新增
+        $scope.detaillist[1] =new Array();//删除
+        $scope.detaillist[2] =new Array();//修改
+      });
     },function(e){
       console.log(e);
       $scope.$broadcast('scroll.refreshComplete');
@@ -715,6 +730,21 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
     // $http.get('testdata/tasklist.json').success(function(data){
     //  $scope.tasklist = TaskInfo.insertstate(data);
     // })
+  $ionicModal.fromTemplateUrl('partials/other/taskchangedetail.html', {
+    scope: $scope,
+    animation: 'slide-in-up'
+  }).then(function(modal) {
+    $scope.modal = modal;
+  });
+  $scope.showtaskchangedetail = function()
+  {
+    $scope.modal.show();
+  }
+  $scope.closetaskchangedetail = function()
+  {
+    $scope.modal.hide();
+  }
+  $scope.testlist = [{t:'100圈到200全'},{t:'100圈到300全'},{t:'100圈到400全'},{t:'100圈到500全'}];
 }])
 
 //任务详细
@@ -722,7 +752,7 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
 function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,TaskInfo,$ionicListDelegate,Storage,$ionicLoading, $ionicPopup) {
   var data={"ParentCode":$stateParams.tl,"PlanNo":extraInfo.PlanNo().PlanNo,"Date":"NOW","PatientId":Storage.get("UID")};//
   var detail={"ParentCode":'',"PlanNo":extraInfo.PlanNo().PlanNo,"Date":"NOW","PatientId":Storage.get("UID")};//extraInfo.PlanNo().PlanNo
-
+  $scope.pagetitle = extraInfo.TransformCode2Name($stateParams.tl);
   ////////////////////////////////////
   $ionicModal.fromTemplateUrl('helist.html', {
     scope: $scope,
@@ -772,9 +802,13 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
   var getlist = function()
   {
     TaskInfo.GetTasklist(data).then(function(s){
-      console.log(s);
+      // console.log(s);
       $scope.$broadcast('scroll.refreshComplete');
       $scope.taskdetaillist = extraInfo.TransformInstruction(TaskInfo.insertstate(s));
+      console.log($scope.taskdetaillist);
+      $scope.detaillist=angular.fromJson(window.localStorage['taskchangedetaillist']);
+      $scope.taskdetaillist=extraInfo.InsertChangeMarks2tasklist($scope.taskdetaillist,$scope.detaillist);
+      console.log($scope.taskdetaillist);
       var i=0;
       if(s.length)getdetail(i);
       extraInfo.refreshstatus('刷新成功');
@@ -819,6 +853,19 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
       function(res) {
         //
     });
+  }
+  $scope.openaddalertmodal = function(a)
+  {
+    var content = {
+      title:'任务提醒：'+a.Name,
+      detail:'记得完成相应任务!',
+      time:new Date(),
+      hour:(new Date()).getHours(),
+      minute:(new Date()).getMinutes(),
+      index:0,
+      ID:parseInt(Math.random()*1000+1)
+    };
+    $scope.openModal(content);
   }
 }])
 
@@ -1062,6 +1109,7 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
         $cordovaBluetoothSerial.read().then(
           function(data){
             (data==null)?btstart[i]=0x00:btstart[i]=data.charCodeAt(0);
+            console.log(data);
           },
           function(){}
         );
@@ -1070,6 +1118,7 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
         $cordovaBluetoothSerial.read().then(
           function(data){
             (data==null)?BPdata[i]=0x00:BPdata[i]=data.charCodeAt(0);
+            console.log(data);
           },
           function(){}
         );
@@ -1155,6 +1204,7 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
         escape(BPdata[16])!=0?highbp.Value=escape(BPdata[16]):highbp='';
         escape(BPdata[17])!=0?lowbp.Value=escape(BPdata[17]):lowbp='';
         escape(BPdata[19])!=0?jn.Value=escape(BPdata[19]):jn='';
+        if(highbp.Value>=200)highbp.Value=0;
         validatechart(highbp.Value,lowbp.Value,jn.Value);
       }, 500);
     }
@@ -1539,9 +1589,9 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
   }]
   VitalInfo.GetLatestPatientVitalSigns(get[0]).then(function(s){
     console.log(s);
-    $scope.BMI.weight = parseInt(s.result);
+    $scope.BMI.weight = parseInt(s.Value);
     VitalInfo.GetLatestPatientVitalSigns(get[1]).then(function(s){
-      $scope.BMI.height = parseInt(s.result);
+      $scope.BMI.height = parseInt(s.Value);
       setTimeout(function() {mathbmi();setchartband();setchartValue();}, 1000);
       console.log(s);
     });
