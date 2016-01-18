@@ -191,7 +191,8 @@ angular.module('zjubme.services', ['ionic','ngResource'])
               Target: {method:'GET', params:{route: 'Target'},timeout: 10000},
               PlanInfoChartDtl: {method:'GET', params:{route: 'PlanInfoChartDtl'},timeout: 10000, isArray:true},
               GetExecutingPlan: {method:'GET', isArray:true ,params:{route: 'Plan'},timeout: 10000},
-              GetComplianceListInC:{method:'GET', isArray:true ,params:{route: 'GetComplianceListInC'},timeout: 10000}
+              GetComplianceListInC:{method:'GET', isArray:true ,params:{route: 'GetComplianceListInC'},timeout: 10000},
+              getDTaskByPlanNo: {method:'GET',isArray:true, params:{route:'GetDTaskByPlanNo'},timeout: 10000}
         });
     };
 
@@ -788,6 +789,123 @@ self.GetHealthCoaches = function (top, skip, filter) {
       }else {
         window.localStorage['refreshstatus'] = angular.toJson(status);
       }
+    },
+    TransformChangeMarks:function(data){
+      var marklength = data.length;
+      var statistics = {};
+      var classification=[];
+      classification[0] =new Array();//新增
+      classification[1] =new Array();//删除
+      classification[2] =new Array();//修改
+      for(var i=0;i<marklength;i++)
+      {
+        if(data[i].Code!=null)
+        {
+          if(data[i].Code.charAt(5)!='0')//排除诸如 TA0000 TB0000这类外层数据
+          {
+            if(statistics[data[i].Code]!=null)//判断该类型数据是否已经在结果中出现
+            {//出现两次的数据进行排序
+              if(statistics[data[i].Code][0].Edition<data[i].Edition)//以Edition排序，Edition大的为修改后的数据
+              {
+                statistics[data[i].Code][1]=statistics[data[i].Code][0];//修改后的数据放在前边
+                statistics[data[i].Code][0]=data[i];
+              }else
+              {
+                statistics[data[i].Code][1]=data[i];//修改前的数据放在后边
+              }
+            }else
+            {
+              statistics[data[i].Code]=new Array();//单词出现的数据
+              statistics[data[i].Code][0]=data[i];
+            }
+          }
+        }
+      }
+      // console.log(statistics);
+      angular.forEach(statistics,function(value,key){
+        if(value.length==1)//新增或删除的项目
+        {
+          if(value[0].Edition==1)
+          {
+            classification[1].push(value[0]);//删除
+          }else
+          {
+            classification[0].push(value[0]);//新增
+          }
+        }else if(value.length==2)//修改的项目
+        {
+          classification[2].push(value[0]);
+        }
+      });
+      // console.log(classification);
+      return classification;
+    },
+    InsertChangeMarks2tasklist:function(arr,markstatistics)//根据获得的任务变更情况，在相应的任务中添加标志位，用来在显示时进行提示
+    {
+      var ms = markstatistics[0];
+      for(var i=0;i<markstatistics[2].length;i++)
+      {
+        ms.push(markstatistics[2][i]);
+      }
+      // console.log(ms);
+      if(arr[0].Code.charAt(5)=="0")
+      {
+        var Typestatistics = {};//第一层任务列表
+        for(var i=0;i<ms.length;i++)
+        {
+          if(Typestatistics[ms[i].Type]==null)
+          {
+            Typestatistics[ms[i].Type]='1';
+          }
+        }
+        // console.log(Typestatistics);
+        for (var i=0;i<arr.length;i++)
+        {
+          if(Typestatistics[arr[i].Type]=='1')
+          {
+            // console.log(Typestatistics[arr[i].Type]);
+            arr[i].markstatistics = '1';
+          }
+        }
+      }else{
+        var Typestatistics = {};//第二层任务列表
+        for(var i=0;i<ms.length;i++)
+        {
+          if(Typestatistics[ms[i].Code]==null)
+          {
+            Typestatistics[ms[i].Code]='1';
+          }
+        }
+        // console.log(Typestatistics);
+        for (var i=0;i<arr.length;i++)
+        {
+          if(Typestatistics[arr[i].Code]=='1')
+          {
+            // console.log(Typestatistics[arr[i].Code]);
+            arr[i].markstatistics = '1';
+          }
+        }
+      }
+      return arr;
+    },
+    TransformCode2Name:function(code)
+    {
+      var codelist = {
+        TA0000:'体重管理',
+        TB0000:'合理饮食',
+        TC0000:'锻炼',
+        TD0000:'健康教育',
+        TE0000:'药物治疗',
+        TF0000:'体征测量',
+        TG0000:'风险评估'
+      }
+      if(codelist[code]!=null)
+      {
+        return codelist[code];
+      }else
+      {
+        return '详细';
+      }
     }
   }
 })
@@ -797,9 +915,12 @@ self.GetHealthCoaches = function (top, skip, filter) {
     BPConclusion:function(h,l){
       if(parseInt(h)<130&&parseInt(l)<85)
       {
-        return '您的血压属于正常\n范围，请继续保持';
+        if(parseInt(h)==0)
+          return '设备异常，请重新测量';
+        else
+          return '您的血压属于正常\n范围，请继续保持';
       }else {
-        return '您的血压偏高，请注意降压';
+        return '您的血压不正常，请注意控制！';
       }
     },
     FindCommand: function() {
@@ -990,6 +1111,15 @@ self.GetHealthCoaches = function (top, skip, filter) {
     console.log(arr.Status);
     var deferred = $q.defer();
       Data.TaskInfo.Done(data,function(s){
+        deferred.resolve(s);
+      },function(e){
+        deferred.reject(e);
+    });
+    return deferred.promise;
+  }
+  self.GetDTaskByPlanNo = function(planno){
+    var deferred = $q.defer();
+      Data.PlanInfo.getDTaskByPlanNo({PlanNo:planno},function(s){
         deferred.resolve(s);
       },function(e){
         deferred.reject(e);

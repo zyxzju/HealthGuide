@@ -1,4 +1,4 @@
-<ion-view view-title='详细'>
+<ion-view view-title={{pagetitle}}>
     <ion-content scroll="true">
         <ion-refresher
             pulling-text="下拉刷新。。。"
@@ -17,6 +17,7 @@
                 <!-- <a class="button button-full button-small button-clear icon-right button-assertive" style="text-align:left;margin-bottom:0%"> -->
                     <h2 class="taskname">{{task.Name}}<span ng-if=(task.Code=="TF0001")>、脉搏</span></h2>
                     <i class="doneicon icon ion-heart" style="font-size:17px;" ng-if=(task.Status==1)>已完成</i>
+                    <!-- <i class="changeicon icon ion-record" style="font-size:17px;" ng-if=(task.markstatistics==1)></i> -->
                 <!-- </a> -->
                 <!-- <a class="button button-small button-clear icon-right button-assertive" style="text-align:left;text-decoration:none;" ng-if=(task.ParentCode!="TA0000")>  --><!-- ng-click="showmore('{{task.Instruction}}')" -->
                 <h2 style="white-space:pre-wrap;">{{task.Instruction}}</h2>
@@ -26,7 +27,7 @@
                 <!-- </a> -->
                 <p class="swipeleft">左划惊喜</p>
                 <ion-option-button class="button-assertive" ng-click="done({{task.index}})">完成</ion-option-button>
-                <ion-option-button class="button-positive" ng-click="openModal()">添加提醒</ion-option-button>
+                <ion-option-button class="button-positive" ng-click="openaddalertmodal({{task}})">添加提醒</ion-option-button>
             </ion-item>
         </ion-list>
     </ion-content>
@@ -45,6 +46,12 @@
         left: 75%;
         padding-bottom: 70px;
         color:red;
+    }
+    .changeicon{
+        position: absolute;
+        left: -6px;
+        padding-bottom: 80px;
+        color:blue;
     }
 </style>
 <script id="helist.html" type="text/ng-template">

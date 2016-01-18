@@ -1,0 +1,54 @@
+<!-- /////添加提醒的模板页面////// -->
+<ion-modal-view>
+	<ion-header-bar align-title="center" class="bar-calm">
+		<button class="button button-clear button-icon ion-chevron-left" ng-click="closetaskchangedetail()"></button>
+		<h1 class="title">任务变更详情</h1>
+	</ion-header-bar>
+	<ion-content scroll="true">
+		<div class="list card">
+			<div class="item item-balanced">
+				<h2>修改项目</h2>
+			</div>
+			<div class="item item-body">
+				<ul class="list">
+				    <li class="item" ng-repeat="tt in detaillist[2]">
+				      {{tt.Instruction}}
+				    </li>
+				    <li class="item" ng-if=(detaillist[2].length==0)>
+				      无
+				    </li>
+				</ul>
+			</div>
+		</div>
+		<div class="list card">
+			<div class="item item-positive">
+				<h2>新增项目</h2>
+			</div>
+			<div class="item item-body">
+				<ul class="list">
+				    <li class="item" ng-repeat="tt in detaillist[0]">
+				      {{tt.TaskName}}
+				    </li>
+				    <li class="item" ng-if=(detaillist[0].length==0)>
+				      无
+				    </li>
+				</ul>
+			</div>
+		</div>
+		<div class="list card">
+			<div class="item item-assertive">
+				<h2>删除项目</h2>
+			</div>
+			<div class="item item-body">
+				<ul class="list">
+				    <li class="item" ng-repeat="tt in detaillist[1]">
+				      {{tt.TaskName}}
+				    </li>
+				    <li class="item" ng-if=(detaillist[1].length==0)>
+				      无
+				    </li>
+				</ul>
+			</div>
+		</div>
+	</ion-content>
+</ion-modal-view>
