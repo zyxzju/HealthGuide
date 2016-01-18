@@ -1288,14 +1288,14 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
    $scope.status="请输入";
    $scope.Temp={Temperature:"",result:""};
    $http.get('data/Teresult.json').success(function(data){
-        result = data;
+        $scope.result = data;
         console.log(result);
       });
   $scope.check = function(c)
   {
     chart.dataProvider[0].bullet=$scope.Temp.Temperature;
     chart.validateData();
-    fever();
+    $scope.fever();
     if(!c)$scope.twcheck='';
     else $scope.twcheck='required';
   }
@@ -1406,7 +1406,7 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
            $scope.showConfirm = function(c) {
              if(c)
              {
-             var confirmPopup = $ionicPopup.confirm({
+               $scope.confirmPopup = $ionicPopup.confirm({
                title: '确认提交?',
                template: '您测的体温是  '+$scope.Temp.Temperature+"℃",
                scope: $scope,
@@ -1414,20 +1414,22 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
                   {text: '提交',
                  　onTap: function(e) {
     
-                   var save = [{
+                   $scope.save = [{
                       "UserId": UserId,
                       "RecordDate": extraInfo.DateTimeNow().fulldate,
                       "RecordTime": extraInfo.DateTimeNow().fulltime,
                       "ItemType": "Temperature",
                       "ItemCode": 'Temperature_1',
-                      "Value": ""+$scope.Temp.Temperature+"",
+                      "Value": "" +$scope.Temp.Temperature+ "",
                       "Unit": "℃",
                       "revUserId": UserId,
                       "TerminalName": "sample string 9",
                       "TerminalIP": "sample string 10",
                       "DeviceType": 11
                     }]
-                  VitalInfo.PostPatientVitalSigns(save[0]).then(function(data){
+                    console.log(UserId);
+                  VitalInfo.PostPatientVitalSigns($scope.save[0]).then(function(data){
+                    $scope.rdata='数据插入成功';
                     console.log(data);
                     $ionicLoading.show({
                         template: '保存成功',
@@ -1449,35 +1451,35 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
            {
 
             $scope.twcheck = 'required';
-            $scope.label="有误";
+            $scope.label="必填";
            }
          };
  //根据体温值，给出相应的提示信息
-  var fever = function()
+  $scope.fever = function()
   {   
       if($scope.Temp.Temperature>=35 && $scope.Temp.Temperature<=36.2)
         {
-          $scope.Temp.result = result.result4;
+          $scope.Temp.result = $scope.result.result4;
         }
       else if($scope.Temp.Temperature>36.2 && $scope.Temp.Temperature<=37.2)
         {
-          $scope.Temp.result = result.result5;
+          $scope.Temp.result = $scope.result.result5;
         }
       else if($scope.Temp.Temperature>37.2 && $scope.Temp.Temperature<38.2)
         {
-          $scope.Temp.result = result.result1;
+          $scope.Temp.result = $scope.result.result1;
         }
       else if($scope.Temp.Temperature>=38.2 && $scope.Temp.Temperature<39.2)
         {
-          $scope.Temp.result =  result.result2;
+          $scope.Temp.result =  $scope.result.result2;
         }
       else if( $scope.Temp.Temperature<=42 && $scope.Temp.Temperature>=39.2)
         {
-          $scope.Temp.result = result.result3;
+          $scope.Temp.result = $scope.result.result3;
         } 
       else 
       {
-        $scope.Temp.result=result.result6;
+        $scope.Temp.result=$scope.result.result6;
       }
   };
 
@@ -2280,7 +2282,7 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
     function($scope, $http, $ionicSideMenuDelegate,$timeout, $state, $window, $ionicPopover, PlanInfo, $ionicLoading, Storage) {
 
       //固定变量guide 也可读自json文件
-      var  UserId= Storage.get('UID');
+       var UserId= Storage.get('UID');
        var SBPGuide='';
        var DBPGuide='';
        var PulseGuide='';
@@ -2768,7 +2770,6 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
      $scope.show_button = true;
      $scope.show_recordList = false;
      var UserId=Storage.get("UID");
-     var setstate;
      var myDate = new Date();
      var dd=myDate.getDate();
      if(dd<=9)dd="0"+dd;
@@ -2792,10 +2793,10 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
          // 设置日期
         // 日历
         $scope.setStart = function(){
-          setstate=0;
+          $scope.setstate=0;
         } 
         $scope.setEnd = function(){
-          setstate=1;
+          $scope.setstate=1;
         } 
         var datePickerCallback = function (val) {
           if (typeof(val) === 'undefined') {
@@ -2811,12 +2812,12 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
             yyyy=val.getFullYear();
             var date=yyyy.toString()+'-'+mm.toString()+'-'+dd.toString();
             var dateuser=parseInt(yyyy.toString()+mm.toString()+dd.toString());
-           if(setstate==0)
+           if($scope.setstate==0)
            {
             $scope.StartDate=date;
              Storage.set("StartDate",dateuser )
              StartDate =Storage.get("StartDate")
-           }else if(setstate==1)
+           }else if($scope.setstate==1)
            {
               Storage.set("EndDate",dateuser )
               EndDate =Storage.get("EndDate")
@@ -2867,16 +2868,18 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
       $scope.loadMore = function(){
           $scope.show_button = true;
           $scope.show_recordList = false;
+          
+          $scope.status="加载更多";
           VitalSigns($scope.Signs_all.Skip);
           $scope.Signs_all.Skip = $scope.Signs_all.Skip + $scope.Signs_all.UnitCount;
-          $scope.status="加载更多";
       }
-       function VitalSigns(skip)
+        var VitalSigns=function(skip)
        {
+        console.log(skip);
         console.log($scope.Signs_all.list.length);
          var promise = VitalInfo.VitalSigns(UserId,StartDate,EndDate,$scope.Signs_all.UnitCount,skip); 
          promise.then(function(data)
-        { 
+        {   
             if(data.length > 0)
             {
                 var NewData=data;//data.reverse(); //倒序
@@ -2911,7 +2914,7 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
          $scope.status="加载更多";  //这句话可删除
          $scope.others="已加载完毕，没有更多数据了"; 
           getlist();
-         $scope.Signs_all.Skip = $scope.Signs_all.UnitCount;//跳过的条数
+          $scope.Signs_all.Skip = $scope.Signs_all.UnitCount;//跳过的条数
         }
          var getlist = function()
         { 
@@ -2923,7 +2926,7 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
 
 // --------我的专员-苟玲----------------
 //我的专员消息列表
-.controller('contactListCtrl',function($scope, $http, $state, $stateParams, Users, Storage,CONFIG, MessageInfo){
+.controller('contactListCtrl',function($scope, $http, $state, $stateParams, Users, Storage,CONFIG, MessageInfo, $timeout){
     //console.log($stateParams.tt);
     $scope.chatImgUrl=CONFIG.ImageAddressIP + CONFIG.ImageAddressFile+'/';
     $scope.contactList = {};
@@ -3444,13 +3447,14 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
         $ionicHistory.goBack();
       } 
 
-     $scope.$watch('$viewContentLoaded', function() {GetHealthCoaches(10, 0, $scope.filterCondition); });      //num、skip、filter
+     $scope.$watch('$viewContentLoaded', function() {$scope.GetHealthCoaches(10, 0, $scope.filterCondition); });      //num、skip、filter
 
      //获取所有专员列表
-     GetHealthCoaches = function(num, skip, filter)  
+     $scope.GetHealthCoaches = function(num, skip, filter)  
      {
          var promise = Users.GetHealthCoaches(num, skip, filter); 
          promise.then(function(data){ 
+            $scope.list="仅供测试用途";
             for(var i=0;i<data.length;i++){
                if((data[i].imageURL=="")||(data[i].imageURL==null)){
                 data[i].imageURL="img/DefaultAvatar.jpg";
@@ -3494,13 +3498,13 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
         $scope.healthCoachList = new Array();
         $scope.alertText='正在努力加载中...';
         $scope.moreHealthCoach=false;
-        GetHealthCoaches(10, 0, $scope.filterCondition); 
+        $scope.GetHealthCoaches(10, 0, $scope.filterCondition); 
      };
 
     //上拉加载更多评论
      $scope.loadMoreHealthCoach = function () { 
         //console.log(333);
-        GetHealthCoaches(5, $scope.healthCoachList.length, $scope.filterCondition);
+        $scope.GetHealthCoaches(5, $scope.healthCoachList.length, $scope.filterCondition);
       }
 
        //排序
@@ -3551,7 +3555,7 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
            } 
            $scope.healthCoachList = new Array();
            $scope.alertText='正在努力加载中...';
-           GetHealthCoaches(10, 0, $scope.filterCondition);
+           $scope.GetHealthCoaches(10, 0, $scope.filterCondition);
            $scope.popover1.hide();
         }
   }])
@@ -3620,7 +3624,8 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
       $scope.getReserveAuthority=function (item)
       {
          $scope.reserve.selectedModoule = '';
-         var promise =  Users.BasicDtlValue(Storage.get("UID"), item.value, 'Doctor', 1); //获取患者评价专员的权限
+         var UserId=Storage.get("UID");
+         var promise =  Users.BasicDtlValue(UserId, item.value, 'Doctor', 1); //获取患者评价专员的权限
          promise.then(function(data)
          { 
             if((data.result==null) ||(data.result=='')) {  //没有专员负责的模块
@@ -3628,6 +3633,7 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
             }
             else if(data.result==Storage.get("HealthCoachID")){ //本专员负责该模块
               $scope.reserve.selectedModoule = item.value;
+
             }
             else{  //本专员不负责该模块（已有他人负责）
               $scope.reserve.selectedModoule = '';
@@ -3666,7 +3672,7 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
           });
         }
         else{
-          var sendData={
+            sendData={
             "DoctorId": Storage.get("HealthCoachID"),
             "PatientId": Storage.get("UID"),
             "Module": $scope.reserve.selectedModoule,
@@ -3724,6 +3730,7 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
      //解除关系-弹框
      $scope.showRemovePop = function() {
         //restful获取可解除的模块
+       
         var promise =  Users.HModulesByID(Storage.get("UID"), Storage.get("HealthCoachID")); 
          promise.then(function(data)
          { 
@@ -3862,7 +3869,7 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
         $ionicScrollDelegate.scrollTop();
       };
 
-    //滚动时获取滚动长度，超出某长度则显示“回到顶部按钮”
+    //滚动时获取滚动长度， 超出某长度则显示“回到顶部按钮”
      $scope.getScrollPosition = function() {
         $scope.moveData = $ionicScrollDelegate.getScrollPosition().top;
        
@@ -3899,6 +3906,7 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
            var promise =  Users.GetCommentList(DoctorId ,CategoryCode, num, skip); 
            promise.then(function(data)
           { 
+            $scope.a=data;
             for(var i=0;i<data.length;i++){
               if((data[i].imageURL=="")||(data[i].imageURL==null)){
                     data[i].imageURL="img/DefaultAvatar.jpg";
@@ -3975,7 +3983,9 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
          $scope.comment.selectedModoule = '';
          var promise =  Users.BasicDtlValue(Storage.get("UID"), item.value, 'Doctor', 1); //获取患者评价专员的权限
          promise.then(function(data)
-         { 
+         {
+          $scope.b="2";
+          $scope.c=data;
           if(data.result==Storage.get("HealthCoachID")){
            $scope.comment.selectedModoule = item.value;
          }
@@ -4047,6 +4057,7 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
       //上传评论-restful调用
      var SetComment= function()
      {
+
         var sendData={
           "DoctorId": Storage.get("HealthCoachID"),
           "CategoryCode": $scope.comment.selectedModoule,
@@ -4824,10 +4835,7 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
         $ionicHistory.goBack();
        }
       // 收缩框
-      var show1 = false;
-      $scope.toggle1 = function() {
-        show1 = !show1;
-      };
+      var show1 = true;
       $scope.isShown1 = function() {
         return show1;
       };
@@ -4857,7 +4865,7 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
       Data.Dict.GetInsuranceType({}, 
             function (success) {
               $scope.InsuranceTypes = success;  
-              // console.log($scope.InsuranceTypes); 
+              // console.log(success[1].Name); 
       }); 
       // 获取血型类型
       $scope.BloodTypes = {}; // 初始化
@@ -4866,7 +4874,7 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
               $scope.BloodTypes = success;  
               // console.log($scope.BloodTypes); 
       }); 
-      // 获取医保类型
+      // 获取性别类型
       $scope.Genders = {}; // 初始化
       Data.Dict.GetTypeList({Category:"SexType"}, 
             function (success) {
@@ -4965,7 +4973,7 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
       //////////////////////////////////////////////////////////////////////////
       // 修改信息后的保存
       $scope.SaveInfo = function(a,b,c){
-        console.log(a);
+        // console.log(a);
         if (a == true){
           $ionicLoading.show({
            template: '保存失败,请输入正确的身份证号',
