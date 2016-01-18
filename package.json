@@ -29,10 +29,24 @@
     "C:\\Users\\ZJU\\Desktop\\little\\HealthCoach\\plugins\\cordova-plugin-file",
     "C:\\Users\\ZJU\\Desktop\\little\\HealthCoach\\plugins\\cordova-plugin-file-transfer",
     "C:\\Users\\ZJU\\Desktop\\jpush-phonegap-plugin-master",
-    "C:\\Users\\ZJU\\Desktop\\jpush-phonegap-plugin-master\\jpush-phonegap-plugin-master"
+    "C:\\Users\\ZJU\\Desktop\\jpush-phonegap-plugin-master\\jpush-phonegap-plugin-master",
+    "C:\\Users\\ZJU\\Desktop\\guide\\HealthGuide\\plugins\\cn.jpush.phonegap.JPushPlugin",
+    "C:\\Users\\ZJU\\Desktop\\guide\\HealthGuide\\plugins\\com.ionic.keyboard",
+    "C:\\Users\\ZJU\\Desktop\\guide\\HealthGuide\\plugins\\cordova-plugin-bluetooth-serial",
+    "C:\\Users\\ZJU\\Desktop\\guide\\HealthGuide\\plugins\\cordova-plugin-camera",
+    "C:\\Users\\ZJU\\Desktop\\guide\\HealthGuide\\plugins\\cordova-plugin-console",
+    "C:\\Users\\ZJU\\Desktop\\guide\\HealthGuide\\plugins\\cordova-plugin-datepicker",
+    "C:\\Users\\ZJU\\Desktop\\guide\\HealthGuide\\plugins\\cordova-plugin-device",
+    "C:\\Users\\ZJU\\Desktop\\guide\\HealthGuide\\plugins\\cordova-plugin-file",
+    "C:\\Users\\ZJU\\Desktop\\guide\\HealthGuide\\plugins\\cordova-plugin-file-transfer",
+    "C:\\Users\\ZJU\\Desktop\\guide\\HealthGuide\\plugins\\cordova-plugin-splashscreen",
+    "C:\\Users\\ZJU\\Desktop\\guide\\HealthGuide\\plugins\\cordova-plugin-whitelist",
+    "C:\\Users\\ZJU\\Desktop\\guide\\HealthGuide\\plugins\\de.appplant.cordova.plugin.local-notification",
+    "C:\\Users\\ZJU\\Desktop\\guide\\HealthGuide\\plugins\\org.apache.cordova.inappbrowser"
   ],
   "cordovaPlatforms": [
-    "android"
+    "android",
+    "ios"
   ],
   "scripts": {
     "test": "karma start test/karma-unit-all.config.js",
