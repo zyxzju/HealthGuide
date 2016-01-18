@@ -45,7 +45,8 @@ module.exports = function(config) {
 
 
         'test/unit-tests/mzb.js',
-        'test/unit-tests/zyx.js'
+        'test/unit-tests/zyx.js',
+        'test/unit-tests/zyt.js',
     ],
 
 
