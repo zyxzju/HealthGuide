@@ -4815,7 +4815,7 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
       Data.Dict.GetInsuranceType({}, 
             function (success) {
               $scope.InsuranceTypes = success;  
-              // console.log($scope.InsuranceTypes); 
+              // console.log(success[1].Name); 
       }); 
       // 获取血型类型
       $scope.BloodTypes = {}; // 初始化

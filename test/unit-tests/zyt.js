@@ -1,12 +1,16 @@
 var baseUrl='http://121.43.107.106:9000/Api/v1/';
+// window.localStorage['UID'] = 'U201512150001';
 describe('\nTests for "controllers"', function(){
 
 	var scope, $httpBackend, data;
 	beforeEach(angular.mock.module('zjubme'));
 
 	describe('\n"personalInfocontroller"', function(){
-		var data_InsuranceType, data_BloodType, data_SexType;
+		var data_InsuranceType, data_BloodType, data_SexType, UserId;
+		// window.localStorage['UID'] = 'U201512150001';
 		beforeEach(angular.mock.inject(function($rootScope, $controller, _$httpBackend_, Data){
+			window.localStorage['UID'] = 'U201512150001';//这东西存不对地方还不行！！
+			UserId = window.localStorage['UID'];
 			data = Data;
 			$httpBackend = _$httpBackend_;
 			scope = $rootScope.$new();
@@ -17,9 +21,9 @@ describe('\nTests for "controllers"', function(){
 			$httpBackend.whenGET(baseUrl + 'Dict/GetInsuranceType').respond(data_InsuranceType);
 			$httpBackend.whenGET(baseUrl + 'Dict/Type%2FCategory?Category=AboBloodType').respond(data_BloodType);
 			$httpBackend.whenGET(baseUrl + 'Dict/Type%2FCategory?Category=SexType').respond(data_SexType);
-			$httpBackend.whenGET(baseUrl + 'Users/null%2FBasicInfo')
+			$httpBackend.whenGET(baseUrl + 'Users/'+UserId+'%2FBasicInfo')
 				.respond({"UserId":"U201512150001","UserName":"张桠童","Age":"24","Gender":"2","BloodType":"1","InsuranceType":"K","Birthday":"19911222","GenderText":"女性","BloodTypeText":"A型","InsuranceTypeText":"合作医疗","Module":"","DoctorId":"","IDNo":"sample string 5"});
-			$httpBackend.whenGET(baseUrl + 'Users/null%2FBasicDtlInfo')
+			$httpBackend.whenGET(baseUrl + 'Users/'+UserId+'%2FBasicDtlInfo')
 				.respond({"UserId":"U201512150001","PhoneNumber":"13171763855","HomeAddress":"浙江大学","Occupation":"学生","Nationality":"中国","EmergencyContact":"张某某","EmergencyContactPhoneNumber":"18903184288","PhotoAddress":"","Module":"","IDNo":"131125199112220620","Height":"165","Weight":"56"});
 			$httpBackend.whenPOST(baseUrl + 'Users/BasicInfo')
 				.respond({"result":"数据插入成功"});
@@ -124,17 +128,18 @@ describe('\nTests for "services"', function(){
 	describe('\n"Users" in the "Data"', function(){
 		var scope, data, $httpBackend;
 		beforeEach(angular.mock.inject(function(Data, $rootScope, _$httpBackend_){
+			UserId = window.localStorage['UID'];
 			scope = $rootScope.$new();
 			$httpBackend = _$httpBackend_;
 			data = Data;
-			$httpBackend.whenGET(baseUrl + 'Users/U201512150001%2FBasicInfo')
+			$httpBackend.whenGET(baseUrl + 'Users/'+UserId+'%2FBasicInfo')
 				.respond({"UserId":"U201512150001","UserName":"张桠童","Age":"24","Gender":"2","BloodType":"1","InsuranceType":"K","Birthday":"19911222","GenderText":"女性","BloodTypeText":"A型","InsuranceTypeText":"合作医疗","Module":"","DoctorId":"","IDNo":"sample string 5"});
-			$httpBackend.whenGET(baseUrl + 'Users/U201512150001%2FBasicDtlInfo')
+			$httpBackend.whenGET(baseUrl + 'Users/'+UserId+'%2FBasicDtlInfo')
 				.respond({"UserId":"U201512150001","PhoneNumber":"13171763855","HomeAddress":"浙江大学","Occupation":"学生","Nationality":"中国","EmergencyContact":"张某某","EmergencyContactPhoneNumber":"18903184288","PhotoAddress":"","Module":"","IDNo":"131125199112220620","Height":"165","Weight":"56"});
 			$httpBackend.whenGET(/partials\/.*/).respond(200, '');
 		}));
 		it('GetPatBasicInfo() method 读入病人基本信息', function(){
-			data.Users.GetPatBasicInfo({route:'U201512150001/BasicInfo'}, function(receivedata){
+			data.Users.GetPatBasicInfo({route:UserId+'/BasicInfo'}, function(receivedata){
 				PatBasicInfos = receivedata;
 			});
 			$httpBackend.flush();
@@ -143,7 +148,7 @@ describe('\nTests for "services"', function(){
 			expect(PatBasicInfos.UserName).toEqual("张桠童");		
 		});
 		it('GetPatientDetailInfo() method 读入病人详细信息', function(){
-			data.Users.GetPatientDetailInfo({route:'U201512150001/BasicDtlInfo'}, function(receivedata){
+			data.Users.GetPatientDetailInfo({route:UserId+'/BasicDtlInfo'}, function(receivedata){
 				PatientDetailInfos = receivedata;
 			});
 			$httpBackend.flush();
