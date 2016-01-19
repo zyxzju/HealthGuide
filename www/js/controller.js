@@ -866,6 +866,9 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
       index:0,
       ID:parseInt(Math.random()*1000+1)
     };
+    // console.log(a);
+    if(a.Instruction!='')
+      content.detail=a.Instruction
     $scope.openModal(content);
   }
 }])
