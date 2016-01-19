@@ -694,7 +694,8 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
       $scope.$broadcast('scroll.refreshComplete');
       $scope.tasklist = s;
       showrefreshresult('刷新成功');
-      TaskInfo.GetDTaskByPlanNo('PLN201601050001').then(function(s){
+      // console.log(data.PlanNo);
+      TaskInfo.GetDTaskByPlanNo(data.PlanNo).then(function(s){
         // console.log(s);
         $scope.detaillist = extraInfo.TransformChangeMarks(s);
         window.localStorage['taskchangedetaillist']=angular.toJson($scope.detaillist);
