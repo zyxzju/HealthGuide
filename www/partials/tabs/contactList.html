@@ -12,9 +12,9 @@
     <ion-refresher pulling-text="下拉刷新。。。" spinner='ripple' refreshing-text="努力加载中" on-refresh="refresh()">
     </ion-refresher>
     <ion-list>
-      <ion-item class="item-remove-animate item-avatar item-icon-right" type="item-text-wrap" href="#/tab/chats/SystemNotification">
+      <ion-item class="item-avatar item-icon-right" type="item-text-wrap" href="#/tab/chats/System">
         <img ng-src="img/systemNotification.jpg">
-        <h2><span><b style="float:left;font-size:18px;color:#6495ED;">系统通知</b></span><div ng-if='latestNotification[0].unreadShow' style="float:left;margin-left:10px;width:20px; height:20px; background-color:#F00; border-radius:25px;">
+        <h2><span><b style="float:left;font-size:18px;color:#6495ED;">系统消息</b></span><div ng-if='latestNotification[0].unreadShow' style="float:left;margin-left:10px;width:20px; height:20px; background-color:#F00; border-radius:25px;">
          <span style="height:20px; line-height:20px; display:block; color:#FFF; text-align:center">{{latestNotification[0].unreadCount}}</span>
          </div><p style="float:right;font-size:10px;">{{latestNotification[0].latestTime}}</p></h2> 
         <p style="font-size:15px;">{{latestNotification[0].latestTitle}}</p>
@@ -22,17 +22,17 @@
         <i class="icon ion-chevron-right icon-accessory"></i>
       </ion-item>
       
-      <ion-item class="item-remove-animate item-avatar item-icon-right" type="item-text-wrap" href="#/tab/chats/Appointment" ng-click="">
+      <ion-item class="item-avatar item-icon-right" type="item-text-wrap" href="#/tab/chats/User" ng-click="">
         <img ng-src="img/appointmentAlert.jpg">
         <h2><span><b style="float:left;font-size:18px;color:#6495ED;">预约提醒</b></span><!-- <div ng-if='latestNotification[1].unreadShow' style="float:left;margin-left:10px;width:20px; height:20px; background-color:#F00; border-radius:25px;">
          <span style="height:20px; line-height:20px; display:block; color:#FFF; text-align:center">{{latestNotification[1].unreadCount}}</span>
          </div> --><p style="float:right;font-size:10px;">{{latestNotification[1].latestTime}}</p></h2> 
-        <p style="font-size:15px;">{{latestNotification[1].latestTitle}}<span ng-if='latestNotification[1].unreadShow' style="float:right;background-color:#F00;width:9%;text-align:center;color:white">1</span></p>
+        <p style="font-size:15px;">{{latestNotification[1].latestTitle}}<span ng-if='latestNotification[1].unreadShow' style="float:right;background-color:#F00;width:9%;text-align:center;color:white">{{latestNotification[1].unreadCount}}</span></p>
         <p style="color:#737272;font-size:15px;">{{latestNotification[1].latestContent}}</p> 
         <i class="icon ion-chevron-right icon-accessory"></i>
       </ion-item>
 
-       <ion-item class="item-remove-animate item-avatar item-icon-right" ng-repeat="item in contactList.list" type="item-text-wrap" href="#/tab/chats/{{item.HealthCoachID}}&{{item.Name}}" ng-click="transImageURL_doc(item.imageURL)">
+       <ion-item class="item-avatar item-icon-right" ng-repeat="item in contactList.list" type="item-text-wrap" href="#/tab/chats/{{item.HealthCoachID}}&{{item.Name}}" ng-click="transImageURL_doc(item.imageURL)">
         <img ng-src="{{item.imageURL}}">
         <h2><b style="font-size:18px;">{{item.Name}}</b> <p style="float:right;font-size:10px;">{{item.SendDateTime}}</p></h2> 
         <p style="font-size:15px;">{{item.module}}<span ng-if="item.Count=='0'?false:true" style="float:right;background-color:#F00;width:9%;text-align:center;color:white">{{item.Count}}</span></p>

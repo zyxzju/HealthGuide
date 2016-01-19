@@ -31,7 +31,7 @@
        <form name="myForm" style="width:100% ">
 	     <div class="list" style="margin-top:10px">
            <label class="item item-input" >
-             <span class="error" ng-show=twcheck=='required' style="color:red">*{{label}}</span>体温：
+             <span class="error" ng-show=twcheck=='required' style="color:red">*{{label}}</span>体温：&nbsp;
               <input class="myinput" type="number" placeholder="{{status}}"   name='twcl' required max='42' required min='35'  ng-model='Temp.Temperature' ng-change="check(myForm.twcl.$error.required)">
            </label>
          </div>

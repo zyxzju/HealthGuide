@@ -42,7 +42,8 @@
     "C:\\Users\\ZJU\\Desktop\\guide\\HealthGuide\\plugins\\cordova-plugin-splashscreen",
     "C:\\Users\\ZJU\\Desktop\\guide\\HealthGuide\\plugins\\cordova-plugin-whitelist",
     "C:\\Users\\ZJU\\Desktop\\guide\\HealthGuide\\plugins\\de.appplant.cordova.plugin.local-notification",
-    "C:\\Users\\ZJU\\Desktop\\guide\\HealthGuide\\plugins\\org.apache.cordova.inappbrowser"
+    "C:\\Users\\ZJU\\Desktop\\guide\\HealthGuide\\plugins\\org.apache.cordova.inappbrowser",
+    "C:\\Users\\ZJU\\Desktop\\cordova-plugin-x-toast"
   ],
   "cordovaPlatforms": [
     "android",

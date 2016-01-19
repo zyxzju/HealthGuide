@@ -19,55 +19,75 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
   $scope.signIn = function(logOn) {  
     $scope.logStatus='';
     if((logOn.username!="") && (logOn.password!="")){ 
+      var cont=0;
       var saveUID = function(){
         var UIDpromise=userservice.UID('PhoneNo',logOn.username);
         UIDpromise.then(function(data){
+          loading.loadingBarFinish($scope);
           if(data.result!=null){
+            Storage.set('USERNAME', logOn.username);
+            // Storage.set('PASSWORD', logOn.password);
+            Storage.set('isSignIN','YES');
+            $scope.logStatus="登录成功";
             Storage.set('UID', data.result);
+            $timeout(function(){$state.go('tab.tasklist');} , 500);
             //启动极光推送服务
             //window.plugins.jPushPlugin.init();
             //window.plugins.jPushPlugin.setDebugMode(true);
             window.plugins.jPushPlugin.setAlias(data.result);
           }
         },function(data){
+          if(cont++<5){
+            saveUID();
+          }else{
+            loading.loadingBarFinish($scope);
+            $scope.logStatus="网络错误"
+          }          
         });
       }
-                
-      var promise=userservice.userLogOn('PhoneNo' ,logOn.username,logOn.password,'Patient');
-      if(promise==7){
-        $scope.logStatus='手机号验证失败！';
-        return;
-      }
-      loading.loadingBarStart($scope);/////////////////
-      promise.then(function(data){
-        loading.loadingBarFinish($scope);
-        $scope.logStatus=data.result.substr(0,4);
-        if($scope.logStatus=="登陆成功"){
-          $ionicHistory.clearCache();
-          $ionicHistory.clearHistory();
+      
+      var UIDpromise_connection=userservice.UID('PhoneNo',logOn.username);
+      UIDpromise_connection.then(function(){
 
-          // loading.loadingBarFinish($scope);///////////////
-          Storage.set('TOKEN', data.result.substr(12));
-          Storage.set('USERNAME', logOn.username);
-          saveUID();
-          $timeout(function(){$state.go('tab.tasklist');} , 1000);
+        var promise=userservice.userLogOn('PhoneNo' ,logOn.username,logOn.password,'Patient');
+        if(promise==7){
+          $scope.logStatus='手机号验证失败！';
+          return;
         }
-      },function(data){
-        loading.loadingBarFinish($scope);///////////////////
-        if(data.data==null && data.status==0){
-          $scope.logStatus='连接超时！';
-          return;          
-        }  
-        if(data.data.result=='暂未激活'){
-          // loading.loadingBarFinish($scope);///////////////
-          //Storage.set('TOKEN', data.result.substr(12));
-          Storage.set('USERNAME', logOn.username);
-          saveUID();
-          $timeout(function(){$state.go('tab.tasklist');} , 1000);  
-          $scope.logStatus='登陆成功';  
-          return;  
-        }      
-        $scope.logStatus=data.data.result;
+        loading.loadingBarStart($scope);
+        promise.then(function(data){
+          if(data.result.substr(0,4)=="登陆成功"){
+            $scope.logStatus=data.result.substr(0,4);
+            $ionicHistory.clearCache();
+            $ionicHistory.clearHistory();
+
+            // loading.loadingBarFinish($scope);
+            Storage.set('TOKEN', data.result.substr(12));
+            // Storage.set('USERNAME', logOn.username);
+            saveUID();
+            // $timeout(function(){$state.go('tab.tasklist');} , 1000);
+          }
+        },function(data){
+          loading.loadingBarFinish($scope);
+          if(data.data==null && data.status==0){
+            $scope.logStatus='网络错误！';
+            return;          
+          }  
+          if(data.status==404){
+            $scope.logStatus='连接服务器失败！';
+            return;          
+          }        
+          if(data.data.result=='暂未激活'){
+            // loading.loadingBarFinish($scope);
+            //Storage.set('TOKEN', data.result.substr(12));
+            // Storage.set('USERNAME', logOn.username);
+            saveUID();
+            // $timeout(function(){$state.go('tab.tasklist');} , 1000);  
+            // $scope.logStatus='登陆成功';  
+            return;  
+          }      
+          $scope.logStatus=data.data.result;
+        });
       });
     }else{
       $scope.logStatus="请输入完整信息！";
@@ -484,11 +504,11 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
    function($scope, $ionicHistory, $timeout, $ionicModal, $ionicSideMenuDelegate, $http,NotificationService,$ionicListDelegate,PlanInfo,extraInfo, $ionicPopup,$state,Storage, Data) {
       
       //我的专员未读消息
-       $scope.unreadMessageSum='';
+       // $scope.unreadMessageSum='';
       
-       $scope.$on('transfer.unreadMessageSum', function(event, data) {  
-          $scope.unreadMessageSum = data;  
-        });  
+       // $scope.$on('transfer.unreadMessageSum', function(event, data) {  
+       //    $scope.unreadMessageSum = data;  
+       //  });  
 
       //获取一些普遍的基本信息，公用
       Storage.set('PatientName','暂无姓名');
@@ -2281,8 +2301,20 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
 .controller('graphcontroller', ['$scope', '$http','$ionicSideMenuDelegate','$timeout','$state','$window','$ionicPopover', 'PlanInfo','$ionicLoading', 'Storage',
     function($scope, $http, $ionicSideMenuDelegate,$timeout, $state, $window, $ionicPopover, PlanInfo, $ionicLoading, Storage) {
 
+      // --------------button修改 张桠童-----------------------//
+      $ionicPopover.fromTemplateUrl('popover-select-button.html', {
+        scope: $scope,
+      }).then(function(popover_others) {
+        $scope.popover_others = popover_others;
+      });
+
+      $scope.selectPop = function(){
+        $scope.popover_others.hide();
+      };
+      // --------------button修改 张桠童-----------------------//
+
       //固定变量guide 也可读自json文件
-       var UserId= Storage.get('UID');
+       var  UserId= Storage.get('UID');
        var SBPGuide='';
        var DBPGuide='';
        var PulseGuide='';
@@ -2760,8 +2792,99 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
       }
 
   }])
+//目标-依从率统计 张桠童
+.controller('compliancecontroller', ['$scope', 'Storage', 'PlanInfo', 
+  function($scope, Storage, PlanInfo){
+    var UserId= Storage.get('UID');
+    var PlanNo='';
+    $scope.StartDate =''; 
+    $scope.EndDate='';
+    $scope.Compliances = {};
 
-//目标-列表 赵艳霞
+    //获取是否有正在执行的计划，如果没有则不显示(函数不能用$scope来定义)
+    var init_view = function(){
+      $scope.showGraph=false;  //控制图或者“没有计划”的显示
+      $scope.graphText="正在加载中，请等待...";
+      //判断计划是否存在
+      PlanInfo.Plan(UserId, "NULL", "M1", "3").then(function(data){
+        if((data!=null) && (data!=''))
+        {
+          // console.log(1);
+          $scope.showGraph = true;
+          PlanNo = data[0].PlanNo;
+          $scope.StartDate = data[0].StartDate;
+          $scope.EndDate = data[0].EndDate;
+          //先决条件确定完毕后，读入依从率统计情况
+          PlanInfo.TaskCompliances(PlanNo).then(function(data){
+            console.log(2);
+            // $scope.Compliances = data;
+            // console.log(data); 
+            // console.log(data.length);
+            // console.log(data[0].Code.substring(2));
+            /////////////////处理筛选数据，计算百分比//////////////////////
+            var j = 0;
+            for (var i = 0; i < data.length; i++) {
+              if (data[i].Code.substring(2)!="0000") {
+                $scope.Compliances[j] = data[i];
+                var a = $scope.Compliances[j].DoDays;
+                var b = $scope.Compliances[j].AllDays;
+                // $scope.Compliances[j].percents = $scope.Compliances[j].DoDays/$scope.Compliances[j].AllDays*100 ;
+                $scope.Compliances[j].percents_cplt = Math.round(a/b*100*100)/100 ; //计算完成率
+                $scope.Compliances[j].percents_uncplt = Math.round((100 - $scope.Compliances[j].percents_cplt)*100)/100; //未完成率
+                console.log($scope.Compliances[j].percents_uncplt);
+                j++;
+              };   
+            };
+            console.log($scope.Compliances);
+            ////////////////////////////////////////////           
+                // // //画图开始
+                // console.log($scope.Compliances[0].UndoDays);
+                // var chart = AmCharts.makeChart( "chartdiv", {
+                //   "type": "pie",
+                //   "theme": "light",
+                //   "dataProvider": [ {
+                //     "title": "未完成天数",
+                //     "value": 5
+                //   }, {
+                //     "title": "完成天数",
+                //     "value": 0
+                //   } ],
+                //   "titleField": "title",
+                //   "valueField": "value",
+                //   "labelRadius": 5,
+                //   "labelText": "[[title]]: [[percents]]%",
+                //   "colors": ["#FF0000","#00FF00"],
+                //   "radius": "10%",
+                //   "innerRadius": "0%",
+                //   "legend":{
+                //     "position":"right",
+                //     "marginRight":20,
+                //     "markerSize":10,
+                //     "autoMargins":false
+                //   },
+                //   "export": {
+                //     "enabled": true
+                //   }
+                // } );
+                // //画图结束
+            ////////////////////////////////////////////           
+            
+          }, function(error){
+            //读取数据失败
+          });
+        }else{
+          $scope.showGraph=false;
+          $scope.graphText="没有正在执行的计划";
+        }
+      }, function(error){
+        //读取数据失败
+      });//判断完毕
+    };//初始化完毕
+    init_view();
+
+}])
+
+
 //目标-列表 赵艳霞
 .controller('recordListcontroller', ['$scope', '$cordovaDatePicker','$http','VitalInfo','$ionicLoading','Storage',
     function($scope, $cordovaDatePicker,$http, VitalInfo,$ionicLoading, Storage) {
@@ -2937,13 +3060,13 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
          $timeout(function(){$scope.GetHealthCoachListByPatient();}, 100);
 
         //获取系统通知和预约提醒  未读条数和最新一条内容
-        $scope.GetLatestNotification('SystemNotification', 0);
-        $scope.GetLatestNotification('Appointment', 1);
+        $scope.GetLatestNotification('System', 0);//SystemNotification
+        $scope.GetLatestNotification('User', 1);//Appointment
 
     });
 
-   $scope.latestNotification =[{NotificationType:'Appointment', unreadShow:false, unreadCount:'', latestTime:'', latestTitle:'', latestContent:''}, 
-                               {NotificationType:'SystemNotification',unreadShow:false, unreadCount:'', latestTime:'', latestTitle:'', latestContent:''}];
+   $scope.latestNotification =[{NotificationType:'System', unreadShow:false, unreadCount:'', latestTime:'', latestTitle:'', latestContent:''}, 
+                               {NotificationType:'User',unreadShow:false, unreadCount:'', latestTime:'', latestTitle:'', latestContent:''}];
    $scope.GetLatestNotification = function(NotificationType, i)
    {
        var promise = MessageInfo.GetDataByStatus(Storage.get("UID"), NotificationType, 0, 10, 0);  
@@ -2966,8 +3089,9 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
             $scope.latestNotification[i].latestTime=data[0].SendTime;
             $scope.latestNotification[i].latestTitle=data[0].Title;
             $scope.latestNotification[i].latestContent=data[0].Description;
-            if(data.length==10) $scope.latestNotification[i].unreadCount='10+';
-            else $scope.latestNotification[i].unreadCount=data.length;
+            console.log(data.length);
+            if(data.length==10) {$scope.latestNotification[i].unreadCount='10+';}
+            else {$scope.latestNotification[i].unreadCount=data.length}
           }
         });
     }
@@ -3038,7 +3162,7 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
     {
         var promise = MessageInfo.GetSMSCount(Storage.get("UID"),"NULL");  
         promise.then(function(data) { 
-            $scope.$emit('transfer.unreadMessageSum', data.result);                  
+            //$scope.$emit('transfer.unreadMessageSum', data.result);                  
         }, function(data) {  
         });  
     }
@@ -3099,7 +3223,7 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
 
     // 蜂鸣1次，震动2秒
     function playBeep() {
-        navigator.notification.beep(1); 
+        //navigator.notification.beep(1); 
         //navigator.notification.vibrate(2000);
     } 
 })
@@ -3329,7 +3453,7 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
 
     // 蜂鸣1次，震动2秒
     function playBeep() { 
-        navigator.notification.beep(1); 
+        //navigator.notification.beep(1); 
         //navigator.notification.vibrate(2000);
     } 
 })
@@ -3343,6 +3467,9 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
 
     $scope.$watch('$viewContentLoaded', function() {  
         $scope.GetNotificationList($stateParams.tt, 10, 0);
+        if($scope.NotificationList.length==0){
+          $scope.notificationSetting.alertText='暂时没有通知'
+        }
     });
 
     //推送消息点击查看详细，若未读则则置位为已读
@@ -3418,6 +3545,9 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
        //$scope.alertText='正在努力加载中...';
        $scope.notificationSetting.moreNotification=false;
        $scope.GetNotificationList($stateParams.tt, 10, 0);
+       if($scope.NotificationList.length==0){
+          $scope.notificationSetting.alertText='暂时没有通知'
+        }
      }
 
     //上啦加载更多
@@ -4826,6 +4956,288 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
  
 }])
 
+
+//LRZ 20151117 新的风险评估页面列表controller
+.controller('NewRiskCtrl',['$state','$scope','Patients','$state','$ionicSlideBoxDelegate','$ionicHistory','Storage','RiskService','$ionicLoading','$timeout',
+  function($state,$scope,Patients,$state,$ionicSlideBoxDelegate,$ionicHistory,Storage,RiskService,$ionicLoading,$timeout){
+  
+    $scope.setItemNum=function(num){
+      Storage.set("risk_num", num)
+    }
+
+    console.log("doing refreshing");
+    RiskService.initial();
+
+    $ionicLoading.show({
+      template: "载入中"
+    });
+
+    $timeout(function(){
+      $ionicLoading.hide();
+    },6000);
+
+
+      // $scope.chart = AmCharts.makeChart("chartdiv",$scope.data1);
+      // $scope.chart2 = AmCharts.makeChart("chartdiv2",$scope.data2);
+    
+    $scope.data = { showDelete: false, showReorder: false };
+    
+
+  $scope.doRefresh = function(){
+    RiskService.initial();
+  }
+
+  
+  $scope.onClickEvaluation = function(){
+      //open a new page to collect patient info  
+      //$state.go('addpatient.riskquestion');
+  }
+  $scope.onClickEvaluation1 = function(){
+    //$state.go('Independent.riskquestion');
+  }
+
+  $scope.slideHasChanged = function (_index){
+    // console.log(_index);
+    // $ionicSlideBoxDelegate.currentIndex();
+    if(_index == 1) $scope.dbtshow = true;
+    else $scope.dbtshow = false;
+    // console.log($scope.description);
+  }
+
+  $scope.toggleStar = function(item) {
+    item.star = !item.star;
+  }
+
+  $scope.onChangeChartData = function(sbp,dbp){
+      $scope.marker = sbp;
+      if(sbp === undefined || dbp === undefined || $scope.chart === undefined) return;
+      console.log(sbp);
+      var temp1 = {
+          "type": "收缩压",
+          "state1": 40+80,
+          "state2": 20,
+          "state3": 20,
+          "state4": 20,
+          "state5": 20,
+          "now": parseInt(sbp), //params
+          "target": 120               //params
+
+      };
+      var temp2 = {
+          "type": "舒张压",
+          "state1": 20+80,
+          "state2": 20,
+          "state3": 20,
+          "state4": 20,
+          "state5": 20,
+          "now": parseInt(dbp), //params
+          "target": 100               //params
+
+      };
+      console.log("push");
+      $scope.chart.dataProvider.pop();
+      $scope.chart.dataProvider.pop();
+      $scope.chart.dataProvider.push(temp1);
+      $scope.chart.dataProvider.push(temp2);
+      // $scope.chart.dataProvider["now"] = sbp;
+      $scope.chart.validateData();
+      $scope.chart.validateNow();
+      // $scope.chart2.validateData();
+      console.log($scope.chart);
+  }
+
+   // console.log("controller初始化的函数跑了一遍结束"); 
+  $scope.$on('NewEvaluationSubmit', function () {
+    console.log("检测到有新的提交，刷新");
+    RiskService.initial();
+
+  })
+
+  $scope.$on('RisksGet',function(){
+    console.log("Controller knows RisksGet");
+    $scope.$broadcast('scroll.refreshComplete');
+    $scope.newRisks = RiskService.getRiskList();
+    // console.log($scope.newRisks);
+    $ionicLoading.hide();
+  })
+
+  $scope.$on('RisksGetFail',function(){
+   $ionicLoading.hide();
+  })
+}])
+
+//LRZ 20151117 新的风险评估页面细节controller
+.controller('RiskDtlCtrl',['$state','$scope','RiskService','$ionicSlideBoxDelegate','Storage','$timeout',function($state,$scope,RiskService,$ionicSlideBoxDelegate,Storage,$timeout){
+  // $scope.chartDone = false;
+  //$scope.whichone = $state.params.num;
+  $scope.whichone = Storage.get("risk_num");
+
+  console.log($scope.whichone);
+  $scope.chart = null;
+  $scope.isHiding = false;
+  if(RiskService.getRiskList() == [])  {
+    RiskService.initial();
+  }
+  
+  $scope.Mlist = [];
+
+  var sortMlist = function(){
+     if($scope.item.M1show) {
+      $scope.item.M1.flist = [{name:'高血压发病率',f:$scope.item.M1.f1},
+      {name:'高血压五年死亡率',f:$scope.item.M1.f2},
+      {name:'心血管疾病',f:$scope.item.M1.f3},
+      {name:'中风十年发生率',f:$scope.item.M1.f4},
+      {name:'心衰率',f:$scope.item.M1.f5}];
+      $scope.Mlist.push($scope.item.M1);
+     }
+     if($scope.item.M2show) $scope.Mlist.push($scope.item.M2);
+     if($scope.item.M3show) {
+      $scope.item.M3.flist = [{name:'一年死亡率',f:$scope.item.M3.f1},
+      {name:'三年死亡率',f:$scope.item.M3.f2}];
+      $scope.Mlist.push($scope.item.M3);
+     }
+     console.log($scope.Mlist);
+  }
+  // console.log($scope.myslide);
+  // console.log($scope.riskSingle);
+
+
+
+    //根据state传入的SortNo 从Service 预载入的列表中取出数据
+  $scope.index = RiskService.getIndexBySortNo($scope.whichone);
+  $scope.item = RiskService.getSingleRisk($scope.index);
+  if(typeof($scope.item) != 'undefined') sortMlist();
+
+  // 得到画图数据
+  // if($scope.item.M1show != false)
+  //   $scope.chartData = RiskService.getGraphData('M1',$scope.index);
+  // else if ($scope.item.M2show != false){
+  //   // $scope.myslide.slide(1,500);
+  //   $scope.chartData = RiskService.getGraphData('M2',$scope.index);    
+  // }
+  // else{
+  //   // $scope.myslide.slide(2,500);
+  //   $scope.chartData = RiskService.getGraphData('M3',$scope.index);  
+  // }
+  
+  console.log($scope.item);
+
+  // AmCharts.makeChart('riskchart', $scope.chartData);
+  // $scope.chartDone = true;
+  // console.log($scope.chart);
+  
+  $scope.myslide = $ionicSlideBoxDelegate.$getByHandle('riskhandle');
+  // $scope.$apply();
+
+  // chart.validateData();
+  // chart.validateNow();
+  // chart.write('chartdiv222');
+  // $scope.chartDone = true;
+  // chart.handleResize();
+  // 画图
+  // 判断 有几个图显示几个图
+  // var p_chart = AmCharts.makeChart("riskchart",chart,500);
+  // $scope.chartDone = true;
+  
+  //slidebox控制
+  $scope.$on('$ionicView.afterEnter',function(){
+    
+    $scope.slideHasChanged(0);
+    // console.log($scope.myslide);
+    // $timeout(5000);
+    // if($scope.item.M1show == true){
+    //   null;      
+    // }
+    // // $scope.chartData = RiskService.getGraphData('M1',$scope.index);
+    // else if ($scope.item.M2show == true){
+    //   // console.log('no hyper'); 
+    //   $scope.myslide.slide(1,50);
+    // // $scope.chartData = RiskService.getGraphData('M2',$scope.index);    
+    // }
+    // else{
+    //   $scope.myslide.slide(2,50);
+    //   // $scope.chartData = RiskService.getGraphData('M3',$scope.index);  
+    // }
+  })
+
+$scope.$on('RisksGet',function(){
+  $scope.index = RiskService.getIndexBySortNo($scope.whichone);
+  $scope.item = RiskService.getSingleRisk($scope.index);
+   if(typeof($scope.item) != 'undefined') sortMlist();
+})
+
+  $scope.slideHasChanged = function($index){
+    var ii = $index;
+    console.log(ii);
+    // console.log($scope.item.M1show);
+    // var status = 0;
+    // if(M1show && M2Show && M3show) 
+    // switch(ii){
+    //   case 0: if($scope.item.M1show == false){
+    //             if($scope.item.M2show == false){
+    //               $scope.myslide.slide(2,500);
+    //             }
+    //             else $scope.myslide.slide(1,500);                 
+    //           }
+    //           else break;
+    //   case 1: if($scope.item.M2show == false){                
+    //           }
+    //           else break;
+    //   case 2:if($scope.item.M3show == false){
+    //             if($scope.item.M2show == false){
+    //               $scope.myslide.slide(1,500);break;
+    //             }
+    //             else $scope.myslide.slide(0,500); break;                
+    //           }
+    //           else break;
+    //   }
+
+    // switch(ii){
+    //   case 0: if($scope.item.M1show == true){
+    //             $scope.isHiding = false;
+    //             $scope.chartData    = RiskService.getGraphData('M1',$scope.index);
+    //             AmCharts.makeChart('riskchart', $scope.chartData); break;        
+    //           }
+    //           else {
+    //               $scope.isHiding = true; break;
+    //           }
+    //           // $scope.chart.validateData();
+    //           // $scope.chart.validateNow(true,false);
+    //   case 1: if($scope.item.M2show == true){
+    //             $scope.isHiding = false;
+    //             $scope.chartData    = RiskService.getGraphData('M2',$scope.index);
+    //             AmCharts.makeChart('riskchart', $scope.chartData);break;        
+    //           }
+    //           else {
+    //               $scope.isHiding = true; break;
+    //           }
+    //           // $scope.chart.dataProvider  = $scope.chartData.dataProvider;
+    //           // $scope.chart.validateData();
+    //           // $scope.chart.validateNow(true,false);
+    //   case 2: if($scope.item.M3show == true){
+    //             $scope.isHiding = false;
+    //             $scope.chartData     = RiskService.getGraphData('M3',$scope.index);
+    //             AmCharts.makeChart('riskchart', $scope.chartData); 
+    //           }
+    //           else {
+    //               $scope.isHiding = true; break;
+    //           }
+    //           // $scope.chart.validateData();
+    //           // $scope.chart.validateNow(true,false);
+    // }
+
+    switch($scope.Mlist[ii].AssessmentType){
+      case 'M1' : $scope.chartData     = RiskService.getGraphData('M1',$scope.index);
+                        AmCharts.makeChart('riskchart', $scope.chartData); break;
+      case 'M2' : $scope.chartData     = RiskService.getGraphData('M2',$scope.index);
+                        AmCharts.makeChart('riskchart', $scope.chartData); break;
+      case 'M3' : $scope.chartData     = RiskService.getGraphData('M3',$scope.index);
+                        AmCharts.makeChart('riskchart', $scope.chartData); break;
+    }
+  }
+
+}])
+
 //----------------侧边栏----------------
 //个人信息
 .controller('personalInfocontroller',['$scope','$ionicHistory','$state','$ionicPopup','$resource','Storage','Data','CONFIG','$ionicLoading','$ionicPopover','Camera',
@@ -5003,10 +5415,10 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
                                       DoctorId:$scope.BasicInfo.DoctorId,
                                       InsuranceType:$scope.BasicInfo.InsuranceType,
                                       InvalidFlag:"9",
-                                      piUserId:"sample string 10",
-                                      piTerminalName:"sample string 11",
-                                      piTerminalIP:"sample string 12",
-                                      piDeviceType:"13" };
+                                      piUserId:extraInfo.postInformation().revUserId,
+                                      piTerminalName:extraInfo.postInformation().TerminalName,
+                                      piTerminalIP:extraInfo.postInformation().TerminalIP,
+                                      piDeviceType:extraInfo.postInformation().DeviceType};
           var temp_PostPatBasicInfoDetail = [{Patient: $scope.BasicDtlInfo.UserId,
                                             CategoryCode: "BodySigns",
                                             ItemCode: "Height",
@@ -5014,10 +5426,10 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
                                             Value: $scope.BasicDtlInfo.Height,
                                             Description: "",
                                             SortNo:"1",
-                                            revUserId: $scope.BasicDtlInfo.UserId,
-                                            TerminalName: "sample string 9",
-                                            TerminalIP: "sample string 10",
-                                            DeviceType: "11"
+                                            revUserId: extraInfo.postInformation().revUserId,
+                                            TerminalName: extraInfo.postInformation().TerminalName,
+                                            TerminalIP: extraInfo.postInformation().TerminalIP,
+                                            DeviceType: extraInfo.postInformation().DeviceType
                                           },
                                           { Patient: $scope.BasicDtlInfo.UserId,
                                             CategoryCode: "BodySigns",
@@ -5026,10 +5438,10 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
                                             Value: $scope.BasicDtlInfo.Weight,
                                             Description: "",
                                             SortNo:"1",
-                                            revUserId: $scope.BasicDtlInfo.UserId,
-                                            TerminalName: "sample string 9",
-                                            TerminalIP: "sample string 10",
-                                            DeviceType: "11"
+                                            revUserId: extraInfo.postInformation().revUserId,
+                                            TerminalName: extraInfo.postInformation().TerminalName,
+                                            TerminalIP: extraInfo.postInformation().TerminalIP,
+                                            DeviceType: extraInfo.postInformation().DeviceType
                                           },
                                           { Patient:  $scope.BasicDtlInfo.UserId,
                                             CategoryCode: "Contact",
@@ -5038,10 +5450,10 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
                                             Value: $scope.BasicDtlInfo.IDNo,
                                             Description: "",
                                             SortNo:"1",
-                                            revUserId: $scope.BasicDtlInfo.UserId,
-                                            TerminalName: "sample string 9",
-                                            TerminalIP: "sample string 10",
-                                            DeviceType: "11"
+                                            revUserId: extraInfo.postInformation().revUserId,
+                                            TerminalName: extraInfo.postInformation().TerminalName,
+                                            TerminalIP: extraInfo.postInformation().TerminalIP,
+                                            DeviceType: extraInfo.postInformation().DeviceType
                                           },
                                           { Patient:  $scope.BasicDtlInfo.UserId,
                                             CategoryCode: "Contact",
@@ -5050,10 +5462,10 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
                                             Value:$scope.BasicDtlInfo.Nationality,
                                             Description: "",
                                             SortNo:"1",
-                                            revUserId: $scope.BasicDtlInfo.UserId,
-                                            TerminalName: "sample string 9",
-                                            TerminalIP: "sample string 10",
-                                            DeviceType: "11"
+                                            revUserId: extraInfo.postInformation().revUserId,
+                                            TerminalName: extraInfo.postInformation().TerminalName,
+                                            TerminalIP: extraInfo.postInformation().TerminalIP,
+                                            DeviceType: extraInfo.postInformation().DeviceType
                                           },
                                           { Patient:  $scope.BasicDtlInfo.UserId,
                                             CategoryCode: "Contact",
@@ -5062,10 +5474,10 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
                                             Value:$scope.BasicDtlInfo.Occupation,
                                             Description: "",
                                             SortNo:"1",
-                                            revUserId: $scope.BasicDtlInfo.UserId,
-                                            TerminalName: "sample string 9",
-                                            TerminalIP: "sample string 10",
-                                            DeviceType: "11"
+                                            revUserId: extraInfo.postInformation().revUserId,
+                                            TerminalName: extraInfo.postInformation().TerminalName,
+                                            TerminalIP: extraInfo.postInformation().TerminalIP,
+                                            DeviceType: extraInfo.postInformation().DeviceType
                                           },
                                           { Patient: $scope.BasicDtlInfo.UserId,
                                             CategoryCode: "Contact",
@@ -5074,10 +5486,10 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
                                             Value: $scope.BasicDtlInfo.PhoneNumber,
                                             Description: "",
                                             SortNo:"1",
-                                            revUserId: $scope.BasicDtlInfo.UserId,
-                                            TerminalName: "sample string 9",
-                                            TerminalIP: "sample string 10",
-                                            DeviceType: "11"
+                                            revUserId: extraInfo.postInformation().revUserId,
+                                            TerminalName: extraInfo.postInformation().TerminalName,
+                                            TerminalIP: extraInfo.postInformation().TerminalIP,
+                                            DeviceType: extraInfo.postInformation().DeviceType
                                           },
                                           { Patient: $scope.BasicDtlInfo.UserId,
                                             CategoryCode: "Contact",
@@ -5086,10 +5498,10 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
                                             Value: $scope.BasicDtlInfo.HomeAddress,
                                             Description: "",
                                             SortNo:"1",
-                                            revUserId: $scope.BasicDtlInfo.UserId,
-                                            TerminalName: "sample string 9",
-                                            TerminalIP: "sample string 10",
-                                            DeviceType: "11"
+                                            revUserId: extraInfo.postInformation().revUserId,
+                                            TerminalName: extraInfo.postInformation().TerminalName,
+                                            TerminalIP: extraInfo.postInformation().TerminalIP,
+                                            DeviceType: extraInfo.postInformation().DeviceType
                                           },
                                           { Patient: $scope.BasicDtlInfo.UserId,
                                             CategoryCode: "Contact",
@@ -5098,10 +5510,10 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
                                             Value: $scope.BasicDtlInfo.EmergencyContact,
                                             Description: "",
                                             SortNo:"1",
-                                            revUserId: $scope.BasicDtlInfo.UserId,
-                                            TerminalName: "sample string 9",
-                                            TerminalIP: "sample string 10",
-                                            DeviceType: "11"
+                                            revUserId: extraInfo.postInformation().revUserId,
+                                            TerminalName: extraInfo.postInformation().TerminalName,
+                                            TerminalIP: extraInfo.postInformation().TerminalIP,
+                                            DeviceType: extraInfo.postInformation().DeviceType
                                           },
                                           { Patient: $scope.BasicDtlInfo.UserId,
                                             CategoryCode: "Contact",
@@ -5110,10 +5522,10 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
                                             Value: $scope.BasicDtlInfo.EmergencyContactPhoneNumber,
                                             Description: "",
                                             SortNo:"1",
-                                            revUserId: $scope.BasicDtlInfo.UserId,
-                                            TerminalName: "sample string 9",
-                                            TerminalIP: "sample string 10",
-                                            DeviceType: "11"
+                                            revUserId: extraInfo.postInformation().revUserId,
+                                            TerminalName: extraInfo.postInformation().TerminalName,
+                                            TerminalIP: extraInfo.postInformation().TerminalIP,
+                                            DeviceType: extraInfo.postInformation().DeviceType
                                           }];
           // 基本信息的修改
           Data.Users.SetPatBasicInfo(temp_SetPatBasicInfo, 
@@ -5193,10 +5605,10 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
                                                 Value: temp_photoaddress,
                                                 Description: "",
                                                 SortNo:"1",
-                                                revUserId: UserId,
-                                                TerminalName: "sample string 9",
-                                                TerminalIP: "sample string 10",
-                                                DeviceType: "11"
+                                                revUserId: extraInfo.postInformation().revUserId,
+                                                TerminalName: extraInfo.postInformation().TerminalName,
+                                                TerminalIP: extraInfo.postInformation().TerminalIP,
+                                                DeviceType: extraInfo.postInformation().DeviceType
                                               }],
                                               function (success, headers) {
                                                 if (success.result="数据插入成功") { 
