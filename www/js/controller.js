@@ -5244,8 +5244,8 @@ $scope.$on('RisksGet',function(){
 
 //----------------侧边栏----------------
 //个人信息
-.controller('personalInfocontroller',['$scope','$ionicHistory','$state','$ionicPopup','$resource','Storage','Data','CONFIG','$ionicLoading','$ionicPopover','Camera',
-   function($scope, $ionicHistory, $state, $ionicPopup, $resource, Storage, Data,CONFIG, $ionicLoading, $ionicPopover, Camera) {             
+.controller('personalInfocontroller',['$scope','$ionicHistory','$state','$ionicPopup','$resource','Storage','Data','CONFIG','$ionicLoading','$ionicPopover','Camera', 'extraInfo',
+   function($scope, $ionicHistory, $state, $ionicPopup, $resource, Storage, Data,CONFIG, $ionicLoading, $ionicPopover, Camera, extraInfo) {             
       // 返回键
       $scope.nvGoback = function() {
         $ionicHistory.goBack();
