@@ -5,6 +5,7 @@ describe('\nTests for "controllers"', function(){
 
 	describe('\n"SlidePageCtrl"',function(){
 		beforeEach(angular.mock.inject(function($rootScope, $controller, _$httpBackend_){
+			window.localStorage['UID']='testUID';
 	        scope = $rootScope.$new();
 	        $httpBackend = _$httpBackend_;
 			$httpBackend.expectGET('data/catalog.json').respond(
