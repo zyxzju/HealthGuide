@@ -5418,7 +5418,7 @@ $scope.$on('RisksGet',function(){
                                       IDNo:$scope.BasicInfo.IDNo,
                                       DoctorId:$scope.BasicInfo.DoctorId,
                                       InsuranceType:$scope.BasicInfo.InsuranceType,
-                                      InvalidFlag:"9",
+                                      InvalidFlag:"0",
                                       piUserId:extraInfo.postInformation().revUserId,
                                       piTerminalName:extraInfo.postInformation().TerminalName,
                                       piTerminalIP:extraInfo.postInformation().TerminalIP,
