@@ -171,7 +171,7 @@ describe('\nTests for "controllers"', function(){
 				.respond([{respond:'success'}]);//配置返回值
 				scope.doRefresh();
 			});
-			it('',function(){//此处暂时屏蔽，需要的时候去掉x可以进行测试，因为每次都会打开新的窗口影响进度
+			xit('',function(){//此处暂时屏蔽，需要的时候去掉x可以进行测试，因为每次都会打开新的窗口影响进度
 				$httpBackend.flush();
 				expect(scope.taskdetaillist[0].respond).toEqual("success");
 			});
@@ -344,9 +344,9 @@ describe('\nTests for "services"', function(){
 
 	    it('BloodPressureMeasure.BPConclusion', function() {//测试BloodPressureMeasure.BPConclusion()方法的正确性
       		expect(bloodpressuremeasure.BPConclusion(110,75)).toEqual('您的血压属于正常\n范围，请继续保持');//测试不同范围的输入输出结果是否正确
-      		expect(bloodpressuremeasure.BPConclusion(135,75)).toEqual('您的血压偏高，请注意降压');
-      		expect(bloodpressuremeasure.BPConclusion(110,95)).toEqual('您的血压偏高，请注意降压');
-      		expect(bloodpressuremeasure.BPConclusion(135,95)).toEqual('您的血压偏高，请注意降压');
+      		expect(bloodpressuremeasure.BPConclusion(135,75)).toEqual('您的血压不正常，请注意控制！');
+      		expect(bloodpressuremeasure.BPConclusion(110,95)).toEqual('您的血压不正常，请注意控制！');
+      		expect(bloodpressuremeasure.BPConclusion(135,95)).toEqual('您的血压不正常，请注意控制！');
    		});
    		it('BloodPressureMeasure.FindCommand', function() {//测试BloodPressureMeasure.FindCommand()方法的正确性
       		expect(bloodpressuremeasure.FindCommand()[7]).toEqual(178);//测试输出的参数是否经过计算
