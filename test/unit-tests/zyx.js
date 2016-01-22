@@ -541,10 +541,22 @@ describe('\n"SetCommentCtrl"',function(){
 describe('\n"recordListcontroller"',function(){
   var Skip=5;
     beforeEach(angular.mock.inject(function($rootScope, $controller, _$httpBackend_){
+          window.localStorage['UID']='U201511170002';
+          var date = new Date();
+          var dt={};
+          dt.year=date.getFullYear().toString();
+          dt.year.length==1?dt.year='0'+dt.year:dt.year=dt.year;
+          dt.month=(date.getMonth()+1).toString();
+          dt.month.length==1?dt.month='0'+dt.month:dt.month=dt.month;
+          dt.day=date.getDate().toString();
+          dt.day.length==1?dt.day='0'+dt.day:dt.day=dt.day;
+          dt.fulldate=dt.year+dt.month+dt.day;
+          var todaydate=parseInt(dt.fulldate);
+          var yestoday=todaydate-1;
           scope = $rootScope.$new();
           $httpBackend = _$httpBackend_; 
           ///$httpBackend.whenGET(/partials\/.*/).respond(200, '');
-          $httpBackend.whenGET("http://121.43.107.106:9000/Api/v1/VitalInfo/VitalSigns?$skip=0&$top=10&EndDate=20151230&StartDate=20151229&UserId=U201511170002")
+          $httpBackend.whenGET("http://121.43.107.106:9000/Api/v1/VitalInfo/VitalSigns?$skip=0&$top=10&EndDate="+todaydate+"&StartDate="+yestoday+"&UserId=U201511170002")
           .respond([
                       {
                       "UserId": null,
@@ -573,7 +585,7 @@ describe('\n"recordListcontroller"',function(){
                       "SignType": null
                     }
            ]);
-          $httpBackend.whenGET("http://121.43.107.106:9000/Api/v1/VitalInfo/VitalSigns?$skip=10&$top=10&EndDate=20151230&StartDate=20151229&UserId=U201511170002")
+          $httpBackend.whenGET("http://121.43.107.106:9000/Api/v1/VitalInfo/VitalSigns?$skip=10&$top=10&EndDate="+todaydate+"&StartDate="+yestoday+"&UserId=U201511170002")
           .respond([]);
           $httpBackend.whenGET(/partials\/.*/).respond(200, ''); 
           $controller('recordListcontroller', {$scope: scope});
