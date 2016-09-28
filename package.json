@@ -43,11 +43,26 @@
     "C:\\Users\\ZJU\\Desktop\\guide\\HealthGuide\\plugins\\cordova-plugin-whitelist",
     "C:\\Users\\ZJU\\Desktop\\guide\\HealthGuide\\plugins\\de.appplant.cordova.plugin.local-notification",
     "C:\\Users\\ZJU\\Desktop\\guide\\HealthGuide\\plugins\\org.apache.cordova.inappbrowser",
-    "C:\\Users\\ZJU\\Desktop\\cordova-plugin-x-toast"
+    "C:\\Users\\ZJU\\Desktop\\cordova-plugin-x-toast",
+    "D:\\project\\plugins\\cn.jpush.phonegap.JPushPlugin",
+    "D:\\project\\plugins\\com.ionic.keyboard",
+    "D:\\project\\plugins\\cordova-plugin-bluetooth-serial",
+    "D:\\project\\plugins\\cordova-plugin-camera",
+    "D:\\project\\plugins\\cordova-plugin-console",
+    "D:\\project\\plugins\\cordova-plugin-datepicker",
+    "D:\\project\\plugins\\cordova-plugin-device",
+    "D:\\project\\plugins\\cordova-plugin-file",
+    "D:\\project\\plugins\\cordova-plugin-file-transfer",
+    "D:\\project\\plugins\\cordova-plugin-splashscreen",
+    "D:\\project\\plugins\\cordova-plugin-x-toast",
+    "D:\\project\\plugins\\de.appplant.cordova.common.registerusernotificationsettings",
+    "D:\\project\\plugins\\de.appplant.cordova.plugin.local-notification",
+    "D:\\project\\plugins\\org.apache.cordova.inappbrowser",
+    "D:\\project\\cordova-plugin-whitelist"
   ],
   "cordovaPlatforms": [
-    "android",
-    "ios"
+    "ios",
+    "android"
   ],
   "scripts": {
     "test": "karma start test/karma-unit-all.config.js",

@@ -3679,7 +3679,7 @@ function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
 
        //筛选函数
        $scope.selectFunction = function(){
-           if($scope.selectFunction.selectedSex=="all")
+           if($scope.selectMenu.selectedSex=="all")
            {
              $scope.filterCondition = "sex ge '1' ";
            }
