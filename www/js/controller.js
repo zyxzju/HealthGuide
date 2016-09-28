@@ -1,5 +1,5 @@
 
-angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'zjubme.directives', 'ja.qr','ionic-datepicker'])//,'ngRoute'
+angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'zjubme.directives','zjubme.filters', 'ja.qr','ionic-datepicker', ])//,'ngRoute'
 
 // 初装或升级App的介绍页面控制器  /暂时不用
 .controller('intro', ['$scope', 'Storage', function ($scope, Storage) {
@@ -16,56 +16,78 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
   }else{
     $scope.logOn={username:"",password:""};
   }
-  $scope.signIn = function(logOn) {
+  $scope.signIn = function(logOn) {  
+    $scope.logStatus='';
     if((logOn.username!="") && (logOn.password!="")){ 
+      var cont=0;
       var saveUID = function(){
         var UIDpromise=userservice.UID('PhoneNo',logOn.username);
         UIDpromise.then(function(data){
+          loading.loadingBarFinish($scope);
           if(data.result!=null){
+            Storage.set('USERNAME', logOn.username);
+            // Storage.set('PASSWORD', logOn.password);
+            Storage.set('isSignIN','YES');
+            $scope.logStatus="登录成功";
             Storage.set('UID', data.result);
+            $timeout(function(){$state.go('tab.tasklist');} , 500);
             //启动极光推送服务
-            window.plugins.jPushPlugin.init();
-            window.plugins.jPushPlugin.setDebugMode(true);
+            //window.plugins.jPushPlugin.init();
+            //window.plugins.jPushPlugin.setDebugMode(true);
             window.plugins.jPushPlugin.setAlias(data.result);
           }
         },function(data){
+          if(cont++<5){
+            saveUID();
+          }else{
+            loading.loadingBarFinish($scope);
+            $scope.logStatus="网络错误"
+          }          
         });
       }
-                
-      var promise=userservice.userLogOn('PhoneNo' ,logOn.username,logOn.password,'Patient');
-      if(promise==7){
-        $scope.logStatus='手机号验证失败！';
-        return;
-      }
-      loading.loadingBarStart($scope);/////////////////
-      promise.then(function(data){
-        $scope.logStatus=data.result.substr(0,4);
-        if($scope.logStatus=="登陆成功"){
-          $ionicHistory.clearCache();
-          $ionicHistory.clearHistory();
+      
+      var UIDpromise_connection=userservice.UID('PhoneNo',logOn.username);
+      UIDpromise_connection.then(function(){
 
-          loading.loadingBarFinish($scope);///////////////
-          Storage.set('TOKEN', data.result.substr(12));
-          Storage.set('USERNAME', logOn.username);
-          saveUID();
-          $timeout(function(){$state.go('tab.tasklist');} , 1000);
+        var promise=userservice.userLogOn('PhoneNo' ,logOn.username,logOn.password,'Patient');
+        if(promise==7){
+          $scope.logStatus='手机号验证失败！';
+          return;
         }
-      },function(data){
-        loading.loadingBarFinish($scope);///////////////////
-        if(data.data==null && data.status==0){
-          $scope.logStatus='连接超时！';
-          return;          
-        }  
-        if(data.data.result=='暂未激活'){
-          loading.loadingBarFinish($scope);///////////////
-          //Storage.set('TOKEN', data.result.substr(12));
-          Storage.set('USERNAME', logOn.username);
-          saveUID();
-          $timeout(function(){$state.go('tab.tasklist');} , 1000);  
-          $scope.logStatus='登陆成功';  
-          return;  
-        }      
-        $scope.logStatus=data.data.result;
+        loading.loadingBarStart($scope);
+        promise.then(function(data){
+          if(data.result.substr(0,4)=="登陆成功"){
+            $scope.logStatus=data.result.substr(0,4);
+            $ionicHistory.clearCache();
+            $ionicHistory.clearHistory();
+
+            // loading.loadingBarFinish($scope);
+            Storage.set('TOKEN', data.result.substr(12));
+            // Storage.set('USERNAME', logOn.username);
+            saveUID();
+            // $timeout(function(){$state.go('tab.tasklist');} , 1000);
+          }
+        },function(data){
+          loading.loadingBarFinish($scope);
+          if(data.data==null && data.status==0){
+            $scope.logStatus='网络错误！';
+            return;          
+          }  
+          if(data.status==404){
+            $scope.logStatus='连接服务器失败！';
+            return;          
+          }        
+          if(data.data.result=='暂未激活'){
+            // loading.loadingBarFinish($scope);
+            //Storage.set('TOKEN', data.result.substr(12));
+            // Storage.set('USERNAME', logOn.username);
+            saveUID();
+            // $timeout(function(){$state.go('tab.tasklist');} , 1000);  
+            // $scope.logStatus='登陆成功';  
+            return;  
+          }      
+          $scope.logStatus=data.data.result;
+        });
       });
     }else{
       $scope.logStatus="请输入完整信息！";
@@ -142,6 +164,7 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
     }
   };  
   $scope.infoSetup = function(userName,userGender){
+    $scope.logStatus='';
     if(userName!='' && userGender!='' && $scope.birthday!='' && $scope.birthday!='点击设置'){
       upload.UserName=userName;
       upload.Gender=userGender == '男'?1:2;
@@ -150,6 +173,7 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
         .then(function(data){
           if(data.result!=null){
             Storage.set('UID', data.result);
+            Storage.set('USERNAME', $rootScope.userId);
             upload.UserId=Storage.get('UID');
 
             // Users.myTrial(upload).then(function(data){
@@ -161,16 +185,23 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
             // });  
             
             Data.Users.SetPatBasicInfo( upload, function (success, headers) {
-               $scope.logStatus=success.result;
+              loading.loadingBarFinish($scope);
+              $scope.logStatus=success.result;
               if(success.result=="数据插入成功"){
                 $scope.logStatus='注册成功！';
                 $timeout(function(){$state.go('tab.tasklist');} , 500);
               }
+            },function(){
+              loading.loadingBarFinish($scope);
+              $scope.logStatus='网络错误！';              
             });
-
-
+          }else{
+            loading.loadingBarFinish($scope);
+            $scope.logStatus='系统错误！';
           }
         },function(data){
+          loading.loadingBarFinish($scope);
+          $scope.logStatus='网络错误！';
         });
       }
       // $rootScope.NAME=userName;
@@ -179,22 +210,52 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
       loading.loadingBarStart($scope);
       userservice.userRegister("PhoneNo",$rootScope.userId, userName, $rootScope.password,"Patient")
       .then(function(data){
-        loading.loadingBarFinish($scope);
+        // loading.loadingBarFinish($scope);
         console.log($rootScope.userId,$rootScope.password);
         userservice.userLogOn('PhoneNo' ,$rootScope.userId,$rootScope.password,'Patient').then(function(data){
           if(data.result.substr(0,4)=="登陆成功"){
             Storage.set('TOKEN', data.result.substr(12));
+            saveUID();
           }
+        },function(data){
+          if(data.data.result=='暂未激活'){            
+            //Storage.set('TOKEN', data.result.substr(12));
+            saveUID();
+          }else{
+            loading.loadingBarFinish($scope);
+            $scope.logStatus='网络错误！';
+          }          
         });
-        Storage.set('USERNAME', $rootScope.userId);
-        saveUID();
       },function(data){
-        loading.loadingBarFinish($scope);
-        if(data.data==null && data.status==0){
-          $scope.logStatus='连接超时！';
-          return;          
-        }     
-        $scope.logStatus=data.data.result;
+        if(data.data.result=='同一用户名的同一角色已经存在'){
+          userservice.userLogOn('PhoneNo' ,$rootScope.userId,$rootScope.password,'Patient')
+          .then(function(data){
+            if(data.result.substr(0,4)=="登陆成功"){
+              Storage.set('TOKEN', data.result.substr(12));
+              saveUID();
+            }
+          },function(data){
+            if(data.data.result=='暂未激活'){
+              //Storage.set('TOKEN', data.result.substr(12));
+              saveUID();
+            }else{
+              loading.loadingBarFinish($scope);
+              $scope.logStatus='网络错误！';
+            }
+          });
+        }else if(data.data==null && data.status==0){
+          loading.loadingBarFinish($scope);
+          $scope.logStatus='网络错误！';          
+        }else{
+          loading.loadingBarFinish($scope);
+          $scope.logStatus=data.data.result;          
+        }        
+        // loading.loadingBarFinish($scope);
+        // if(data.data==null && data.status==0){
+        //   $scope.logStatus='连接超时！';
+        //   return;          
+        // }     
+        // $scope.logStatus=data.data.result;
       });
     }else{
       $scope.logStatus='请输入完整信息！';
@@ -215,6 +276,7 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
   }
   $scope.setPassword={newPass:"" , confirm:""};
   $scope.resetPassword=function(setPassword){
+    $scope.logStatus='';
     if((setPassword.newPass!="") && (setPassword.confirm!="")){
       if(setPassword.newPass == setPassword.confirm){
         if(setPassState=='register'){
@@ -238,8 +300,6 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
             }
             $scope.logStatus=data.data.result;
           });
-          //以下临时跳转
-          //$timeout(function(){$state.go('tab.tasks');} , 3000);
         }
       }else{
         $scope.logStatus="两次输入的密码不一致";
@@ -256,6 +316,7 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
   $scope.ishide=true;
   $scope.change={oldPassword:"",newPassword:"",confirmPassword:""};
   $scope.passwordCheck = function(change){
+    $scope.logStatus1='';
     loading.loadingBarStart($scope);
     var promiseold=userservice.userLogOn('PhoneNo',Storage.get('USERNAME'),change.oldPassword,'Patient');
     promiseold.then(function(data){
@@ -264,22 +325,23 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
       //$scope.ishide=false;
       $timeout(function(){$scope.ishide=false;} , 500);
     },function(data){
-        loading.loadingBarFinish($scope);
-        if(data.data.result=="暂未激活")
-        {
-          $scope.logStatus1='验证成功';
-          $timeout(function(){$scope.ishide=false;} , 500);
-          return;
-       } 
+      loading.loadingBarFinish($scope);
       if(data.data==null && data.status==0){
         $scope.logStatus='连接超时！';
         return;          
-      }
+      }      
+      if(data.data.result=="暂未激活")
+      {
+        $scope.logStatus1='验证成功';
+        $timeout(function(){$scope.ishide=false;} , 500);
+        return;
+       } 
       $scope.logStatus1='密码错误';
     });
   }
 
   $scope.gotoChange = function(change){
+    $scope.logStatus2='';
     if((change.newPassword!="") && (change.confirmPassword!="")){
       if(change.newPassword == change.confirmPassword){
         loading.loadingBarStart($scope);
@@ -353,7 +415,7 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
       .then(function(data){
         loading.loadingBarFinish($scope);
         unablebutton();        
-        if(data.result[0]=='您'){
+        if(data[0]=='您'){
           $scope.logStatus="您的验证码已发送，重新获取请稍后";
         }else{
           $scope.logStatus='验证码发送成功！';
@@ -436,45 +498,33 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
     })
   }
 }])
-
 // --------任务列表-马志彬----------------
 //侧边提醒
-.controller('SlidePageCtrl', ['$scope', '$ionicHistory', '$timeout', '$ionicModal', '$ionicSideMenuDelegate', '$http','NotificationService','$ionicListDelegate','PlanInfo','extraInfo','$ionicPopup', '$state', 'Storage',
-   function($scope, $ionicHistory, $timeout, $ionicModal, $ionicSideMenuDelegate, $http,NotificationService,$ionicListDelegate,PlanInfo,extraInfo, $ionicPopup,$state,Storage) {
-      $scope.text = 'Hello World!';
-       ionic.DomUtil.ready(function(){
-          $scope.getexecutingplan();
-       });
-      $scope.getexecutingplan = function()
-      {
-        console.log("1");var get = {
-          PatientId:Storage.get("UID"),
-          PlanNo:'NULL',
-          Module:'M1',
-          Status:'3'
-        }
-        PlanInfo.GetExecutingPlan(get).then(function(s){
-          // console.log(s[0]);
-          if((s!=null)&&(s!=""))
-          {
-            $scope.unTaskList=false;
-            extraInfo.PlanNo(s[0]);
-            data.PlanNo=s[0].PlanNo;
-            get();
-          }
-          else
-          {
-            $scope.unTaskList=true;
-          }
-        },function(e){
-          console.log(e);
-        })
-      }
+.controller('SlidePageCtrl', ['$scope', '$ionicHistory', '$timeout', '$ionicModal', '$ionicSideMenuDelegate', '$http','NotificationService','$ionicListDelegate','PlanInfo','extraInfo','$ionicPopup', '$state', 'Storage','Data', 
+   function($scope, $ionicHistory, $timeout, $ionicModal, $ionicSideMenuDelegate, $http,NotificationService,$ionicListDelegate,PlanInfo,extraInfo, $ionicPopup,$state,Storage, Data) {
       
+      //我的专员未读消息
+       // $scope.unreadMessageSum='';
+      
+       // $scope.$on('transfer.unreadMessageSum', function(event, data) {  
+       //    $scope.unreadMessageSum = data;  
+       //  });  
+
+      //获取一些普遍的基本信息，公用
+      Storage.set('PatientName','暂无姓名');
+      var urltemp1 = Storage.get("UID") + '/BasicInfo';
+      Data.Users.GetPatBasicInfo({route:urltemp1}, function (success, headers) {
+          Storage.set('PatientName',success.UserName);
+          $scope.qr_GenderText= success.GenderText;
+           }, function (err) {
+
+      });
+
       ////获取任务列表数据
       // $http.get('testdata/tasklist.json').success(function(data){
       //  $scope.tasklist = data;
       // })
+      $scope.tmzb = 'test';
       ///获取菜单栏列表数据
       $http.get('data/catalog.json').success(function(data){
         $scope.catalog = data;
@@ -487,6 +537,14 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
       }
       $scope.lastviewtitle = $ionicHistory.backTitle();
       ////////////设置提醒/////////////
+      $scope.checkalert = '';
+      $scope.alerttitlecheck = function(c)
+      {
+         // console.log('title change');
+         if(c) $scope.checkalert='required';
+         else  $scope.checkalert='';
+         // console.log($scope.checkalert);
+      }
       $ionicModal.fromTemplateUrl('partials/other/addalert.html', {
         scope: $scope,
         animation: 'slide-in-up'
@@ -548,19 +606,19 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
       {
         if(c)
         {
-          console.log($scope.flag);
+          // console.log($scope.flag);
           if($scope.flag=='update')
           {
             $scope.flag='save';
-            // NotificationService.update($scope.alertcontent);
+            NotificationService.update($scope.alertcontent);
             $scope.alertlist = NotificationService.get();
             $scope.closeModal();
           }else{
-            console.log('save');
-            console.log($scope.alertcontent);
-            // NotificationService.save($scope.alertcontent);
+            // console.log('save');
+            // console.log($scope.alertcontent);
+            NotificationService.save($scope.alertcontent);
             $scope.alertlist = NotificationService.get();
-            console.log($scope.alertlist);
+            // console.log($scope.alertlist);
             $scope.closeModal();
           }
         }else $scope.checkalert = 'required';
@@ -575,6 +633,7 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
       //退出账号
 
        $scope.signoutConfirm = function(a){
+        $scope.toggleProjects();
         if(a=="logout"){
           var myPopup = $ionicPopup.show({
             template: '<center>确定要退出登录吗?</center>',
@@ -615,62 +674,98 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
   function($scope,$ionicModal,$timeout,$http,TaskInfo,extraInfo,Storage,$ionicLoading,PlanInfo) {
   //extraInfo.PlanNo().PlanNo'PLAN20151029'
   //$scope.getexecutingplan();
-   var data={"ParentCode":"T","PlanNo":"","Date":"NOW","PatientId":Storage.get("UID")};
-   var get = {
-          PatientId:Storage.get("UID"),
-          PlanNo:'NULL',
-          Module:'M1',
-          Status:'3'
-        }
-        PlanInfo.GetExecutingPlan(get).then(function(s){
-          // console.log(s[0]);
-          if((s!=null)&&(s!=""))
-          {
-            $scope.unTaskList=false;
-            extraInfo.PlanNo(s[0]);
-            data.PlanNo=s[0].PlanNo;
-            get();
-          }
-          else
-          {
-            $scope.unTaskList=true;
-          }
-        },function(e){
-          console.log(e);
-        })
+  var data={"ParentCode":"T","PlanNo":"","Date":"NOW","PatientId":Storage.get("UID")};
+  var getep = {
+    PatientId:Storage.get("UID"),
+    PlanNo:'NULL',
+    Module:'M1',
+    Status:'3'
+  }
+  var getexecutingplan = function()
+  {
+    PlanInfo.GetExecutingPlan(getep).then(function(s){
+      // console.log(s[0]);
+      if((s!=null)&&(s!=""))
+      {
+        $scope.unTaskList=false;
+        extraInfo.PlanNo(s[0]);
+        data.PlanNo=s[0].PlanNo;
+        gettasklist();
+      }
+      else
+      {
+        console.log("getexecutingplan err");
+        $scope.unTaskList=true;
+        $scope.$broadcast('scroll.refreshComplete');
+        showrefreshresult('刷新成功');
+      }
+    },function(e){
+      console.log(e);
+      $scope.unTaskList=true;
+      $scope.$broadcast('scroll.refreshComplete');
+      showrefreshresult('刷新失败');
 
- 
-  // ionic.DomUtil.ready(function(){
-  //   get();
-  // });
-  $scope.doRefresh = function() {
-    $scope.getexecutingplan();
-    data={"ParentCode":"T","PlanNo":extraInfo.PlanNo().PlanNo,"Date":"NOW","PatientId":Storage.get("UID")};
-    get();
-    var refreshstatus='刷新失败'
-    extraInfo.refreshstatus()=='刷新成功'?refreshstatus='刷新成功':refreshstatus;
+    })
+  }
+  var gettasklist = function()
+  {
+    TaskInfo.GetTasklist(data).then(function(s){
+      // console.log(s);
+      $scope.$broadcast('scroll.refreshComplete');
+      $scope.tasklist = s;
+      showrefreshresult('刷新成功');
+      // console.log(data.PlanNo);
+      TaskInfo.GetDTaskByPlanNo(data.PlanNo).then(function(s){
+        // console.log(s);
+        $scope.detaillist = extraInfo.TransformChangeMarks(s);
+        window.localStorage['taskchangedetaillist']=angular.toJson($scope.detaillist);
+        // console.log($scope.detaillist);
+        console.log($scope.tasklist);
+        extraInfo.InsertChangeMarks2tasklist($scope.tasklist,$scope.detaillist);
+        console.log($scope.tasklist);
+      },function(e){
+        console.log(e);
+        $scope.detaillist = [];
+        $scope.detaillist[0] =new Array();//新增
+        $scope.detaillist[1] =new Array();//删除
+        $scope.detaillist[2] =new Array();//修改
+      });
+    },function(e){
+      console.log(e);
+      $scope.$broadcast('scroll.refreshComplete');
+      showrefreshresult('刷新失败');
+    });
+  }
+  var showrefreshresult = function(refreshstatus)
+  {
     $ionicLoading.show({
       template: refreshstatus,
       noBackdrop: true,
       duration: 700
     });
   }
-  var get = function()
-  {
-    TaskInfo.GetTasklist(data).then(function(s){
-      console.log(s);
-      $scope.$broadcast('scroll.refreshComplete');
-      $scope.tasklist = s;
-      extraInfo.refreshstatus('刷新成功');
-    },function(e){
-      console.log(e);
-      $scope.$broadcast('scroll.refreshComplete');
-      extraInfo.refreshstatus('刷新失败');
-    });
+  getexecutingplan();
+  $scope.doRefresh = function() {
+    getexecutingplan();
+  }
     // $http.get('testdata/tasklist.json').success(function(data){
     //  $scope.tasklist = TaskInfo.insertstate(data);
     // })
+  $ionicModal.fromTemplateUrl('partials/other/taskchangedetail.html', {
+    scope: $scope,
+    animation: 'slide-in-up'
+  }).then(function(modal) {
+    $scope.modal = modal;
+  });
+  $scope.showtaskchangedetail = function()
+  {
+    $scope.modal.show();
   }
+  $scope.closetaskchangedetail = function()
+  {
+    $scope.modal.hide();
+  }
+  $scope.testlist = [{t:'100圈到200全'},{t:'100圈到300全'},{t:'100圈到400全'},{t:'100圈到500全'}];
 }])
 
 //任务详细
@@ -678,7 +773,7 @@ angular.module('zjubme.controllers', ['ionic','ngResource','zjubme.services', 'z
 function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,TaskInfo,$ionicListDelegate,Storage,$ionicLoading, $ionicPopup) {
   var data={"ParentCode":$stateParams.tl,"PlanNo":extraInfo.PlanNo().PlanNo,"Date":"NOW","PatientId":Storage.get("UID")};//
   var detail={"ParentCode":'',"PlanNo":extraInfo.PlanNo().PlanNo,"Date":"NOW","PatientId":Storage.get("UID")};//extraInfo.PlanNo().PlanNo
-
+  $scope.pagetitle = extraInfo.TransformCode2Name($stateParams.tl);
   ////////////////////////////////////
   $ionicModal.fromTemplateUrl('helist.html', {
     scope: $scope,
@@ -703,9 +798,9 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
   $scope.openUrl = function(url)
   {
     var options = {
-      location: 'no',
+      location: 'yes',
       clearcache: 'yes',
-      toolbar: 'no'
+      toolbar: 'yes'
     };
     $cordovaInAppBrowser.open(extraInfo.TransformUrl(url), '_blank', options);
   }
@@ -714,7 +809,6 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
     getlist();
   })
   $scope.doRefresh = function() {
-    $scope.getexecutingplan();
     data={"ParentCode":$stateParams.tl,"PlanNo":extraInfo.PlanNo().PlanNo,"Date":"NOW","PatientId":Storage.get("UID")};
     detail={"ParentCode":'',"PlanNo":extraInfo.PlanNo().PlanNo,"Date":"NOW","PatientId":Storage.get("UID")};
     getlist();
@@ -729,9 +823,13 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
   var getlist = function()
   {
     TaskInfo.GetTasklist(data).then(function(s){
-      console.log(s);
+      // console.log(s);
       $scope.$broadcast('scroll.refreshComplete');
       $scope.taskdetaillist = extraInfo.TransformInstruction(TaskInfo.insertstate(s));
+      console.log($scope.taskdetaillist);
+      $scope.detaillist=angular.fromJson(window.localStorage['taskchangedetaillist']);
+      $scope.taskdetaillist=extraInfo.InsertChangeMarks2tasklist($scope.taskdetaillist,$scope.detaillist);
+      console.log($scope.taskdetaillist);
       var i=0;
       if(s.length)getdetail(i);
       extraInfo.refreshstatus('刷新成功');
@@ -777,16 +875,33 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
         //
     });
   }
+  $scope.openaddalertmodal = function(a)
+  {
+    var content = {
+      title:'任务提醒：'+a.Name,
+      detail:'记得完成相应任务!',
+      time:new Date(),
+      hour:(new Date()).getHours(),
+      minute:(new Date()).getMinutes(),
+      index:0,
+      ID:parseInt(Math.random()*1000+1)
+    };
+    // console.log(a);
+    if(a.Instruction!='')
+      content.detail=a.Instruction
+    $scope.openModal(content);
+  }
 }])
 
 //血压
-.controller('bpmcontroller',['$scope',  '$timeout', '$cordovaBluetoothSerial', '$ionicLoading', '$cordovaBLE', 'BloodPressureMeasure', '$ionicModal', 'VitalInfo','extraInfo',
-  function($scope,  $timeout, $cordovaBluetoothSerial, $ionicLoading, $cordovaBLE, BloodPressureMeasure, $ionicModal, VitalInfo,extraInfo){
+.controller('bpmcontroller',['$scope',  '$timeout', '$cordovaBluetoothSerial', '$ionicLoading', '$cordovaBLE', 'BloodPressureMeasure', '$ionicModal', 'VitalInfo','extraInfo','$rootScope',
+  function($scope,  $timeout, $cordovaBluetoothSerial, $ionicLoading, $cordovaBLE, BloodPressureMeasure, $ionicModal, VitalInfo,extraInfo,$rootScope){
     console.log('bpmcontroller');
     var total = document.documentElement.clientHeight;
     console.log(total);
     var bpm_chartdiv = 3*total/5;
     document.getElementById("bpm_chartdiv").style.height=bpm_chartdiv+"px";
+    document.getElementById("inputdiv").style.height=1*total/5+"px";
     var bpc=BloodPressureMeasure.BloodPressureChart();
     var chart = AmCharts.makeChart("bpm_chartdiv",bpc,500);
     $scope.device_a='';
@@ -805,10 +920,65 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
       jn.Unit='次/分';
       jn.ItemType='Pulserate';
       jn.ItemCode='Pulserate_1';
-    // var highbp,lowbp,jn;
+      ///////////////////////////////////////////
+    var handhighbp=VitalInfo.InsertServerData();
+      handhighbp.Unit='mmHg';
+      handhighbp.ItemType='Bloodpressure';
+      handhighbp.ItemCode='Bloodpressure_1';
+    var handlowbp=VitalInfo.InsertServerData();
+      handlowbp.Unit='mmHg';
+      handlowbp.ItemType='Bloodpressure';
+      handlowbp.ItemCode='Bloodpressure_2';
+    var handjn=VitalInfo.InsertServerData();
+      handjn.Unit='次/分';
+      handjn.ItemType='Pulserate';
+      handjn.ItemCode='Pulserate_1';
+      ////////////////////////////////////
+    // var handhighbp,lowbp,jn;
     var btstart=new Uint8Array(9);
     var BPdata=new Uint8Array(30);
-    ionic.DomUtil.ready(function()
+    ///////////////////////////////////////////////
+    var deviceinputcolor = 'black';
+    $scope.handinputbpm={B1:'',B2:'',M:''};
+    var buttoniconchange='';
+    $scope.handinputbpmchanged = function()
+    {
+      console.log($scope.handinputbpm);
+      validatechart($scope.handinputbpm.B1,$scope.handinputbpm.B2,$scope.handinputbpm.M);
+    }
+    $scope.bpmslideHasChanged = function(index)
+    {
+      switch(index)
+      {
+        case 0:
+        {
+          console.log('index0');
+          clearInterval(buttoniconchange);
+        break;}
+        case 1:
+        {
+          console.log('index1');
+          // validatechart(13,13,13);
+          initbpm();
+          buttoniconchange = setInterval(function(){
+            // console.log(deviceinputcolor);
+            deviceinputcolor=='black'?deviceinputcolor='red':deviceinputcolor='black';
+            document.getElementById('startbutton').style.color=deviceinputcolor;
+          },1000);
+        break;}
+      }
+    }
+    $rootScope.$on('$stateChangeStart', function(event, toState, toParams, fromState, fromParams)
+    {
+      // console.log(fromState);
+      // console.log(fromParams);
+      if(fromParams.tl=='bpm')
+      {
+        clearInterval(buttoniconchange);
+      }
+    });
+    ////////////////////////////////////////////////
+    var initbpm = function()
     {
       setInterval(function()
       {
@@ -820,6 +990,8 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
               {
                 readbloothbuffer(i,1);
               }
+              clearInterval(buttoniconchange);
+              document.getElementById('startbutton').style.color='red';
               $scope.btstatus='已准备好设备，请点击"测量"按钮开始测量';
             }else if(numBytes==30)
             {
@@ -850,7 +1022,7 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
           );
         }
       );
-    });
+    };
     $scope.isBleEnable = function()
     {
       //document.addEventListener('deviceready', function () {
@@ -961,6 +1133,7 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
         $cordovaBluetoothSerial.read().then(
           function(data){
             (data==null)?btstart[i]=0x00:btstart[i]=data.charCodeAt(0);
+            console.log(data);
           },
           function(){}
         );
@@ -969,6 +1142,7 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
         $cordovaBluetoothSerial.read().then(
           function(data){
             (data==null)?BPdata[i]=0x00:BPdata[i]=data.charCodeAt(0);
+            console.log(data);
           },
           function(){}
         );
@@ -1054,16 +1228,17 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
         escape(BPdata[16])!=0?highbp.Value=escape(BPdata[16]):highbp='';
         escape(BPdata[17])!=0?lowbp.Value=escape(BPdata[17]):lowbp='';
         escape(BPdata[19])!=0?jn.Value=escape(BPdata[19]):jn='';
+        if(highbp.Value>=200)highbp.Value=0;
         validatechart(highbp.Value,lowbp.Value,jn.Value);
       }, 500);
     }
     var validatechart=function(hbp,lbp,jn)
     {
       console.log(chart.dataProvider[0].points);
-      chart.dataProvider[0].points=hbp;
-      chart.dataProvider[1].points=lbp;
-      chart.dataProvider[2].points=jn;
-      chart.graphs[0].labelText="[[points]][[Unit]]";
+      if(hbp>50)chart.dataProvider[0].points=hbp;
+      if(lbp>50)chart.dataProvider[1].points=lbp;
+      if(jn>20)chart.dataProvider[2].points=jn;
+      if(hbp>50&&lbp>50&&jn>20)chart.graphs[0].labelText="[[points]][[Unit]]";
       chart.allLabels[0].text=BloodPressureMeasure.BPConclusion(highbp.Value,lowbp.Value);
       chart.validateData();
     };    
@@ -1073,14 +1248,40 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
          VitalInfo.PostPatientVitalSigns(highbp).then(function(r){
             VitalInfo.PostPatientVitalSigns(lowbp).then(function(r){
               VitalInfo.PostPatientVitalSigns(jn).then(function(r){
-                alert('savesuccess');
-                extraInfo.refreshflag('set','graphRefresh');
-                extraInfo.refreshflag('set','recordlistrefresh');
-                refreshflag
+                $ionicLoading.show({
+                  template: '保存成功',
+                  noBackdrop: true,
+                  duration: 700
+                });
+                // alert('savesuccess');
+                // extraInfo.refreshflag('set','graphRefresh');
+                // extraInfo.refreshflag('set','recordlistrefresh');
+                // refreshflag
               },function(e){alert('e.result');});
             },function(e){alert('e.result');});
          },function(e){alert('e.result');}); 
       }
+    };
+    $scope.savehandinput = function(){
+      handhighbp.Value = $scope.handinputbpm.B1;
+      handlowbp.Value = $scope.handinputbpm.B2;
+      handjn.Value = $scope.handinputbpm.M;
+      console.log(handhighbp);
+      VitalInfo.PostPatientVitalSigns(handhighbp).then(function(r){
+        VitalInfo.PostPatientVitalSigns(handlowbp).then(function(r){
+          VitalInfo.PostPatientVitalSigns(handjn).then(function(r){
+            $ionicLoading.show({
+              template: '保存成功',
+              noBackdrop: true,
+              duration: 700
+            });
+            // alert('savesuccess');
+            // extraInfo.refreshflag('set','graphRefresh');
+            // extraInfo.refreshflag('set','recordlistrefresh');
+            // refreshflag
+          },function(e){alert('e1.result');});
+        },function(e){alert('e2.result');});
+      },function(e){alert('e3.result');});
     };
     $ionicModal.fromTemplateUrl('setbt.html', {
       scope: $scope,
@@ -1100,6 +1301,213 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
       $scope.modal.hide();
     };
 }])
+//温度
+.controller('temperaturecontroller',['$scope',  '$http','Storage','VitalInfo','$rootScope','extraInfo','$ionicLoading','$ionicPopup',
+  function($scope,  $http, Storage, VitalInfo, $rootScope,extraInfo,$ionicLoading,$ionicPopup){
+  
+   console.log('temperaturecontroller');
+   var UserId =Storage.get("UID");
+   var result={};
+   $scope.label="必填";
+   $scope.status="请输入";
+   $scope.Temp={Temperature:"",result:""};
+   $http.get('data/Teresult.json').success(function(data){
+        $scope.result = data;
+        console.log(result);
+      });
+  $scope.check = function(c)
+  {
+    chart.dataProvider[0].bullet=$scope.Temp.Temperature;
+    chart.validateData();
+    $scope.fever();
+    if(!c)$scope.twcheck='';
+    else $scope.twcheck='required';
+  }
+
+   //画体温计
+    var chart = AmCharts.makeChart("temperaturechartdiv", {
+    "type": "serial",
+    "theme": "light",
+    "autoMargins": false,
+    "marginTop": 30,
+    "marginLeft": 80,
+    "marginBottom": 30,
+    "marginRight": 50,
+    "dataProvider": [{
+        "category": "体温测量",
+        "limit": 39,
+        "full": 100,
+        "bullet": 37,
+        "minimum":35
+    }],
+    "valueAxes": [{
+        "maximum": 42,
+        "minimum":35,
+        "stackType": "regular",
+        "gridAlpha": 0.5,
+        "axisAlpha":1 
+    }],
+    "startDuration": 1,
+    "graphs": [{
+        "columnWidth": 0.8,
+        "lineColor": "#FF0000",
+        "lineThickness": 3,
+        "noStepRisers": true,
+        "stackable": false,
+        "type": "step",
+        "valueField": "limit"
+        },{
+        "valueField": "full",
+        "showBalloon": false,
+        "type": "column",
+        "lineAlpha": 0,
+        "fillAlphas": 0.7,
+        "fillColors": ["#19d228", "#f6d32b","#FFFF00" ,"#fb2316"],
+        "gradientOrientation": "vertical",
+    }, {
+        "clustered": false,
+        "columnWidth": 0.3,
+        "fillAlphas": 1,
+        "lineColor": "#0000FF",
+        "stackable": false,
+        "type": "column",
+        "valueField": "bullet"
+    }],
+    "rotate": false,
+    "columnWidth": 1,
+    "categoryField": "category",
+    "categoryAxis": {
+        "gridAlpha": 0,
+        "axisAlpha": 0.5,
+        "position": "left"
+    }
+});
+
+  
+  //保存体温值
+// var saveTemp = function()
+//   {
+    // chart.dataProvider[0].bullet=$scope.Temp.Temperature;
+    // chart.validateData();
+    // fever();
+    //console.log(c);
+    
+      // var save = [{
+      //   "UserId": UserId,
+      //   "RecordDate": extraInfo.DateTimeNow().fulldate,
+      //   "RecordTime": extraInfo.DateTimeNow().fulltime,
+      //   "ItemType": "Temperature",
+      //   "ItemCode": 'Temperature_1',
+      //   "Value": ""+$scope.Temp.Temperature+"",
+      //   "Unit": "℃",
+      //   "revUserId": "UserId",
+      //   "TerminalName": "sample string 9",
+      //   "TerminalIP": "sample string 10",
+      //   "DeviceType": 11
+      // }]
+      // VitalInfo.PostPatientVitalSigns(save[0]).then(function(data){
+      //   console.log(data);
+      //   $ionicLoading.show({
+      //       template: '保存成功',
+      //       noBackdrop: true,
+      //       duration: 700
+      //     });
+      //   $scope.Temp.Temperature="";
+      //   $scope.status="";
+      // })
+    // else
+    // {
+    //   $ionicLoading.show({
+    //         template: '保存失败',
+    //         noBackdrop: true,
+    //         duration: 700
+    //       });
+    //   $scope.Temp.Temperature="";
+    //   $scope.status="请重新输入";
+    // }
+  // }
+  //  confirm 对话框
+           $scope.showConfirm = function(c) {
+             if(c)
+             {
+               $scope.confirmPopup = $ionicPopup.confirm({
+               title: '确认提交?',
+               template: '您测的体温是  '+$scope.Temp.Temperature+"℃",
+               scope: $scope,
+               buttons: [
+                  {text: '提交',
+                 　onTap: function(e) {
+    
+                   $scope.save = [{
+                      "UserId": UserId,
+                      "RecordDate": extraInfo.DateTimeNow().fulldate,
+                      "RecordTime": extraInfo.DateTimeNow().fulltime,
+                      "ItemType": "Temperature",
+                      "ItemCode": 'Temperature_1',
+                      "Value": "" +$scope.Temp.Temperature+ "",
+                      "Unit": "℃",
+                      "revUserId": UserId,
+                      "TerminalName": "sample string 9",
+                      "TerminalIP": "sample string 10",
+                      "DeviceType": 11
+                    }]
+                    console.log(UserId);
+                  VitalInfo.PostPatientVitalSigns($scope.save[0]).then(function(data){
+                    $scope.rdata='数据插入成功';
+                    console.log(data);
+                    $ionicLoading.show({
+                        template: '保存成功',
+                        noBackdrop: true,
+                        duration: 700
+                      });
+                    $scope.Temp.Temperature="";
+                    $scope.status="";
+                    $scope.Temp.result="";
+                  })
+                }
+              },
+                 {
+                   text: '<b>取消</b>',
+                   type: 'button-positive',
+               }]
+             });
+           }else 
+           {
+
+            $scope.twcheck = 'required';
+            $scope.label="必填";
+           }
+         };
+ //根据体温值，给出相应的提示信息
+  $scope.fever = function()
+  {   
+      if($scope.Temp.Temperature>=35 && $scope.Temp.Temperature<=36.2)
+        {
+          $scope.Temp.result = $scope.result.result4;
+        }
+      else if($scope.Temp.Temperature>36.2 && $scope.Temp.Temperature<=37.2)
+        {
+          $scope.Temp.result = $scope.result.result5;
+        }
+      else if($scope.Temp.Temperature>37.2 && $scope.Temp.Temperature<38.2)
+        {
+          $scope.Temp.result = $scope.result.result1;
+        }
+      else if($scope.Temp.Temperature>=38.2 && $scope.Temp.Temperature<39.2)
+        {
+          $scope.Temp.result =  $scope.result.result2;
+        }
+      else if( $scope.Temp.Temperature<=42 && $scope.Temp.Temperature>=39.2)
+        {
+          $scope.Temp.result = $scope.result.result3;
+        } 
+      else 
+      {
+        $scope.Temp.result=$scope.result.result6;
+      }
+  };
+
+}])
 
 .controller('healtheducationcontroller',['$scope', '$cordovaInAppBrowser', '$cordovaMedia', '$http', '$ionicModal',function($scope, $cordovaInAppBrowser, $cordovaMedia, $http, $ionicModal){
   $http.get('testdata/HElist.json').success(function(data){
@@ -1116,6 +1524,7 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
     location: 'no',
     clearcache: 'yes',
     toolbar: 'no'};
+  $scope.forunittest=false;
   $scope.play = function(r)
   {
     if(r.Type=='mp3'||r.Type=='mp4')
@@ -1124,8 +1533,11 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
       $scope.modal.show();
       $scope.mediatitle=r.name;
       $scope.mediadescribe=r.describe;
-      document.getElementById("myVideo").src=r.Url;
-      document.getElementById("myVideo").poster=r.poster;
+      if($scope.forunittest==false)
+      {
+        document.getElementById("myVideo").src=r.Url;
+        document.getElementById("myVideo").poster=r.poster;
+      }
       //$cordovaInAppBrowser.open(url, '_blank', options);
     }else if(r.Type=='jpg')
     {
@@ -1139,35 +1551,55 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
   };
 }])
 
-.controller('measureweightcontroller',['$scope','Data','Storage','VitalInfo', 'extraInfo','$ionicLoading',
-  function($scope,Data,Storage,VitalInfo,extraInfo,$ionicLoading){
+.controller('measureweightcontroller',['$scope','Data','Storage','VitalInfo', 'extraInfo','$ionicLoading','BloodPressureMeasure','$ionicSlideBoxDelegate','$rootScope', '$http',
+  function($scope,Data,Storage,VitalInfo,extraInfo,$ionicLoading,BloodPressureMeasure,$ionicSlideBoxDelegate,$rootScope, $http){
+  /////////////////////
+  var result='';
+  $http.get('data/whresult.json').success(function(data){
+        result = data;
+        console.log(result);
+      });
+  /////////////////////
+  $scope.BMI={weight:0,height:0,BMI:0,result:''};
   $scope.hcheck='';
   $scope.wcheck='';
-  $scope.check_h = function(c)
+  $scope.check_h = function(c1,c2)
   {
     $scope.BMI.BMI='';
-    if(!c)$scope.hcheck='';
+    if(!c1&&!c2)
+    {
+      $scope.hcheck='';
+      mathbmi();
+      setchartValue();
+      setchartband();
+    }
     else $scope.hcheck='required';
+    // console.log($scope.BMI.BMI);
   }
-  $scope.check_w = function(c)
+  $scope.check_w = function(c1,c2)
   {
     $scope.BMI.BMI='';
-    if(!c)$scope.wcheck='';
+    if(!c1&&!c2)
+    {
+      $scope.wcheck='';
+      mathbmi();
+      setchartValue();
+    }
     else $scope.wcheck='required';
   }
-  $scope.$on('$viewContentLoading', 
-    function(event){
-      console.log('viewContentLoading');
-      VitalInfo.GetLatestPatientVitalSigns(get[0]).then(function(s){
-        console.log(s);
-        $scope.BMI.weight = parseInt(s.result);
-        VitalInfo.GetLatestPatientVitalSigns(get[1]).then(function(s){
-          $scope.BMI.height = parseInt(s.result);
-          console.log(s);
-        });
-    });
-  });
-  $scope.BMI={}
+  // $scope.$on('$viewContentLoading', 
+  //   function(event){
+  //     console.log('viewContentLoading');
+  //     VitalInfo.GetLatestPatientVitalSigns(get[0]).then(function(s){
+  //       console.log(s);
+  //       $scope.BMI.weight = parseInt(s.result);
+  //       VitalInfo.GetLatestPatientVitalSigns(get[1]).then(function(s){
+  //         $scope.BMI.height = parseInt(s.result);
+  //         console.log(s);
+  //       });
+  //   });
+  // });
+  $scope.BMI={};
   var UserId =Storage.get("UID");//'PID201506180013'
   var get = [{
     UserId:UserId,
@@ -1181,24 +1613,48 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
   }]
   VitalInfo.GetLatestPatientVitalSigns(get[0]).then(function(s){
     console.log(s);
-    $scope.BMI.weight = parseInt(s.result);
+    $scope.BMI.weight = parseInt(s.Value);
     VitalInfo.GetLatestPatientVitalSigns(get[1]).then(function(s){
-      $scope.BMI.height = parseInt(s.result);
+      $scope.BMI.height = parseInt(s.Value);
+      setTimeout(function() {mathbmi();setchartband();setchartValue();}, 1000);
       console.log(s);
     });
   });
-  $scope.mathbmi = function(c)
+  var mathbmi = function()
   {
-    if(c)
-    {
       $scope.BMI.BMI=($scope.BMI.weight/($scope.BMI.height * $scope.BMI.height));
-      if($scope.BMI.BMI<0.00185)$scope.BMI.result = "您的体重有点过轻了";
-      else if($scope.BMI.BMI>=0.00185&&$scope.BMI.BMI<0.002499)$scope.BMI.result = "您的体重属于正常范围";
-      else if($scope.BMI.BMI>=0.0025&&$scope.BMI.BMI<0.0028)$scope.BMI.result = "您的体重过重了";
-      else if($scope.BMI.BMI>=0.0028&&$scope.BMI.BMI<0.0032)$scope.BMI.result = "您已经属于肥胖行列了";
-      else if($scope.BMI.BMI>=0.0032)$scope.BMI.result = "您现在已经非常肥胖了";
-      console.log($scope.BMI.BMI);
-    }
+      if($scope.BMI.BMI<0.00185)
+        {
+          $scope.BMI.result = result.result1;
+          document.getElementById('submitwh').style.backgroundColor='gray';
+          gaugeChart.arrows[0].color='gray';
+        }
+      else if($scope.BMI.BMI>=0.00185&&$scope.BMI.BMI<0.002499)
+        {
+          setTimeout(function() {$scope.BMI.result =  result.result2;console.log($scope.BMI.result);}, 1000);
+          
+          document.getElementById('submitwh').style.backgroundColor='green';
+          gaugeChart.arrows[0].color='green';
+        }
+      else if($scope.BMI.BMI>=0.0025&&$scope.BMI.BMI<0.0028)
+        {
+          $scope.BMI.result =  result.result3;
+          document.getElementById('submitwh').style.backgroundColor='#E8D502';
+          gaugeChart.arrows[0].color='#E8D502';
+        }
+      else if($scope.BMI.BMI>=0.0028&&$scope.BMI.BMI<0.0032)
+        {
+          $scope.BMI.result =  result.result4;
+          document.getElementById('submitwh').style.backgroundColor='#FF944D';
+          gaugeChart.arrows[0].color='#FF944D';
+        }
+      else if($scope.BMI.BMI>=0.0032)
+        {
+          $scope.BMI.result =  result.result5;
+          document.getElementById('submitwh').style.backgroundColor='red';
+          gaugeChart.arrows[0].color='red';
+        }
+      // console.log($scope.BMI.BMI);
   };
   $scope.saveWH = function(c)
   {
@@ -1243,19 +1699,231 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
         })
       })
     }
-    
+  }
+  $scope.nextSlide = function() {
+    $ionicSlideBoxDelegate.next();
+  }
+  $scope.previousSlide = function() {
+    $ionicSlideBoxDelegate.previous();
+  }
+  var mwchartdata = {
+    "type": "gauge",
+    "theme": "light",
+    "axes": [ {
+      "axisThickness": 1,
+      "axisAlpha": 0.2,
+      "tickAlpha": 0.2,
+      "valueInterval": 10,
+      "bands": [ {
+        "color": "gray",
+        "endValue": 150,
+        "startValue": 0
+      }, {
+        "color": "green",
+        "endValue": 0,
+        "startValue": 0
+      }, {
+        "color": "#E8D502",
+        "endValue": 0,
+        "innerRadius": "95%",
+        "startValue": 0
+      }, {
+        "color": "#FF944D",
+        "endValue": 0,
+        "innerRadius": "95%",
+        "startValue": 0
+      }, {
+        "color": "red",
+        "endValue": 0,
+        "innerRadius": "95%",
+        "startValue": 0
+      } ],
+      "bottomText": "0 km/h",
+      "bottomTextYOffset": -20,
+      "endValue": 150
+    } ],
+    "arrows": [ {
+        "color":"gray",
+        "nailAlpha":1,
+        "nailRadius":15
+      } ],
+    "export": {
+      "enabled": true
+    },
+    "panEventsEnabled":false,
+    "autoDisplay":true,
+    "marginBottom":0
+  }
+  var storagemwchartdata = mwchartdata;
+  var gaugeChart = AmCharts.makeChart( "mwchart",mwchartdata,500);
+  //////////////////////////
+  var buttoniconflag = true;
+  var buttoniconchange = setInterval( function(){setbuttoniconcolor()}, 1000 );
+  $rootScope.$on('$stateChangeStart', function(event, toState, toParams, fromState, fromParams)
+  {
+    // console.log(fromState);
+    // console.log(fromParams);
+    if(fromParams.tl=='measureweight')
+    {
+      clearInterval(buttoniconchange);
+    }
+  });
+  var setbuttoniconcolor = function(){
+    if(buttoniconflag)
+    {
+      document.getElementById("buttonicon").style.color="red";
+      buttoniconflag = !buttoniconflag;
+    }else
+    {
+      document.getElementById("buttonicon").style.color="black";
+      buttoniconflag = !buttoniconflag;
+    }
+  }
+  $scope.startwhmeasure = function()
+  {
+    clearInterval(buttoniconchange);
+    document.getElementById("buttonicon").style.color="red";
+  }
+  //////////////////////
+  var setchartValue = function() {
+    if($scope.BMI.height!=undefined&&$scope.BMI.weight!=undefined)
+    {
+      if ( gaugeChart ) {
+        if ( gaugeChart.arrows ) {
+          if ( gaugeChart.arrows[ 0 ] ) {
+            if ( gaugeChart.arrows[ 0 ].setValue ) {
+              gaugeChart.arrows[ 0 ].setValue( $scope.BMI.weight );
+              gaugeChart.axes[ 0 ].setBottomText("BMI:"+($scope.BMI.BMI*10000).toFixed(2)+'\n'+$scope.BMI.height + "cm  "+$scope.BMI.weight + "Kg");
+              // console.log(($scope.BMI.BMI*10000).toFixed(2));
+            }
+          }
+        }
+      }
+    }
+  }
+  var setchartband = function()
+  {
+    var band1 = $scope.BMI.height*$scope.BMI.height*0.00185;
+    gaugeChart.axes[ 0 ].bands[0].endValue=band1;
+    gaugeChart.axes[ 0 ].bands[1].startValue=band1;
+    var band2 = $scope.BMI.height*$scope.BMI.height*0.0025;
+    gaugeChart.axes[ 0 ].bands[1].endValue=band2;
+    gaugeChart.axes[ 0 ].bands[2].startValue=band2;
+    var band3 = $scope.BMI.height*$scope.BMI.height*0.0028;
+    gaugeChart.axes[ 0 ].bands[2].endValue=band3;
+    gaugeChart.axes[ 0 ].bands[3].startValue=band3;
+    var band4 = $scope.BMI.height*$scope.BMI.height*0.0032;
+    gaugeChart.axes[ 0 ].bands[3].endValue=band4;
+    gaugeChart.axes[ 0 ].bands[4].startValue=band4;
+    gaugeChart.axes[ 0 ].bands[4].endValue=150;
+    gaugeChart.validateNow(true,false);
+  }
+  var storageBMI = {};
+  $scope.slideHasChanged = function(index)
+  {
+    // console.log(index);
+    switch (index)
+    {
+      case 0:
+        $scope.BMI.weight=storageBMI.weight;
+        $scope.BMI.height=storageBMI.height;
+        $scope.BMI.BMI=storageBMI.BMI;
+        $scope.BMI.result=storageBMI.result;
+        console.log(storageBMI);
+        // mwchartdata=storagemwchartdata;
+        mathbmi();
+        setchartValue();
+        setchartband();
+        break;
+      case 1:
+        document.getElementById('submit2').style.backgroundColor='gray';
+        storageBMI.weight=$scope.BMI.weight;
+        storageBMI.height=$scope.BMI.height;
+        storageBMI.BMI=$scope.BMI.BMI;
+        storageBMI.result=$scope.BMI.result;
+        console.log(storageBMI);
+        $scope.BMI.weight=0;
+        $scope.BMI.height=0;
+        $scope.BMI.BMI=0;
+        $scope.BMI.result='';
+        mathbmi();
+        setchartValue();
+        setchartband();
+        mwchartdata.axes[ 0 ].bands[0].endValue=150;
+        mwchartdata.axes[ 0 ].bands[1].startValue=0;
+        mwchartdata.axes[ 0 ].bands[1].endValue=0;
+        mwchartdata.axes[ 0 ].bands[2].startValue=0;
+        mwchartdata.axes[ 0 ].bands[2].endValue=0;
+        mwchartdata.axes[ 0 ].bands[3].startValue=0;
+        mwchartdata.axes[ 0 ].bands[3].endValue=0;
+        mwchartdata.axes[ 0 ].bands[4].startValue=0;
+        mwchartdata.axes[ 0 ].bands[4].endValue=0;
+        mwchartdata.arrows[0].color='gray';
+        gaugeChart.validateNow(true,false);
+        break;
+    }
   }
 }])
 
-.controller('bloodglucosecontroller',['$scope','Data','Storage', 'VitalInfo','extraInfo', '$ionicLoading', function($scope,Data,Storage,VitalInfo,extraInfo,$ionicLoading){
+.controller('bloodglucosecontroller',['$scope','Data','Storage', 'VitalInfo','extraInfo', '$ionicLoading','$rootScope', '$ionicSlideBoxDelegate', '$http','VitalInfo','userservice',
+  function($scope,Data,Storage,VitalInfo,extraInfo,$ionicLoading,$rootScope,$ionicSlideBoxDelegate, $http, VitalInfo,userservice){
   console.log('bloodglucosecontroller');
   $scope.bloodglucose={"select":'早餐前',"mvalue":"","tvalue":""};
   $scope.bgcheck='';
+  var result={};
+  $http.get('data/bgresult.json').success(function(data){
+    result = data;
+    console.log(result);
+  });
+  $scope.result = '';
   $scope.check = function(c)
   {
     // console.log('change');
+    setchartValue();
+    setarrowcolor();
     if(!c)$scope.bgcheck='';
     else $scope.bgcheck='required';
+  }
+  var value1,value2;
+  $scope.getlatestbgvalue = function()
+  {
+    var param1 = {UserId:window.localStorage['UID'],ItemType:'BloodSugar',ItemCode:'BloodSugar_10'};
+    var param2 = {UserId:window.localStorage['UID'],ItemType:'BloodSugar',ItemCode:'BloodSugar_11'};
+    VitalInfo.GetLatestPatientVitalSigns(param1).then(function(s){
+      console.log(s);
+      value1 = s.result;
+      VitalInfo.GetLatestPatientVitalSigns(param2).then(function(s){
+        console.log(s);
+        value2 = s.result;
+        // if(value1!=null&&value2 != null)
+        // {
+          
+        // }
+        // if(value2 == null)
+        //   {
+        //     $scope.bloodglucose.mvalue = value2;
+        //   }
+        // else if(va
+        $scope.bloodglucose.mvalue = parseInt(value2);
+        setchartValue();
+        setarrowcolor();
+        clearInterval(buttoniconchange);
+        document.getElementById("buttonicon").style.color="red";
+      },function(e){
+        console.log(e);
+      });
+    },function(e){
+      console.log(e);
+    });
+  }
+  $scope.binddevice = function()
+  {
+    userservice.BindMeasureDevice(window.localStorage['UID']).then(
+      function(s){
+        console.log(s);
+      },function(e){
+        console.log(e);
+      })
   }
   $scope.savebloodglucose = function(check)
   {
@@ -1274,9 +1942,9 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
         "TerminalIP": "sample string 10",
         "DeviceType": 11
       }
-      //console.log(save);
+      console.log(save);
       VitalInfo.PostPatientVitalSigns(save).then(function(s){
-        //console.log(s);
+        console.log(s);
         $ionicLoading.show({
           template: '保存成功',
           noBackdrop: true,
@@ -1292,6 +1960,213 @@ function($scope,$ionicModal,$stateParams,$state,extraInfo,$cordovaInAppBrowser,T
       });
     }else $scope.bgcheck='required';
   }
+   var setchartValue = function() 
+   {
+    var v = $scope.bloodglucose.mvalue; 
+    if(v == undefined || v == '')v=0;
+    if ( bloodglucosecharts ) {
+      if ( bloodglucosecharts.arrows ) {
+        if ( bloodglucosecharts.arrows[ 0 ] ) {
+          if ( bloodglucosecharts.arrows[ 0 ].setValue ) {
+            bloodglucosecharts.arrows[ 0 ].setValue(v);
+            bloodglucosecharts.axes[ 0 ].setBottomText(v+" mmol/L");
+          }
+        }
+      }
+    }
+    
+  }
+  setchartValue();
+  //////////////////////////
+  var storagembg = {"select":'早餐前',"mvalue":"","tvalue":""};
+  $scope.mbgslideHasChanged = function(index)
+  {
+    // console.log(storagembg.mvalue);
+    switch(index)
+    {
+      case 0:
+          $scope.bloodglucose.mvalue = storagembg.mvalue;
+          setchartValue();
+          setarrowcolor();
+        break;
+      case 1:
+          storagembg.mvalue = $scope.bloodglucose.mvalue;
+          // $scope.bloodglucose.mvalue = 0;
+          setchartValue();
+          setarrowcolor();
+          $scope.getlatestbgvalue();
+        break;
+    }
+  }
+  $scope.nextSlide = function() {
+    $ionicSlideBoxDelegate.next();
+  }
+  $scope.previousSlide = function() {
+    $ionicSlideBoxDelegate.previous();
+  }
+  var buttoniconflag = true;
+  var buttoniconchange = setInterval( function(){setbuttoniconcolor()}, 1000 );
+  $rootScope.$on('$stateChangeStart', function(event, toState, toParams, fromState, fromParams)
+  {
+    // console.log(fromState);
+    // console.log(fromParams);
+    if(fromParams.tl=='bloodglucose')
+    {
+      clearInterval(buttoniconchange);
+    }
+  });
+  var setbuttoniconcolor = function(){
+    if(buttoniconflag)
+    {
+      document.getElementById("buttonicon").style.color="red";
+      buttoniconflag = !buttoniconflag;
+    }else
+    {
+      document.getElementById("buttonicon").style.color="black";
+      buttoniconflag = !buttoniconflag;
+    }
+  }
+  $scope.startwhmeasure = function()
+  {
+    // clearInterval(buttoniconchange);
+    document.getElementById("buttonicon").style.color="black";
+  }
+  //////////////////////
+  var lastid = 's1';
+  var hournow = new Date().getHours();
+  if(hournow>=1&&hournow<8)$scope.selecttimeline
+  /////////////////////////////////
+  $scope.selecttimeline = function(tl,cid)
+  {
+    console.log(cid);
+    document.getElementById(lastid).style.color="black";
+    lastid = cid;
+    document.getElementById(cid).style.color="red";
+    switch(tl)
+    {      
+      case '早餐前':
+        setchartband(4,8);
+        $scope.bloodglucose.select='早餐前';
+        break;
+      case '早餐后':
+        setchartband(6,10);
+        $scope.bloodglucose.select='早餐后';
+        break;
+      case '午餐前':
+        setchartband(4,9);
+        $scope.bloodglucose.select='午餐前';
+        break;
+      case '午餐后':
+        setchartband(9,13);
+        $scope.bloodglucose.select='午餐后';
+        break;
+      case '晚餐前':
+        setchartband(7,10);
+        $scope.bloodglucose.select='晚餐前';
+        break;
+      case '晚餐后':
+        setchartband(10,13);
+        $scope.bloodglucose.select='晚餐后';
+        break;
+      case '凌晨':
+        setchartband(5,7);
+        $scope.bloodglucose.select='凌晨';
+        break;
+      case '睡前':
+        setchartband(6,9);
+        $scope.bloodglucose.select='睡前';
+        break;
+    }
+    setarrowcolor();
+  }
+  //////////////////////
+  setTimeout(function(){
+    var hournow = new Date().getHours();
+    if(hournow>=1&&hournow<8)$scope.selecttimeline('早餐前','s1');
+    else if(hournow>=8&&hournow<9)$scope.selecttimeline('早餐后','s2');
+    else if(hournow>=9&&hournow<12)$scope.selecttimeline('午餐前','s3');
+    else if(hournow>=12&&hournow<15)$scope.selecttimeline('午餐后','s4');
+    else if(hournow>=15&&hournow<19)$scope.selecttimeline('晚餐前','s5');
+    else if(hournow>=19&&hournow<21)$scope.selecttimeline('晚餐后','s6');
+    else if(hournow>=21&&hournow<23)$scope.selecttimeline('睡前','s8');
+    else if(hournow>=23||hournow<1)$scope.selecttimeline('凌晨','s7');
+  },500);
+  
+  /////////////////////////////////
+  var setchartband = function(n1,n2)
+  {
+    bloodglucosecharts.axes[ 0 ].bands[0].startValue=0;
+    bloodglucosecharts.axes[ 0 ].bands[0].endValue=n1;
+    bloodglucosecharts.axes[ 0 ].bands[1].startValue=n1;
+    bloodglucosecharts.axes[ 0 ].bands[1].endValue=n2;
+    bloodglucosecharts.axes[ 0 ].bands[2].startValue=n2;
+    bloodglucosecharts.axes[ 0 ].bands[2].endValue=15;
+    bloodglucosecharts.validateNow(true,false);
+  }
+  var setarrowcolor = function()
+  {
+    var v = $scope.bloodglucose.mvalue;
+    if(v==undefined)v=0;
+      if(v < bloodglucosecharts.axes[ 0 ].bands[0].endValue)
+        {
+          document.getElementById('submitbg').style.backgroundColor='gray';
+          bloodglucosecharts.arrows[0].color='gray';
+          $scope.result = result.result1;
+        }
+      else if(v>=bloodglucosecharts.axes[ 0 ].bands[0].endValue && v<bloodglucosecharts.axes[ 0 ].bands[1].endValue)
+        {
+          document.getElementById('submitbg').style.backgroundColor='green';
+          bloodglucosecharts.arrows[0].color='green';
+          $scope.result = result.result2;
+        }
+      else if(v>=bloodglucosecharts.axes[ 0 ].bands[1].endValue && v<=15)
+        {
+          document.getElementById('submitbg').style.backgroundColor='red';
+          bloodglucosecharts.arrows[0].color='red';
+          $scope.result = result.result3;
+        }
+      // console.log($scope.BMI.BMI);
+  };
+  ///////////////////////////////
+  var bloodglucosecharts = AmCharts.makeChart("bloodglucosechartsdiv", {
+    "type": "gauge",
+    "theme": "light",
+    "axes": [ {
+      "axisThickness": 1,
+      "axisAlpha": 0.2,
+      "tickAlpha": 0.2,
+      "valueInterval": 1,
+      "bands": [ {
+        "color": "gray",
+        "endValue": 15,
+        "startValue": 0
+      }, {
+        "color": "green",
+        "endValue": 0,
+        "startValue": 0
+      },{
+        "color": "red",
+        "endValue": 0,
+        "innerRadius": "95%",
+        "startValue": 0
+      } ],
+      "bottomText": "0 mmol/L",
+      "bottomTextYOffset": -20,
+      "endValue": 15
+    } ],
+    "arrows": [ {
+        "color":"gray",
+        "nailAlpha":1,
+        "nailRadius":15
+      } ],
+    "export": {
+      "enabled": true
+    },
+    "panEventsEnabled":false,
+    "autoDisplay":true,
+    "marginBottom":0
+  },500);
+  ////////////////////////////////
 }])
 
 .controller('alertcontroller',['$scope', '$timeout', '$ionicModal', '$ionicHistory', '$cordovaDatePicker','$cordovaLocalNotification','NotificationService',
@@ -1300,9 +2175,122 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
   //   $ionicHistory.goBack();
   // }
   // $scope.lastviewtitle = $ionicHistory.backTitle();
+   // $cordovaCalendar.createCalendar({
+   //  calendarName: 'Cordova Calendar',
+   //  calendarColor: '#FF0000'
+   //  }).then(function (result) {
+   //    // success
+   //  }, function (err) {
+   //    // error
+   //  });
 }])
 
+.controller('calendarcontroller',['$scope', '$cordovaCalendar','PlanInfo','extraInfo',
+function($scope, $cordovaCalendar,PlanInfo,extraInfo) {
 
+    $scope.showiniticon = true;
+    $scope.notaskicon = false;
+    var data = {
+      PatientId:window.localStorage['UID'],
+      StartDate:'',
+      EndDate:'',
+      Module:'M1'
+    };
+    
+
+    var doneflag = [];
+    var doneflag_a = [];
+
+    // var nextmonth = new Date();
+    // nextmonth.setDate(1);
+    // nextmonth.setMonth(nextmonth.getMonth()+1);
+    // nextmonth.setDate(nextmonth.getDate()-1);
+    
+
+    // console.log(data);
+    $("#myCalendar-1").ionCalendar({
+        lang: "ch",                     // language
+        sundayFirst: false,             // first week day
+        years: "80",                    // years diapason
+        format: "YYYY.MM.DD",           // date format
+        onClick: function(date){        // click on day returns date
+            getselecteddaytask(date);
+        }
+    },PlanInfo,[],data);
+      // PlanInfo.GetComplianceListInC(data).then(function(s){
+      //   console.log(s);
+      //   doneflag_a = s;
+      //   if(doneflag_a.length == 0)
+      //   {
+      //       doneflag = [];
+      //   }else{
+      //      for(var i=0;i<doneflag_a.length;i++)
+      //       {
+      //           doneflag[doneflag_a[i].Date%100] = doneflag_a[i];
+      //       }
+      //       // console.log(doneflag);
+      //       $("#myCalendar-1").ionCalendar({
+      //           lang: "ch",                     // language
+      //           sundayFirst: false,             // first week day
+      //           years: "80",                    // years diapason
+      //           format: "YYYY.MM.DD",           // date format
+      //           onClick: function(date){        // click on day returns date
+      //               getselecteddaytask(date);
+      //           }
+      //       },PlanInfo,doneflag);
+      //   }
+      // },function(e){
+      //   console.log(e);
+      //   $("#myCalendar-1").ionCalendar({
+      //           lang: "ch",                     // language
+      //           sundayFirst: false,             // first week day
+      //           years: "80",                    // years diapason
+      //           format: "YYYY.MM.DD",           // date format
+      //           onClick: function(date){        // click on day returns date
+      //               getselecteddaytask(date);
+      //           }
+      //       },PlanInfo,[]);
+      // });
+    var getselecteddaytask = function(date)
+    {
+      console.log(date);
+      $scope.showiniticon=false;
+      $scope.showtasklist=new Array();
+      $scope.$apply();
+      if(date.optiondata != null)
+      {
+        var option = {PlanNo:date.optiondata.PlanNo,ParentCode:'T',Date:date.optiondata.Date};
+        //console.log(option);
+        PlanInfo.PlanInfoChartDtl(option).then(function(s){
+          $scope.notaskicon=false;
+          //console.log(s);
+          for(var i=0;i<s.length;i++)
+          {
+            s[i].index = i;
+            s[i].showdetail = false;
+          }
+          $scope.showtasklist = s;
+          $scope.notaskicon=false;
+        },function(e){
+          console.log(e);
+        });
+      }else{
+        $scope.notaskicon=true;
+        $scope.$apply();
+      }
+      // console.log($scope.showtasklist);
+    }
+    var lastindex = null;
+    $scope.showdetail = function(index)
+    {
+      if(lastindex!=null && lastindex!=index)
+      {
+        $scope.showtasklist[lastindex].showdetail = false;
+      }
+      $scope.showtasklist[index].showdetail = !$scope.showtasklist[index].showdetail;
+      lastindex = index;
+    }
+}])
 // --------依从率图-李山----------------
 //目标公共界面
 .controller('TargetCtrl', ['$scope', '$http','$ionicSideMenuDelegate','$timeout','$ionicPopup',
@@ -1317,8 +2305,20 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
 .controller('graphcontroller', ['$scope', '$http','$ionicSideMenuDelegate','$timeout','$state','$window','$ionicPopover', 'PlanInfo','$ionicLoading', 'Storage',
     function($scope, $http, $ionicSideMenuDelegate,$timeout, $state, $window, $ionicPopover, PlanInfo, $ionicLoading, Storage) {
 
+      // --------------button修改 张桠童-----------------------//
+      $ionicPopover.fromTemplateUrl('popover-select-button.html', {
+        scope: $scope,
+      }).then(function(popover_others) {
+        $scope.popover_others = popover_others;
+      });
+
+      $scope.selectPop = function(){
+        $scope.popover_others.hide();
+      };
+      // --------------button修改 张桠童-----------------------//
+
       //固定变量guide 也可读自json文件
-      var  UserId= Storage.get('UID');
+       var  UserId= Storage.get('UID');
        var SBPGuide='';
        var DBPGuide='';
        var PulseGuide='';
@@ -1356,13 +2356,13 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
               $scope.showGraph=true;
               $scope.RemainingDays=data[0].RemainingDays;
               $scope.ProgressRate=data[0].ProgressRate;
-              $scope.PlanCompliance==data[0].PlanCompliance;
+              $scope.PlanCompliance=data[0].PlanCompliance;
               $scope.vitalInfo =$scope.options[0];//体征下拉框 默认收缩压   
               PlanNo=data[0].PlanNo;
               StartDate =data[0].StartDate; 
               EndDate=data[0].EndDate;
 
-              init_graph(UserId, data[0].PlanNo, data[0].StartDate, data[0].EndDate, "Bloodpressure", "Bloodpressure_1", SBPGuide,80,200);
+              init_graph(UserId, data[0].PlanNo, data[0].StartDate, data[0].EndDate, "Bloodpressure", "Bloodpressure_1", SBPGuide,60,200,"收缩压 （单位：mmHg）");
               
            }
            else
@@ -1387,10 +2387,15 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
       $http.get('data/guide-bloodGlucose.json').success(function(data) {
          BloodSugarGuide=data;
        });
+
+      $http.get('data/guide-temperature.json').success(function(data) {
+         TemperatureGuide=data;
+       });
        
        $scope.options = [{"SignName":"收缩压", "ItemType":"Bloodpressure", "ItemCode":"Bloodpressure_1"},
                          {"SignName":"舒张压", "ItemType":"Bloodpressure","ItemCode":"Bloodpressure_2"},
                          {"SignName":"脉率", "ItemType":"Pulserate", "ItemCode":"Pulserate_1"},
+                         {"SignName":"体温","ItemType":"Temperature","ItemCode":"Temperature_1"},
                          {"SignName":"凌晨血糖", "ItemType":"BloodSugar","ItemCode":"BloodSugar_2"}, 
                          {"SignName":"睡前血糖","ItemType":"BloodSugar","ItemCode":"BloodSugar_3"},
                          {"SignName":"早餐前血糖","ItemType":"BloodSugar","ItemCode":"BloodSugar_4"},
@@ -1415,7 +2420,7 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
       //     }
           
       // });
-      $scope.$on('$ionicView.afterEnter', function() {   //$viewContentLoaded
+      $scope.$on('$ionicView.afterEnter', function() {   //$viewContentLoaded  
           console.log("enter graphView") ;
           $scope.graphData&&AmCharts.makeChart("chartdiv_graph", $scope.graphData);
       });
@@ -1458,7 +2463,7 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
                 PlanInfo.Target(PlanNo, ItemType, ItemCode).then(function(data) { 
                   //console.log(data);
                     if((data.Origin!=null)&&(data.Value!=null)){
-                       $scope.orignalValue='初始值：'+data.Origin+data.Unit;
+                       //$scope.orignalValue='初始值：'+data.Origin+data.Unit;
                        $scope.targetValue='目标值：'+data.Value+data.Unit;
                      }
                      else
@@ -1492,7 +2497,7 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
        //同时修改初始值和目标值，有显示，无则隐藏  未做
        if(ItemCode=="Bloodpressure_1")
         {
-          init_graph(UserId, PlanNo, StartDate, EndDate, ItemType, ItemCode, SBPGuide,80,200,"收缩压 （单位：mmHg）");
+          init_graph(UserId, PlanNo, StartDate, EndDate, ItemType, ItemCode, SBPGuide,60,200,"收缩压 （单位：mmHg）");
           //chart_graph.panels[0].title="收缩压 （单位：mmHg）";
           //chart_graph.panels[0].valueAxes[0].minimum=80;
           //chart_graph.panels[0].valueAxes[0].maximum=200;
@@ -1507,6 +2512,10 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
         else if(ItemCode=="Pulserate_1")
         {
           init_graph(UserId, PlanNo, StartDate, EndDate, ItemType, ItemCode, PulseGuide,0,150,"脉率 （单位：次/分）");
+        }
+        else if(ItemCode=="Temperature_1")
+        {
+          init_graph(UserId, PlanNo, StartDate, EndDate, ItemType, ItemCode, TemperatureGuide,34,42,"体温 （单位：℃）");
         }
         else
         {
@@ -1570,7 +2579,7 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
         },
         //autoMargins:false,
         panels: [{
-          title: "收缩压 （单位：mmHg）",
+          title: "",
           showCategoryAxis: false,
           percentHeight: 65,
           autoMargins:false,
@@ -1591,8 +2600,8 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
               gridAlpha : 0,
               //labelOffset:0,
               labelsEnabled : false,
-              minimum: 80,  
-              maximum: 200,  
+              //minimum: 80,  
+              //maximum: 200,  
               guides:''   //区域划分ChartData.GraphGuide.GuideList
               
             }
@@ -1702,7 +2711,7 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
           chartScrollbarSettings: {  //时间缩放面板
             zoomable:false,
             pan:true,           
-            enabled:true,
+            enabled:false,
             position: "top",
             autoGridCount: true, //默认
             graph: "graph1",
@@ -1743,26 +2752,27 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
         }
         var theDate=theyear.toString()+themonth.toString()+theday.toString();
  
-        //console.log(theDate);
-        PlanInfo.PlanInfoChartDtl(PlanNo,"T", theDate).then(function(data) { 
+        //console.log(PlanNo);
+        var option = {PlanNo:PlanNo, ParentCode:'T', Date:theDate};
+        PlanInfo.PlanInfoChartDtl(option).then(function(data) { 
                 if((data!=null)&&(data!='')){
-                  template = '<ion-popover-view style="opacity:1"><ion-header-bar class="bar-calm"> <h1 class="title">'+theDate+'</h1> </ion-header-bar> <ion-content><div class="list padding">'; 
+                  template = '<ion-popover-view style="opacity:1"><ion-header-bar class="bar-calm"> <h1 class="title">'+theDate+'</h1></ion-header-bar><ion-content><br><div class="list padding">'; 
                    for(var i=0;i<data.length;i++)
                   {
                       template +=' <div class="item item-divider" style="background:#5151A2; color:#FFF">'+data[i].Name +'</div>';
                       for(var j=0;j<data[i].SubTasks.length;j++)
                      {
                          if(data[i].SubTasks[j].Status=="1")
-                         template +='<div class="item">'+"✔"+data[i].SubTasks[j].Name+'</div>';
+                         template +='<div class="item">'+"✔ "+data[i].SubTasks[j].Name+'</div>';
                         else if(data[i].SubTasks[j].Status=="0")
-                        template +='<div class="item">'+"✘"+data[i].SubTasks[j].Name+'</div>';
+                        template +='<div class="item">'+"✘ "+data[i].SubTasks[j].Name+'</div>';
                      } 
                   }
                    template +='</div></ion-content></ion-popover-view>';
                    popover.remove();
                    popover=$ionicPopover.fromTemplate(template);
                    popover.show();
-                 }
+                }
                  
               }, function(data) {}     
             );
@@ -1786,15 +2796,107 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
       }
 
   }])
+//目标-依从率统计 张桠童
+.controller('compliancecontroller', ['$scope', 'Storage', 'PlanInfo', 
+  function($scope, Storage, PlanInfo){
+    var UserId= Storage.get('UID');
+    var PlanNo='';
+    $scope.StartDate =''; 
+    $scope.EndDate='';
+    $scope.Compliances = {};
 
-//目标-列表 赵艳霞
+    //获取是否有正在执行的计划，如果没有则不显示(函数不能用$scope来定义)
+    var init_view = function(){
+      $scope.showGraph=false;  //控制图或者“没有计划”的显示
+      $scope.graphText="正在加载中，请等待...";
+      //判断计划是否存在
+      PlanInfo.Plan(UserId, "NULL", "M1", "3").then(function(data){
+        if((data!=null) && (data!=''))
+        {
+          // console.log(1);
+          $scope.showGraph = true;
+          PlanNo = data[0].PlanNo;
+          $scope.StartDate = data[0].StartDate;
+          $scope.EndDate = data[0].EndDate;
+          //先决条件确定完毕后，读入依从率统计情况
+          PlanInfo.TaskCompliances(PlanNo).then(function(data){
+            console.log(2);
+            // $scope.Compliances = data;
+            // console.log(data); 
+            // console.log(data.length);
+            // console.log(data[0].Code.substring(2));
+            /////////////////处理筛选数据，计算百分比//////////////////////
+            var j = 0;
+            for (var i = 0; i < data.length; i++) {
+              if (data[i].Code.substring(2)!="0000") {
+                $scope.Compliances[j] = data[i];
+                var a = $scope.Compliances[j].DoDays;
+                var b = $scope.Compliances[j].AllDays;
+                // $scope.Compliances[j].percents = $scope.Compliances[j].DoDays/$scope.Compliances[j].AllDays*100 ;
+                $scope.Compliances[j].percents_cplt = Math.round(a/b*100*100)/100 ; //计算完成率
+                $scope.Compliances[j].percents_uncplt = Math.round((100 - $scope.Compliances[j].percents_cplt)*100)/100; //未完成率
+                console.log($scope.Compliances[j].percents_uncplt);
+                j++;
+              };   
+            };
+            console.log($scope.Compliances);
+            ////////////////////////////////////////////           
+                // // //画图开始
+                // console.log($scope.Compliances[0].UndoDays);
+                // var chart = AmCharts.makeChart( "chartdiv", {
+                //   "type": "pie",
+                //   "theme": "light",
+                //   "dataProvider": [ {
+                //     "title": "未完成天数",
+                //     "value": 5
+                //   }, {
+                //     "title": "完成天数",
+                //     "value": 0
+                //   } ],
+                //   "titleField": "title",
+                //   "valueField": "value",
+                //   "labelRadius": 5,
+                //   "labelText": "[[title]]: [[percents]]%",
+                //   "colors": ["#FF0000","#00FF00"],
+                //   "radius": "10%",
+                //   "innerRadius": "0%",
+                //   "legend":{
+                //     "position":"right",
+                //     "marginRight":20,
+                //     "markerSize":10,
+                //     "autoMargins":false
+                //   },
+                //   "export": {
+                //     "enabled": true
+                //   }
+                // } );
+                // //画图结束
+            ////////////////////////////////////////////           
+            
+          }, function(error){
+            //读取数据失败
+          });
+        }else{
+          $scope.showGraph=false;
+          $scope.graphText="没有正在执行的计划";
+        }
+      }, function(error){
+        //读取数据失败
+      });//判断完毕
+    };//初始化完毕
+    init_view();
+
+}])
+
+
 //目标-列表 赵艳霞
 .controller('recordListcontroller', ['$scope', '$cordovaDatePicker','$http','VitalInfo','$ionicLoading','Storage',
     function($scope, $cordovaDatePicker,$http, VitalInfo,$ionicLoading, Storage) {
      $scope.status="加载更多";
+     $scope.others="此时间段没有数据"
+     $scope.show_button = true;
      $scope.show_recordList = false;
      var UserId=Storage.get("UID");
-     var setstate;
      var myDate = new Date();
      var dd=myDate.getDate();
      if(dd<=9)dd="0"+dd;
@@ -1804,77 +2906,51 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
      if(mm<=9)mm="0"+mm;
      var yyyy=myDate.getFullYear();
      var EndDate=yyyy.toString()+mm.toString()+dd.toString();
-     //console.log(EndDate);
      var StartDate =yyyy.toString()+mm.toString()+db.toString();
+     $scope.StartDate=yyyy+'-'+mm+'-'+db;
+     $scope.EndDate=yyyy+'-'+mm+'-'+dd;
          Storage.set("StartDate",StartDate );
          StartDate =Storage.get("StartDate");
          Storage.set("EndDate",EndDate );
          EndDate =Storage.get("EndDate");
-      var VitalSigns = function (UserId,StartDate,EndDate) {
-      var promise = VitalInfo.VitalSigns(UserId,StartDate,EndDate);  
-      promise.then(function(data) {  // 调用承诺API获取数据 .resolve
-
-         $scope.SignDetailByDs_all = data;
-         var t=$scope.SignDetailByDs_all.length;
-         $scope.SignDetailByDs=[];
-         if($scope.SignDetailByDs_all.length>=15)
-         {
-            for(var i=0;i<15;i++)
-            {
-             
-               $scope.SignDetailByDs[i]=$scope.SignDetailByDs_all[t-i]
-            }
-         }else $scope.SignDetailByDs=$scope.SignDetailByDs_all;
-         console.log($scope.SignDetailByDs);
-         if($scope.SignDetailByDs.StartDate==null){
-               $scope.StartDate=yyyy+'-'+mm+'-'+db;//yyyy+'-'+mm+'-'+dd;
-             } 
-             if($scope.SignDetailByDs.EndDate==null){
-               $scope.EndDate=yyyy+'-'+mm+'-'+dd;
-             }
-          if((data !="")&&(data !=null)){
-             $scope.show_recordList = false;   
-           } 
-           else{
-            $scope.show_recordList = true ;
-           } 
-          }, function(data) {  // 处理错误 .reject  
-           
-          });//promise end
-        }
-
-        VitalSigns(UserId,StartDate,EndDate); //运行函数
+         $scope.$watch('$viewContentLoaded', function() {  
+         VitalSigns(0);
+        
+    }); 
          // 设置日期
         // 日历
         $scope.setStart = function(){
-          setstate=0;
+          $scope.setstate=0;
         } 
         $scope.setEnd = function(){
-          setstate=1;
+          $scope.setstate=1;
         } 
         var datePickerCallback = function (val) {
           if (typeof(val) === 'undefined') {
             console.log('No date selected');
           } else {
             $scope.datepickerObject.inputDate=val;
-            var dd=val.getDate();
+            dd=val.getDate();
             if(dd<=9)dd="0"+dd;
-            var mm=val.getMonth()+1;
+            db=val.getDate();
+            if(db<=9)db="0"+db;
+            mm=val.getMonth()+1;
             if(mm<=9)mm="0"+mm;
-            var yyyy=val.getFullYear();
+            yyyy=val.getFullYear();
             var date=yyyy.toString()+'-'+mm.toString()+'-'+dd.toString();
             var dateuser=parseInt(yyyy.toString()+mm.toString()+dd.toString());
-           if(setstate==0){
+           if($scope.setstate==0)
+           {
             $scope.StartDate=date;
-             console.log($scope.StartDate);
              Storage.set("StartDate",dateuser )
              StartDate =Storage.get("StartDate")
-             }else if(setstate==1){
+           }else if($scope.setstate==1)
+           {
               Storage.set("EndDate",dateuser )
               EndDate =Storage.get("EndDate")
               if(EndDate>=StartDate)
               {
-             $scope.EndDate=date;
+                $scope.EndDate=date;
               }
               else{
                 $scope.EndDate=date;
@@ -1911,108 +2987,165 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
             datePickerCallback(val);
           }
         };  
-          $scope.doRefresh = function() {
-          getlist();
-        }
-         var getlist = function()
-        {
-         VitalInfo.VitalSigns(UserId,StartDate,EndDate).then(function(data){ 
-         $scope.status="加载更多";
-         $scope.SignDetailByDs_all = data;
-         var t=$scope.SignDetailByDs_all.length; 
-         $scope.SignDetailByDs=[];
-         if($scope.SignDetailByDs_all.length>=15)
-         {
-            for(var i=0;i<15;i++)
+      $scope.Signs_all = {};
+     $scope.Signs_all.list=[];
+     $scope.Signs_all.UnitCount = 10;//每次点击加载的条数
+     $scope.Signs_all.Skip = $scope.Signs_all.UnitCount;//跳过的条数
+     // console.log($scope.Signs_all.Skip);
+      $scope.loadMore = function(){
+          $scope.show_button = true;
+          $scope.show_recordList = false;
+          
+          $scope.status="加载更多";
+          VitalSigns($scope.Signs_all.Skip);
+          $scope.Signs_all.Skip = $scope.Signs_all.Skip + $scope.Signs_all.UnitCount;
+      }
+        var VitalSigns=function(skip)
+       {
+        console.log(skip);
+        console.log($scope.Signs_all.list.length);
+         var promise = VitalInfo.VitalSigns(UserId,StartDate,EndDate,$scope.Signs_all.UnitCount,skip); 
+         promise.then(function(data)
+        {   
+            if(data.length > 0)
             {
-               $scope.SignDetailByDs[i]=$scope.SignDetailByDs_all[t-i];
-             }
-
-          }else $scope.SignDetailByDs=$scope.SignDetailByDs_all;
-
-          if((data !="")&&(data !=null)){
-             $scope.show_recordList = false;   
-                } 
-          else{
-                $scope.show_recordList = true ;
-               }   
-          $scope.$broadcast('scroll.refreshComplete');
-          setTimeout(function(){$ionicLoading.hide();},500);
-           }, function(data) {  // 处理错误 .reject  
-           });//pr
-         }
-         $scope.loadMore = function(){
-         var l=$scope.SignDetailByDs.length;
-         $scope.status="加载更多";
-         var  l= $scope.SignDetailByDs.length;
-         var all_l=$scope.SignDetailByDs_all.length;
-         var t=$scope.SignDetailByDs_all.length; 
-            if(all_l>l)
-            {
-              if(all_l-l>15)
-              {
-                for(var i=0;i<15;i++)
+                var NewData=data;//data.reverse(); //倒序
+                if($scope.Signs_all.list)
                 {
-                  $scope.SignDetailByDs[l+i]=$scope.SignDetailByDs_all[t-l-i];
+                    $scope.Signs_all.list = NewData.concat($scope.Signs_all.list);
                 }
-                console.log($scope.SignDetailByDs.length);
-              }else{
-                for(var i=0;i<all_l-l;i++)
+                else
                 {
-                  $scope.SignDetailByDs[l+i]=$scope.SignDetailByDs_all[t-l-i];
+                    $scope.Signs_all.list = NewData;
                 }
-              }
-             
-           
-               $scope.$broadcast('scroll.refreshComplete');
             }else{
+              // $scope.show_button = false;
+              $scope.show_recordList = true;
+              $scope.show_button = false;
               $scope.status="已加载完毕";
+              $scope.others="已加载完毕，没有更多数据了";
               $ionicLoading.show({
                 template: '没有更多了',
                 duration:700
               });
-           }
-     }
-      //监视进入页面
-      $scope.$on('$ionicView.enter', function() {   //$viewContentLoaded
-          //console.log("enter graphView") ;
-          if(Storage.get('recordListRefresh')=='1') //任务完成或插入体征则刷新
-          {
-            init_recordList();
-            Storage.set('recordListRefresh','0');
-          }  
-      });
-
+              
+            }
+           $scope.$broadcast('scroll.refreshComplete');
+          },function(data) {   
+        });      
+            }
+    
+       $scope.doRefresh = function() {
+         $scope.show_recordList = false;
+         $scope.show_button = true;
+         $scope.status="加载更多";  //这句话可删除
+         $scope.others="已加载完毕，没有更多数据了"; 
+          getlist();
+          $scope.Signs_all.Skip = $scope.Signs_all.UnitCount;//跳过的条数
+        }
+         var getlist = function()
+        { 
+           $scope.Signs_all.list = "";
+           VitalSigns(0);
+        }
+    
   }])
 
 // --------我的专员-苟玲----------------
 //我的专员消息列表
-.controller('contactListCtrl',function($scope, $http, $state, $stateParams, Users, Storage,CONFIG){
+.controller('contactListCtrl',function($scope, $http, $state, $stateParams, Users, Storage,CONFIG, MessageInfo, $timeout){
     //console.log($stateParams.tt);
-    
     $scope.chatImgUrl=CONFIG.ImageAddressIP + CONFIG.ImageAddressFile+'/';
     $scope.contactList = {};
-    $scope.contactList.list;
+    $scope.contactList.list = new Array();
 
-     $scope.$watch('$viewContentLoaded', function() {  
-          $scope.GetHealthCoachListByPatient();
-    }); 
+    $scope.$on('$ionicView.enter', function() { 
+
+         $timeout(function(){$scope.GetHealthCoachListByPatient();}, 100);
+
+        //获取系统通知和预约提醒  未读条数和最新一条内容
+        $scope.GetLatestNotification('System', 0);//SystemNotification
+        $scope.GetLatestNotification('User', 1);//Appointment
+
+    });
+
+   $scope.latestNotification =[{NotificationType:'System', unreadShow:false, unreadCount:'', latestTime:'', latestTitle:'', latestContent:''}, 
+                               {NotificationType:'User',unreadShow:false, unreadCount:'', latestTime:'', latestTitle:'', latestContent:''}];
+   $scope.GetLatestNotification = function(NotificationType, i)
+   {
+       var promise = MessageInfo.GetDataByStatus(Storage.get("UID"), NotificationType, 0, 10, 0);  
+        promise.then(function(data) { 
+          if((data==null)||(data=='')||(data.length==0)){
+            $scope.latestNotification[i].unreadCount='';
+            $scope.latestNotification[i].unreadShow=false;
+            var promise1 = MessageInfo.GetDataByStatus(Storage.get("UID"), NotificationType, '1', 1, 0);  
+            promise1.then(function(data1) { 
+              if((data1!=null)&&(data1!='')&&(data1.length!=0)){
+                $scope.latestNotification[i].latestTime=data1[0].SendTime;
+                $scope.latestNotification[i].latestTitle=data1[0].Title;
+                $scope.latestNotification[i].latestContent=data1[0].Description;
+              }
+            });
+          }
+          else
+          {
+            $scope.latestNotification[i].unreadShow=true;
+            $scope.latestNotification[i].latestTime=data[0].SendTime;
+            $scope.latestNotification[i].latestTitle=data[0].Title;
+            $scope.latestNotification[i].latestContent=data[0].Description;
+            console.log(data.length);
+            if(data.length==10) {$scope.latestNotification[i].unreadCount='10+';}
+            else {$scope.latestNotification[i].unreadCount=data.length}
+          }
+        });
+    }
+
     $scope.GetHealthCoachListByPatient = function()
     {
         var PatientId = Storage.get("UID");
-        var CategoryCode = "M1";
-        var promise = Users.GetHealthCoachListByPatient(PatientId, CategoryCode);  
-        promise.then(function(data) {  
-
-            $scope.contactList.list = data;console.log($scope.contactList.list); 
-            for(var i=0;i<$scope.contactList.list.length;i++){
-               if(($scope.contactList.list[i].imageURL=="")||($scope.contactList.list[i].imageURL==null)){
-                $scope.contactList.list[i].imageURL="img/DefaultAvatar.jpg";
-              }
-              else{ $scope.contactList.list[i].imageURL=CONFIG.ImageAddressIP + CONFIG.ImageAddressFile+'/'+$scope.contactList.list[i].imageURL;
-              }
-            }
+        var promise = Users.GetHealthCoachListByPatient(PatientId);  
+        promise.then(function(data) { 
+            if (data.length > 0)
+            {
+                for (var i = 0; i < data.length - 1; i++)
+                {
+                    data[i].module = data[i].module.substr(0, data[i].module.length - 2)
+                    var indexList = new Array();
+                    for (var j = i + 1; j < data.length; j++)
+                    {
+                        if (data[i].HealthCoachID == data[j].HealthCoachID)
+                        {
+                            data[i].module += "/" + data[j].module.substr(0, data[j].module.length - 2);
+                            indexList.push(j - 1);
+                        }
+                    }
+                    data[i].module = "模块：" + data[i].module;
+                    if (indexList.length > 0)
+                    {
+                        indexList[0] += 1;
+                        for (var k = 0; k < indexList.length; k++)
+                        {
+                            data.splice(indexList[k], 1);
+                        }
+                    } 
+                }
+                $scope.contactList.list = data;
+                console.log($scope.contactList.list); 
+                for(var i=0;i<$scope.contactList.list.length;i++)
+                {
+                    if(($scope.contactList.list[i].imageURL=="")||($scope.contactList.list[i].imageURL==null))
+                    {
+                        $scope.contactList.list[i].imageURL="img/DefaultAvatar.jpg";
+                    }
+                    else
+                    { 
+                        $scope.contactList.list[i].imageURL=CONFIG.ImageAddressIP + CONFIG.ImageAddressFile+'/'+$scope.contactList.list[i].imageURL;
+                    }
+                }
+            } 
+            
             $scope.$broadcast('scroll.refreshComplete');
+            GetSMSCountForAll();
         }, function(data) {  
         });      
     }
@@ -2027,12 +3160,87 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
    {
       location.reload(); 
    }
+   
+   //获取未读消息总数
+    function GetSMSCountForAll ()
+    {
+        var promise = MessageInfo.GetSMSCount(Storage.get("UID"),"NULL");  
+        promise.then(function(data) { 
+            //$scope.$emit('transfer.unreadMessageSum', data.result);                  
+        }, function(data) {  
+        });  
+    }
 
+    //获取一对一未读消息数
+    function GetSMSCountForOne (i, SendBy)
+    {
+        var promise = MessageInfo.GetSMSCount(Storage.get("UID"),SendBy);  
+        promise.then(function(data) { 
+            $scope.contactList.list[i].Count = data.result;
+            GetSMSCountForAll();
+        }, function(data) {  
+        });  
+    }
+
+
+    var WsUserId = Storage.get("UID");
+    var WsUserName = Storage.get("UID"); //最好是患者姓名
+    var wsServerIP = CONFIG.wsServerIP; 
+    SocketInit();
+     //socket初始化
+    function SocketInit()
+    {
+        $scope.socket = io.connect(wsServerIP);
+          
+        //告诉服务器由用户登陆
+        $scope.socket.emit('login', {userid:WsUserId, username:WsUserName});                
+          
+        //监听消息
+        $scope.socket.on('message', function(obj){
+            var DataArry = obj.content.split("||");
+            if(DataArry[0] == 'Appointment'){
+                  if(DataArry[1] == WsUserId){
+                      $scope.GetLatestNotification('Appointment', 1);
+                  }
+            }
+            else if(DataArry[0] == 'SystemNotification'){
+                      $scope.GetLatestNotification('SystemNotification', 0);
+            }
+            else
+            {
+                if (DataArry[0] == WsUserId)
+                {
+                    for (var i=0; i<$scope.contactList.list.length; i++)
+                    {
+                        if (DataArry[1] == $scope.contactList.list[i].HealthCoachID)
+                        {
+                            playBeep();
+                            $scope.contactList.list[i].Content = DataArry[3];
+                            $scope.contactList.list[i].SendDateTime = DataArry[4];
+                            GetSMSCountForOne(i, DataArry[1]);
+                        }
+                    }                         
+                } //if end 
+            }  
+        });
+    } // funtion end
+
+    // 蜂鸣1次，震动2秒
+    function playBeep() {
+        //navigator.notification.beep(1); 
+        //navigator.notification.vibrate(2000);
+    } 
 })
 
-.controller('ChatDetailCtrl' ,function($scope, $http, $stateParams, $resource, MessageInfo, $ionicScrollDelegate, CONFIG, Storage,Data) 
+//我的某专员详细消息列表
+.controller('ChatDetailCtrl' ,function($scope, $http, $stateParams, $resource, MessageInfo, $ionicScrollDelegate, CONFIG, Storage, Data) 
 {
-    console.log($stateParams.tt);
+
+    $scope.setCurrent = function(healthCoachID){
+      Storage.set("HealthCoachID",healthCoachID );
+    }
+
+    //console.log($stateParams.tt);
     $scope.Dialog = {};
     var paraArry = $stateParams.tt.split('&');
     $scope.DoctorId = paraArry[0];
@@ -2045,6 +3253,14 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
     var WsUserId = $scope.PatientId;
     var WsUserName = $scope.PatientId; //最好是患者姓名
     var wsServerIP = CONFIG.wsServerIP; 
+    var piUserId = "1";
+    var piTerminalName = "1";
+    var piTerminalIP = "1";
+    var piDeviceType = 19;
+    SetSMSRead();
+    $scope.$on('$ionicView.leave', function(){
+        SetSMSRead();
+    })
 
     $scope.myImage = "img/DefaultAvatar.jpg";
 
@@ -2066,8 +3282,8 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
         // 目前好像不存在userid不对的情况，都会返回一个结果
       });  
 
-    $scope.Dialog.DisplayOnes; //显示的消息
-    $scope.Dialog.UnitCount = 9;//每次点击加载的条数
+    $scope.Dialog.DisplayOnes=new Array(); //显示的消息
+    $scope.Dialog.UnitCount = 6;//每次点击加载的条数
     $scope.Dialog.Skip = $scope.Dialog.UnitCount;//跳过的条数
     //加载更多
     $scope.DisplayMore = function ()
@@ -2097,10 +3313,11 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
               {
                   $scope.Dialog.DisplayOnes.push({"IDFlag": "Receive","SendDateTime": DataArry[2],"Content":DataArry[3]});
                   //console.log($scope.Dialog);
-                  $ionicScrollDelegate.scrollBottom(true);
                   $scope.$apply();
+                  $ionicScrollDelegate.scrollBottom(true);
+                  
                   //SetSMSRead(ThisUserId, TheOtherId);//改写阅读状态
-                  //playBeep();
+                  playBeep();
               }              
             }   
         });
@@ -2128,12 +3345,16 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
                 var NewData = data.reverse(); //倒序
                 if($scope.Dialog.DisplayOnes)
                 {
-                    $scope.Dialog.DisplayOnes = NewData.concat($scope.Dialog.DisplayOnes);
+                    $scope.Dialog.DisplayOnes = NewData.concat($scope.Dialog.DisplayOnes);                                       
                 }
                 else
                 {
-                    $scope.Dialog.DisplayOnes = NewData;
-                }
+                    $scope.Dialog.DisplayOnes = NewData;                   
+                } 
+                if (skip == 0)
+                {
+                    $ionicScrollDelegate.scrollBottom(true); 
+                }              
             } 
             $scope.$broadcast('scroll.refreshComplete');           
             //$ionicScrollDelegate.scrollBottom(true);
@@ -2155,10 +3376,6 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
     $scope.submitSMS = function() {
         var SendBy = $scope.PatientId;
         var Receiver = $scope.DoctorId;
-        var piUserId = "1";
-        var piTerminalName = "1";
-        var piTerminalIP = "1";
-        var piDeviceType = 19;
         if($scope.Dialog.SMScontent != "")
         {
             var promise = MessageInfo.submitSMS(SendBy,$scope.Dialog.SMScontent,Receiver,piUserId,piTerminalName,piTerminalIP,piDeviceType);  
@@ -2169,9 +3386,9 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
                     {
                         data.Time = "";
                     }
-                    $scope.Dialog.DisplayOnes.push({"IDFlag": "Send","SendDateTime": data.Time,"Content":$scope.Dialog.SMScontent});
+                    $scope.Dialog.DisplayOnes.push({"IDFlag": "Send","Time": data.Time,"Content":$scope.Dialog.SMScontent});
                     $ionicScrollDelegate.scrollBottom(true);
-                    $scope.SocketSubmit(Receiver +  "||" + SendBy + "||" + data.Time + "||" + $scope.Dialog.SMScontent);
+                    $scope.SocketSubmit(Receiver +  "||" + SendBy + "||" + data.Time + "||" + $scope.Dialog.SMScontent + "||" + data.SendDateTime);
                     $scope.Dialog.SMScontent = "";
                 }              
             }, function(data) {   
@@ -2179,7 +3396,7 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
         }
     }
 
-
+    $scope.Dialog.SMSbottom = "44px";
     $scope.$on('taResize', function(e, ta) {
         //console.log('taResize');
         if (!ta) return;
@@ -2194,7 +3411,7 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
         newFooterHeight = (newFooterHeight > 44) ? newFooterHeight : 44;        
         footerBar.style.height = newFooterHeight + 'px';
         scroller.style.bottom = newFooterHeight + 'px'; 
-        
+        $scope.Dialog.SMSbottom = newFooterHeight + 'px';
     });
 
      // this keeps the keyboard open on a device only after sending a message, it is non obtrusive
@@ -2205,93 +3422,733 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
             txtInput[0].focus();
         });
     } 
+
+    //将消息设为已读
+    function SetSMSRead ()
+    {
+        var data = {
+                      "MessageNo": "sample string 1",
+                      "MessageType": 2,
+                      "SendStatus": 3,
+                      "ReadStatus": 4,
+                      "SendBy": $scope.DoctorId,
+                      "SendByName": "sample string 6",
+                      "SendDateTime": "sample string 7",
+                      "Title": "sample string 8",
+                      "Content": "sample string 9",
+                      "Receiver": $scope.PatientId,
+                      "ReceiverName": "sample string 11",
+                      "SMSFlag": 12,
+                      "IDFlag": "sample string 13",
+                      "Flag": "sample string 14",
+                      "Count": "sample string 15",
+                      "Time": "sample string 16",
+                      "piUserId": piUserId,
+                      "piTerminalName": piTerminalName,
+                      "piTerminalIP": piTerminalIP,
+                      "piDeviceType": piDeviceType
+                    }
+        //var promise = MessageInfo.SetSMSRead($scope.PatientId, $scope.DoctorId, piUserId, piTerminalName, piTerminalIP, piDeviceType);
+        var promise = MessageInfo.SetSMSRead(data);
+        promise.then(function(data) {}, 
+        function(data) {   
+        });      
+    }
+
+    // 蜂鸣1次，震动2秒
+    function playBeep() { 
+        //navigator.notification.beep(1); 
+        //navigator.notification.vibrate(2000);
+    } 
 })
-// --------专员选择-李山----------------
-.controller('HealthCoachListCtrl', ['$scope', '$state','$ionicPopup','$ionicSideMenuDelegate','$http', '$ionicModal','$ionicPopover','$ionicHistory',
-    function($scope, $state, $ionicPopup,$ionicSideMenuDelegate,$http, $ionicModal, $ionicPopover,$ionicHistory) { 
+
+//系统通知、预约信息
+.controller('NotificationCtrl',['$scope', '$stateParams', '$ionicScrollDelegate', '$ionicLoading', 'MessageInfo', 'Storage', function($scope, $stateParams, $ionicScrollDelegate, $ionicLoading, MessageInfo, Storage){
+
+    $scope.scrollToTop=false; //“回到顶部按钮”初始隐藏
+    $scope.NotificationList = new Array();
+    $scope.notificationSetting={moreNotification:false, alertText:'正在努力加载中...', imageURL:'img/systemNotification.jpg'}; 
+
+    $scope.$watch('$viewContentLoaded', function() {  
+        $scope.GetNotificationList($stateParams.tt, 10, 0);
+        if($scope.NotificationList.length==0){
+          $scope.notificationSetting.alertText='暂时没有通知'
+        }
+    });
+
+    //推送消息点击查看详细，若未读则则置位为已读
+    $scope.NotificationClick = function(item) {
+      Storage.set('NotificationDetail', JSON.stringify(item));
+      if(item.Status == '0')
+      {
+        var promise = MessageInfo.ChangeStatus(item.AccepterID, item.NotificationType, item.SortNo,'1' , '', '', '', 1);  
+        promise.then(function(data) {
+          if(data=='状态修改成功'){
+            // for (var i = 0; i < $scope.NotificationList.length; i++) {
+            //   if ($scope.NotificationList[i] == item) {
+            //       $scope.NotificationList[i].Status='1';
+            //   }
+            // }
+          }
+        });
+      }
+    };
+
+    //回到顶部函数
+    $scope.scrollTop = function() {
+      $ionicScrollDelegate.scrollTop();
+    };
+
+    //滚动时获取滚动长度，超出某长度则显示“回到顶部按钮”
+     $scope.getScrollPosition = function() {
+        $scope.moveData = $ionicScrollDelegate.getScrollPosition().top;
+       
+        if($scope.moveData>=100){
+            $scope.scrollToTop=true;
+         }else if($scope.moveData<100){
+           $scope.scrollToTop=false;
+         }
+      };
+
+    $scope.GetNotificationList = function(NotificationType, top, skip)
+   {
+       var promise = MessageInfo.GetDataByStatus(Storage.get("UID"), NotificationType, '{Status}', 10, 0);  
+        promise.then(function(data) { 
+        if((data!=null)&&(data!='')&&(data.length!=0)){
+          for(var i=0;i<data.length;i++){
+            $scope.NotificationList.push(data[i]);
+          }
+          $scope.notificationSetting.alertText='';
+          //本次获取的数量少于num，则说明没有更多数据了
+          if(data.length < top){
+              $scope.notificationSetting.moreNotification=false;
+              //$scope.notificationSetting.alertText='';
+              
+              // $ionicLoading.show({
+              //   template: '没有更多数据',
+              //   noBackdrop: false,
+              //   duration: 1000,
+              //   hideOnStateChange: true
+              // });
+          }
+          else
+          {
+             $scope.notificationSetting.moreNotification=true;
+          }
+        }
+        },function(err) {   
+        }).finally(function () {
+            $scope.$broadcast('scroll.refreshComplete');
+            $scope.$broadcast('scroll.infiniteScrollComplete');
+        }); 
+    }
+
+    //下拉刷新
+    $scope.refreshNotificationList = function() {
+       $scope.NotificationList=new Array();
+       //$scope.alertText='正在努力加载中...';
+       $scope.notificationSetting.moreNotification=false;
+       $scope.GetNotificationList($stateParams.tt, 10, 0);
+       if($scope.NotificationList.length==0){
+          $scope.notificationSetting.alertText='暂时没有通知'
+        }
+     }
+
+    //上啦加载更多
+     $scope.loadMoreNotification = function () {
+         $scope.GetNotificationList($stateParams.tt, 5, $scope.NotificationList.length);    
+      }
+
+}])
+
+//系统通知、预约详细信息
+.controller('NotificationDetailCtrl',['$scope', '$stateParams', '$ionicScrollDelegate', '$ionicLoading', 'MessageInfo', 'Storage', function($scope, $stateParams, $ionicScrollDelegate, $ionicLoading, MessageInfo, Storage){
+
+   $scope.notificationDetail = JSON.parse(Storage.get('NotificationDetail'));
+
+}])
+
+// --------专员选择-赵艳霞----------------
+//所有专员列表（排序、筛选）
+.controller('HealthCoachListCtrl', ['$scope', '$state','$ionicPopup','$ionicSideMenuDelegate','$http', '$ionicModal','$ionicPopover','$ionicHistory','Users','Storage','CONFIG','$filter','$ionicScrollDelegate','$ionicLoading',
+    function($scope, $state, $ionicPopup,$ionicSideMenuDelegate,$http, $ionicModal, $ionicPopover,$ionicHistory,Users,Storage,CONFIG,$filter, $ionicScrollDelegate, $ionicLoading ) { 
       
-      
+      $scope.healthCoachList = new Array();
+      $scope.moreHealthCoach=false;  //上拉加载更多，没有更多数据标志
+      $scope.filterCondition = "sex ge '' "; //筛选初始值
+      $scope.alertText='正在努力加载中...';
       $scope.nvGoback = function() {
         $ionicHistory.goBack();
       } 
 
-      $http.get('data/healthCoachList.json').success(function(data) {
-          $scope.healthCoachList = data.healthCoachList1;
-       });
+     $scope.$watch('$viewContentLoaded', function() {$scope.GetHealthCoaches(10, 0, $scope.filterCondition); });      //num、skip、filter
 
-      $scope.doRefresh = function() {
-              $http.get('data/tasks1.json')  
-                  .success(function(data) {
-                      $scope.tasks = data;
-                  })
-                  .finally(function() {
-                      $scope.$broadcast('scroll.refreshComplete');
-                  });
-      };
+     //获取所有专员列表
+     $scope.GetHealthCoaches = function(num, skip, filter)  
+     {
+         var promise = Users.GetHealthCoaches(num, skip, filter); 
+         promise.then(function(data){ 
+            $scope.list="仅供测试用途";
+            for(var i=0;i<data.length;i++){
+               if((data[i].imageURL=="")||(data[i].imageURL==null)){
+                data[i].imageURL="img/DefaultAvatar.jpg";
+              }
+              else{ data[i].imageURL=CONFIG.ImageAddressIP + CONFIG.ImageAddressFile+'/'+data[i].imageURL;
+              }
+              $scope.healthCoachList.push(data[i]);
+            }//for end
+
+            //本次获取的数量少于num，则说明没有更多数据了
+            if(data.length < num){
+                $scope.moreHealthCoach=false;
+                $scope.alertText='没有更多数据';
+                // $ionicLoading.show({
+                //   template: '没有更多数据',
+                //   noBackdrop: false,
+                //   duration: 1000,
+                //   hideOnStateChange: true
+                // });
+            }
+            else
+            {
+               $scope.moreHealthCoach=true;
+            }
+
+          },function(err) {
+
+        }).finally(function () {
+            $scope.$broadcast('scroll.refreshComplete');
+            $scope.$broadcast('scroll.infiniteScrollComplete');
+        });     
+    }
+
+    $scope.setCurrent = function(healthCoach){
+      Storage.set("HealthCoachID",healthCoach.healthCoachID );
+
+     }
+
+    //下拉刷新列表
+     $scope.refreshHealthCoachList = function() {
+        $scope.healthCoachList = new Array();
+        $scope.alertText='正在努力加载中...';
+        $scope.moreHealthCoach=false;
+        $scope.GetHealthCoaches(10, 0, $scope.filterCondition); 
+     };
+
+    //上拉加载更多评论
+     $scope.loadMoreHealthCoach = function () { 
+        //console.log(333);
+        $scope.GetHealthCoaches(5, $scope.healthCoachList.length, $scope.filterCondition);
+      }
+
+       //排序
+       $ionicPopover.fromTemplateUrl('templates/popover-sort.html', {
+        scope: $scope,
+      }).then(function(popover) {
+        $scope.popover = popover;
+      });
+
       $scope.sideList = [
-        { text: "姓名", value: "name" },
-        { text: "年龄", value: "age" },
-        { text: "评分", value: "score" },
-      ];
+        { text: "姓名顺序排列", value: "name" },
+        { text: "姓名逆序排列", value: "-name" },
+        { text: "评分最高", value: "-score" },
+        { text: "评分最低", value: "score" },
+        { text: "年龄最高", value: "-age" },
+        { text: "年龄最低", value: "age" }];
+
       $scope.orderProp = 'name';
-      $scope.reverseSort= false;
-      $scope.Change = function() {
-          $scope.reverseSort=!($scope.reverseSort);
-      }; 
+      
       $scope.sideChange = function(item) {
           $scope.orderProp= item.value;
       }; 
-      
-      $scope.sexList = [{ text: "男", checked: true },{ text: "女", checked: true }];
 
-      $ionicModal.fromTemplateUrl('partials/healthCoach/filterHealthCoach.html', {
-          scope: $scope,
-          animation: 'slide-in-up'
-        }).then(function(modal) {
-          $scope.modal = modal;
-        });
+      //筛选
+     $ionicPopover.fromTemplateUrl('templates/popover-select.html', {
+        scope: $scope,
+      }).then(function(popover1) {
+        $scope.popover1 = popover1;
+      });
 
-        $scope.openModal = function() {
-          $scope.modal.show();
-        };
-        $scope.closeModal = function() {
-          $scope.modal.hide();
-        };
-        $scope.finish = function() {
-          $scope.modal.hide();
-        };  
+      //筛选-性别
+      $scope.sexList = [
+        { text: "全部", value: 'all' },
+        { text: "男", value: '1' },
+        { text: "女", value: '2' }
+        ];
+      $scope.selectMenu={selectedSex:'all'};
+
+       //筛选函数
+       $scope.selectFunction = function(){
+           if($scope.selectFunction.selectedSex=="all")
+           {
+             $scope.filterCondition = "sex ge '1' ";
+           }
+           else
+           {
+              $scope.filterCondition = "sex eq  '"+$scope.selectMenu.selectedSex+"'";
+           } 
+           $scope.healthCoachList = new Array();
+           $scope.alertText='正在努力加载中...';
+           $scope.GetHealthCoaches(10, 0, $scope.filterCondition);
+           $scope.popover1.hide();
+        }
   }])
 
-.controller('HealthCoachInfoCtrl',['$scope', '$ionicHistory', '$ionicSideMenuDelegate',
-  function($scope, $ionicHistory,$ionicSideMenuDelegate) {
+//专员简介（预约）
+.controller('HealthCoachInfoCtrl',['$scope', '$ionicHistory', '$ionicSideMenuDelegate','$stateParams','$rootScope','Data','Users','Service','Storage','CONFIG','$ionicPopup','$timeout','extraInfo','$ionicLoading',
+  function($scope,$ionicHistory,$ionicSideMenuDelegate,$stateParams,$rootScope,Data, Users, Service , Storage,CONFIG,$ionicPopup,$timeout,extraInfo,$ionicLoading) {
+      
+      //console.log($stateParams.tt);
+      $scope.CommentList=new Array();
 
       $scope.nvGoback = function() {
         $ionicHistory.goBack();
       } 
+
+      //一进页面则加载
+      $scope.$watch('$viewContentLoaded', function() {   
+        GetHealthCoachInfo( Storage.get("HealthCoachID") ); //获取专员个人信息
+        GetCommentList(Storage.get("HealthCoachID") ,''); //获取专员的2条评论(所有模块)
+      }); 
+
+      //restful获取专员个人信息
+      var GetHealthCoachInfo= function(HealthCoachID)
+       {
+         var promise =  Users.GetHealthCoachInfo(HealthCoachID); 
+         promise.then(function(data)
+         { 
+           $scope.HealthCoachInfo = data;
+           if(($scope.HealthCoachInfo.imageURL=="")||($scope.HealthCoachInfo.imageURL==null)){
+                $scope.HealthCoachInfo.imageURL="img/DefaultAvatar.jpg";
+              }
+            else{ $scope.HealthCoachInfo.imageURL=CONFIG.ImageAddressIP + CONFIG.ImageAddressFile+'/'+$scope.HealthCoachInfo.imageURL;
+              }
+            $scope.$broadcast('scroll.refreshComplete'); 
+          },function(err) {   
+        });      
+      }
+
+      //restful获取专员评论列表
+      var GetCommentList= function(DoctorId ,CategoryCode)
+       {
+         var promise =  Users.GetCommentList(DoctorId, CategoryCode, 2); 
+         promise.then(function(data)
+        { 
+          $scope.CommentList=data;
+          for(i=0;i<$scope.CommentList.length;i++){
+           if(($scope.CommentList[i].imageURL=="")||($scope.CommentList[i].imageURL==null)){
+                  $scope.CommentList[i].imageURL="img/DefaultAvatar.jpg";
+                }
+            else{ 
+                  $scope.CommentList[i].imageURL=CONFIG.ImageAddressIP + CONFIG.ImageAddressFile+'/'+$scope.CommentList[i].imageURL;
+                }
+           }
+         },function(err) {   
+        });      
+      }
+
+      //预约的模块选项
+      $scope.reserve={Description:"",selectedModoule: ''};
+      $scope.modouleList = [
+      { text: "高血压", value: "HM1" },
+      { text: "糖尿病", value: "HM2" },
+      { text: "心衰", value: "HM3" }];
+
+      //获取预约权限
+      $scope.getReserveAuthority=function (item)
+      {
+         $scope.reserve.selectedModoule = '';
+         var UserId=Storage.get("UID");
+         var promise =  Users.BasicDtlValue(UserId, item.value, 'Doctor', 1); //获取患者评价专员的权限
+         promise.then(function(data)
+         { 
+            if((data.result==null) ||(data.result=='')) {  //没有专员负责的模块
+              $scope.reserve.selectedModoule = item.value;
+            }
+            else if(data.result==Storage.get("HealthCoachID")){ //本专员负责该模块
+              $scope.reserve.selectedModoule = item.value;
+
+            }
+            else{  //本专员不负责该模块（已有他人负责）
+              $scope.reserve.selectedModoule = '';
+              $ionicLoading.show({
+                template: '对不起，您没有预约'+item.text+'模块的权限',//item.text
+                noBackdrop: false,
+                duration: 1000,
+                hideOnStateChange: true
+              });
+            }
+          },function(err) { 
+           $scope.reserve.selectedModoule = '';
+          });
+
+      }
+ 
+     //预约有效性验证、restful预约
+      var ReserveHealthCoach = function()
+      {
+        if($scope.reserve.selectedModoule == '')
+        {
+          $ionicLoading.show({
+          template: '对不起，预约的模块不能为空',
+          noBackdrop: false,
+          duration: 1000,
+          hideOnStateChange: true
+          });
+        }
+        else if($scope.reserve.Description == '')
+        {
+          $ionicLoading.show({
+          template: '对不起，预约的描述不能为空',
+          noBackdrop: false,
+          duration: 1000,
+          hideOnStateChange: true
+          });
+        }
+        else{
+            sendData={
+            "DoctorId": Storage.get("HealthCoachID"),
+            "PatientId": Storage.get("UID"),
+            "Module": $scope.reserve.selectedModoule,
+            //"Module": "M1",
+            // "Description": "初次预约，请多指教",
+            "Description": $scope.reserve.Description,
+            // "Description": $scope.sendData.Description,
+            "Status": 1,
+            "ApplicationTime": extraInfo.DateTimeNow().zyxTime,
+            "AppointmentTime": extraInfo.DateTimeNow().zyxTime,
+            "AppointmentAdd": "",
+            "Redundancy": "",
+            "revUserId": "1",
+            "TerminalName": "1",
+            "TerminalIP": "1",
+            "DeviceType": 1
+          }
+
+          var promise =  Users.ReserveHealthCoach(sendData);
+          promise.then(function(data){ 
+            
+            if(data.result=="数据插入成功"){
+              $ionicLoading.show({
+                template: "预约请求已发送！",
+                noBackdrop: false,
+                duration: 1000,
+                hideOnStateChange: true
+              });
+
+              //推送通知
+              var promise1 =  Service.PushNotification('android', Storage.get("HealthCoachID"), $scope.reserve.Description, '来自'+Storage.get("PatientName")+'的预约', Storage.get("UID")); //获取患者评价专员的权限
+              promise1.then(function(data){ 
+                console.log("通知医生成功");
+              },function(err) { 
+                 console.log("通知医生失败");
+              });
+            }
+           },function(err) {  
+             $ionicLoading.show({
+               template: err.data.result,
+               noBackdrop: false,
+               duration: 1000,
+               hideOnStateChange: true
+             }); 
+         }); 
+
+        } //else end
+      } //function end
+
+
+     //解除关系
+     $scope.removeModuleCandicate=[];
+     $scope.remove={selectedModoule: ''};
+
+     //解除关系-弹框
+     $scope.showRemovePop = function() {
+        //restful获取可解除的模块
+       
+        var promise =  Users.HModulesByID(Storage.get("UID"), Storage.get("HealthCoachID")); 
+         promise.then(function(data)
+         { 
+           if((data != "") && (data != null)){
+                //console.log('有关联模块');
+                $scope.removeModuleCandicate=data;
+                var RemovePop = $ionicPopup.show({
+                  template:"<div class='list'><div class='item item-divider item-calm'> 选择模块</div><ion-radio ng-repeat='item in removeModuleCandicate' ng-value='item.CategoryCode' ng-model='remove.selectedModoule'> {{ item.Modules }}</ion-radio></div>", 
+                  title: '解除专员', 
+                  scope: $scope,
+                  buttons: [{text: '确定解除',
+                             type: 'button-assertive',
+                             onTap: function(e) {
+                              //console.log($scope.remove.selectedModoule);
+                              RemoveHealthCoach();
+                            } //onTap end
+                         },{
+                         text: '取消',
+                         type: 'button-positive'}]
+                }); //$ionicPopup.show end
+
+                $timeout(function() {
+                  RemovePop.close(); // 30秒后自动关闭弹窗
+                }, 30000);
+
+              }
+            else{ 
+                //console.log('无');
+                $ionicLoading.show({
+                   template: '没有可解除的模块！',
+                   noBackdrop: false,
+                   duration: 1000,
+                   hideOnStateChange: true
+                });
+                
+              }
+          },function(err) {  
+           console.log(err);
+        }); 
+  
+     }
+
+     //解除关系-RESTFUL
+     var RemoveHealthCoach = function(){
+        if($scope.remove.selectedModoule!='')
+        {
+           var promiseRemove =  Users.RemoveHealthCoach(Storage.get("UID"), Storage.get("HealthCoachID"), $scope.remove.selectedModoule);
+            promiseRemove.then(function(data)
+            { 
+                $ionicLoading.show({
+                   template: data.result,
+                   noBackdrop: false,
+                   duration: 1000,
+                   hideOnStateChange: true
+                });
+
+              },function(err) {  
+                //console.log(err.data.result);
+                $ionicLoading.show({
+                   template: err.data.result,
+                   noBackdrop: false,
+                   duration: 1000,
+                   hideOnStateChange: true
+                });
+               
+            }).finally(function () {
+
+            }); //promiseRemove end
+        }
+        else
+        {
+          $ionicLoading.show({
+             template: '请选择要解除的模块！',
+             noBackdrop: false,
+             duration: 1000,
+             hideOnStateChange: true
+          });
+        }
+     }
+
+      //弹出预约框
+      $scope.showreservePop = function() {
+           $scope.reserve={Description:"",selectedModoule: ''};
+            var myPopup = $ionicPopup.show({
+               templateUrl:'partials/healthCoach/reservehealthcoach.html',
+               title: '预约详情',
+               //subTitle: '预约详情',
+               scope: $scope,
+               buttons: [
+                  {text: '提交预约',
+                   type: 'button-assertive',
+                 　onTap: function(e) {
+                      if($scope.reserve.Description.length >100)
+                      {
+                       $ionicLoading.show({
+                       template: '输入字数不能超过100字',
+                       noBackdrop: false,
+                       duration: 1000,
+                       hideOnStateChange: true
+                       });
+                     }
+                     else
+                     {
+                       ReserveHealthCoach();
+                     }
+        　　　　    }
+                   },
+                 {
+                   text: '取消预约',
+                   type: 'button-positive',
+               }]
+           });
+
+           myPopup.then(function(res) {
+             
+           });
+
+           $timeout(function() {
+              myPopup.close(); // 30秒后自动关闭弹窗
+           }, 30000);
+      }
 }])
 
-.controller('CommentListCtrl',['$scope', '$ionicHistory', '$ionicSideMenuDelegate',
-   function($scope, $ionicHistory,$ionicSideMenuDelegate) {
+//专员的评价列表
+.controller('CommentListCtrl',['$scope', '$ionicHistory', '$ionicSideMenuDelegate','Users','Storage', 'CONFIG', '$ionicScrollDelegate', '$ionicLoading', '$ionicPopover',
+   function($scope, $ionicHistory, $ionicSideMenuDelegate, Users, Storage, CONFIG, $ionicScrollDelegate, $ionicLoading, $ionicPopover) {
     
+      $scope.setting={selectedModoule:" "}; //默认加载全部模块
+      $scope.scrollToTop=false; //“回到顶部按钮”初始隐藏
+      $scope.CommentList = new Array();
+      $scope.moreComment=false;  //上拉加载更多，没有更多数据标志
+      $scope.alertText='正在努力加载中...';
+
+      //回到顶部函数
+      $scope.scrollTop = function() {
+        $ionicScrollDelegate.scrollTop();
+      };
+
+    //滚动时获取滚动长度， 超出某长度则显示“回到顶部按钮”
+     $scope.getScrollPosition = function() {
+        $scope.moveData = $ionicScrollDelegate.getScrollPosition().top;
+       
+        if($scope.moveData>=100){
+            $scope.scrollToTop=true;
+         }else if($scope.moveData<100){
+           $scope.scrollToTop=false;
+         }
+      };
+
+      //后退
       $scope.nvGoback = function() {
         $ionicHistory.goBack();
        }
+
+      //下拉刷新评论
+      $scope.refreshComment = function() {
+         $scope.CommentList=new Array();
+         //$scope.alertText='正在努力加载中...';
+         $scope.moreComment=false;
+         GetCommentList(Storage.get("HealthCoachID"),  $scope.setting.selectedModoule, 10, 0);
+       }
+
+      //上啦加载更多评论
+       $scope.loadMoreComment = function () {
+           //console.log(333);
+           GetCommentList(Storage.get("HealthCoachID"),  $scope.setting.selectedModoule, 5, $scope.CommentList.length);    
+        }
+
+      //restful获取评论列表
+      var GetCommentList= function(DoctorId ,CategoryCode,num, skip)
+       {
+           $scope.alertText='正在努力加载中...';
+           var promise =  Users.GetCommentList(DoctorId ,CategoryCode, num, skip); 
+           promise.then(function(data)
+          { 
+            $scope.a=data;
+            for(var i=0;i<data.length;i++){
+              if((data[i].imageURL=="")||(data[i].imageURL==null)){
+                    data[i].imageURL="img/DefaultAvatar.jpg";
+                  }
+              else
+              { 
+                  data[i].imageURL=CONFIG.ImageAddressIP + CONFIG.ImageAddressFile+'/'+data[i].imageURL;
+              }
+              $scope.CommentList.push(data[i]);
+            }
+
+            //本次获取的数量少于num，则说明没有更多数据了
+            if(data.length < num){
+                $scope.moreComment=false;
+                      $scope.alertText='没有更多数据...';
+                $ionicLoading.show({
+                  template: '没有更多数据',
+                  noBackdrop: false,
+                  duration: 1000,
+                  hideOnStateChange: true
+                });
+            }
+            else
+            {
+               $scope.moreComment=true;
+            }
+
+            },function(err) {   
+          }).finally(function () {
+              $scope.$broadcast('scroll.refreshComplete');
+              $scope.$broadcast('scroll.infiniteScrollComplete');
+          });     
+       }
+
+      //初始化
+      GetCommentList(Storage.get("HealthCoachID"), '', 10, 0);
+      
+      //筛选
+      $ionicPopover.fromTemplateUrl('templates/popover-sort.html', {
+          scope: $scope,
+        }).then(function(popover) {
+          $scope.popover = popover;
+      });
+       
+      $scope.modouleList = [
+        { text: "全部", value: " " },
+        { text: "高血压", value: "HM1" },
+        { text: "糖尿病", value: "HM2"},
+        { text: "心衰", value: "HM3" },
+      ];
+
+      $scope.filterModoule= function(){
+        $scope.CommentList=new Array();
+        //$scope.alertText='正在努力加载中...';
+        GetCommentList(Storage.get("HealthCoachID"), $scope.setting.selectedModoule, 10, 0); 
+        $scope.popover.hide();
+      };
 }])
 
-.controller('SetCommentCtrl',['$scope', '$ionicHistory', '$ionicLoading',
-   function($scope, $ionicHistory,$ionicLoading) {
+//写评论
+.controller('SetCommentCtrl',['$scope', '$ionicHistory', '$ionicLoading','Users','Storage','$state',
+   function($scope, $ionicHistory,$ionicLoading,Users,Storage,$state) {
 
-      $scope.comment={score:1, commentContent:""};
+      //初始化
+      $scope.comment={score:5, commentContent:"",selectedModoule: ''};
+      $scope.modouleList = [
+        { text: "高血压", value: "HM1" },
+        { text: "糖尿病", value: "HM2" },
+        { text: "心衰", value: "HM3" }];
+      
+      //获取评论权限
+      $scope.getCommentAuthority=function (item)
+      {
+         $scope.comment.selectedModoule = '';
+         var promise =  Users.BasicDtlValue(Storage.get("UID"), item.value, 'Doctor', 1); //获取患者评价专员的权限
+         promise.then(function(data)
+         {
+          $scope.b="2";
+          $scope.c=data;
+          if(data.result==Storage.get("HealthCoachID")){
+           $scope.comment.selectedModoule = item.value;
+         }
+         else{
+           $scope.comment.selectedModoule = '';
+           $ionicLoading.show({
+              template: '对不起，您没有评价'+item.text+'模块的权限',//item.text
+              noBackdrop: false,
+              duration: 1000,
+              hideOnStateChange: true
+            });
+         }
+          },function(err) { 
+           $scope.comment.selectedModoule = '';
+         });
+      }
+
 
       $scope.nvGoback = function() {
         $ionicHistory.goBack();
        }
+       
+       //评论星星初始化
       $scope.ratingsObject = {
         iconOn: 'ion-ios-star',
         iconOff: 'ion-ios-star-outline',
-        iconOnColor: 'rgb(200, 200, 100)',
+        iconOnColor: '#FFD700',//rgb(200, 200, 100)
         iconOffColor: 'rgb(200, 100, 100)',
-        rating: 1,
+        rating: 5, 
         minRating: 1,
         readOnly:false,
         callback: function(rating) {
@@ -2299,35 +4156,73 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
         }
       };
 
+      //评论星星点击改变分数
       $scope.ratingsCallback = function(rating) {
         $scope.comment.score = rating;
-        //console.log('Selected rating is : ', rating);
       };
 
+      //上传评论-有效性验证
       $scope.deliverComment = function() {
-        if($scope.comment.commentContent =="")
-        {
-            $ionicLoading.show({
-              template: '输入字数不足15字',
-              noBackdrop: false,
-              duration: 1500,
-              hideOnStateChange: true
-            });
-        }
-        else
+        if($scope.comment.selectedModoule=='')
         {
           $ionicLoading.show({
-              template: '您给的评分是'+$scope.comment.score+'评论：'+$scope.comment.commentContent,
+              template: '请选择评价的模块',
               noBackdrop: false,
-              duration: 1500,
+              duration: 1000,
               hideOnStateChange: true
             });
-          //restful
+        }
+        else if($scope.comment.commentContent.length <10)
+        {
+            $ionicLoading.show({
+              template: '输入字数不足10字',
+              noBackdrop: false,
+              duration: 1000,
+              hideOnStateChange: true
+            });
+        }
+        
+        else
+        {
+          SetComment();
         }
       };
-      
-  }])
 
+      //上传评论-restful调用
+     var SetComment= function()
+     {
+
+        var sendData={
+          "DoctorId": Storage.get("HealthCoachID"),
+          "CategoryCode": $scope.comment.selectedModoule,
+          "Value": Storage.get("UID"),
+          "Description": $scope.comment.commentContent,
+          "SortNo": $scope.comment.score ,
+          "piUserId": "sample string 6",
+          "piTerminalName": "sample string 7",
+          "piTerminalIP": "sample string 8",
+          "piDeviceType": 9
+        }
+       var promise =  Users.SetComment(sendData); 
+       promise.then(function(data){ 
+          if(data.result=="数据插入成功"){
+            $ionicLoading.show({
+              template: "评论成功！",
+              noBackdrop: false,
+              duration: 500,
+              hideOnStateChange: true
+            });
+            setTimeout(function(){
+              $ionicHistory.goBack();
+            },600);
+          }
+         },function(err) {   
+       }); 
+     } 
+      
+}])
+
+// --------其他----------------
 .controller('OthersCtrl',['$scope', '$ionicHistory', '$ionicSideMenuDelegate','$http',
    function($scope, $ionicHistory,$ionicSideMenuDelegate,$http) {
 
@@ -3065,19 +4960,298 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
  
 }])
 
+
+//LRZ 20151117 新的风险评估页面列表controller
+.controller('NewRiskCtrl',['$state','$scope','Patients','$state','$ionicSlideBoxDelegate','$ionicHistory','Storage','RiskService','$ionicLoading','$timeout',
+  function($state,$scope,Patients,$state,$ionicSlideBoxDelegate,$ionicHistory,Storage,RiskService,$ionicLoading,$timeout){
+  
+    $scope.setItemNum=function(num){
+      Storage.set("risk_num", num)
+    }
+
+    console.log("doing refreshing");
+    RiskService.initial();
+
+    $ionicLoading.show({
+      template: "载入中"
+    });
+
+    $timeout(function(){
+      $ionicLoading.hide();
+    },6000);
+
+
+      // $scope.chart = AmCharts.makeChart("chartdiv",$scope.data1);
+      // $scope.chart2 = AmCharts.makeChart("chartdiv2",$scope.data2);
+    
+    $scope.data = { showDelete: false, showReorder: false };
+    
+
+  $scope.doRefresh = function(){
+    RiskService.initial();
+  }
+
+  
+  $scope.onClickEvaluation = function(){
+      //open a new page to collect patient info  
+      //$state.go('addpatient.riskquestion');
+  }
+  $scope.onClickEvaluation1 = function(){
+    //$state.go('Independent.riskquestion');
+  }
+
+  $scope.slideHasChanged = function (_index){
+    // console.log(_index);
+    // $ionicSlideBoxDelegate.currentIndex();
+    if(_index == 1) $scope.dbtshow = true;
+    else $scope.dbtshow = false;
+    // console.log($scope.description);
+  }
+
+  $scope.toggleStar = function(item) {
+    item.star = !item.star;
+  }
+
+  $scope.onChangeChartData = function(sbp,dbp){
+      $scope.marker = sbp;
+      if(sbp === undefined || dbp === undefined || $scope.chart === undefined) return;
+      console.log(sbp);
+      var temp1 = {
+          "type": "收缩压",
+          "state1": 40+80,
+          "state2": 20,
+          "state3": 20,
+          "state4": 20,
+          "state5": 20,
+          "now": parseInt(sbp), //params
+          "target": 120               //params
+
+      };
+      var temp2 = {
+          "type": "舒张压",
+          "state1": 20+80,
+          "state2": 20,
+          "state3": 20,
+          "state4": 20,
+          "state5": 20,
+          "now": parseInt(dbp), //params
+          "target": 100               //params
+
+      };
+      console.log("push");
+      $scope.chart.dataProvider.pop();
+      $scope.chart.dataProvider.pop();
+      $scope.chart.dataProvider.push(temp1);
+      $scope.chart.dataProvider.push(temp2);
+      // $scope.chart.dataProvider["now"] = sbp;
+      $scope.chart.validateData();
+      $scope.chart.validateNow();
+      // $scope.chart2.validateData();
+      console.log($scope.chart);
+  }
+
+   // console.log("controller初始化的函数跑了一遍结束"); 
+  $scope.$on('NewEvaluationSubmit', function () {
+    console.log("检测到有新的提交，刷新");
+    RiskService.initial();
+
+  })
+
+  $scope.$on('RisksGet',function(){
+    console.log("Controller knows RisksGet");
+    $scope.$broadcast('scroll.refreshComplete');
+    $scope.newRisks = RiskService.getRiskList();
+    // console.log($scope.newRisks);
+    $ionicLoading.hide();
+  })
+
+  $scope.$on('RisksGetFail',function(){
+   $ionicLoading.hide();
+  })
+}])
+
+//LRZ 20151117 新的风险评估页面细节controller
+.controller('RiskDtlCtrl',['$state','$scope','RiskService','$ionicSlideBoxDelegate','Storage','$timeout',function($state,$scope,RiskService,$ionicSlideBoxDelegate,Storage,$timeout){
+  // $scope.chartDone = false;
+  //$scope.whichone = $state.params.num;
+  $scope.whichone = Storage.get("risk_num");
+
+  console.log($scope.whichone);
+  $scope.chart = null;
+  $scope.isHiding = false;
+  if(RiskService.getRiskList() == [])  {
+    RiskService.initial();
+  }
+  
+  $scope.Mlist = [];
+
+  var sortMlist = function(){
+     if($scope.item.M1show) {
+      $scope.item.M1.flist = [{name:'高血压发病率',f:$scope.item.M1.f1},
+      {name:'高血压五年死亡率',f:$scope.item.M1.f2},
+      {name:'心血管疾病',f:$scope.item.M1.f3},
+      {name:'中风十年发生率',f:$scope.item.M1.f4},
+      {name:'心衰率',f:$scope.item.M1.f5}];
+      $scope.Mlist.push($scope.item.M1);
+     }
+     if($scope.item.M2show) $scope.Mlist.push($scope.item.M2);
+     if($scope.item.M3show) {
+      $scope.item.M3.flist = [{name:'一年死亡率',f:$scope.item.M3.f1},
+      {name:'三年死亡率',f:$scope.item.M3.f2}];
+      $scope.Mlist.push($scope.item.M3);
+     }
+     console.log($scope.Mlist);
+  }
+  // console.log($scope.myslide);
+  // console.log($scope.riskSingle);
+
+
+
+    //根据state传入的SortNo 从Service 预载入的列表中取出数据
+  $scope.index = RiskService.getIndexBySortNo($scope.whichone);
+  $scope.item = RiskService.getSingleRisk($scope.index);
+  if(typeof($scope.item) != 'undefined') sortMlist();
+
+  // 得到画图数据
+  // if($scope.item.M1show != false)
+  //   $scope.chartData = RiskService.getGraphData('M1',$scope.index);
+  // else if ($scope.item.M2show != false){
+  //   // $scope.myslide.slide(1,500);
+  //   $scope.chartData = RiskService.getGraphData('M2',$scope.index);    
+  // }
+  // else{
+  //   // $scope.myslide.slide(2,500);
+  //   $scope.chartData = RiskService.getGraphData('M3',$scope.index);  
+  // }
+  
+  console.log($scope.item);
+
+  // AmCharts.makeChart('riskchart', $scope.chartData);
+  // $scope.chartDone = true;
+  // console.log($scope.chart);
+  
+  $scope.myslide = $ionicSlideBoxDelegate.$getByHandle('riskhandle');
+  // $scope.$apply();
+
+  // chart.validateData();
+  // chart.validateNow();
+  // chart.write('chartdiv222');
+  // $scope.chartDone = true;
+  // chart.handleResize();
+  // 画图
+  // 判断 有几个图显示几个图
+  // var p_chart = AmCharts.makeChart("riskchart",chart,500);
+  // $scope.chartDone = true;
+  
+  //slidebox控制
+  $scope.$on('$ionicView.afterEnter',function(){
+    
+    $scope.slideHasChanged(0);
+    // console.log($scope.myslide);
+    // $timeout(5000);
+    // if($scope.item.M1show == true){
+    //   null;      
+    // }
+    // // $scope.chartData = RiskService.getGraphData('M1',$scope.index);
+    // else if ($scope.item.M2show == true){
+    //   // console.log('no hyper'); 
+    //   $scope.myslide.slide(1,50);
+    // // $scope.chartData = RiskService.getGraphData('M2',$scope.index);    
+    // }
+    // else{
+    //   $scope.myslide.slide(2,50);
+    //   // $scope.chartData = RiskService.getGraphData('M3',$scope.index);  
+    // }
+  })
+
+$scope.$on('RisksGet',function(){
+  $scope.index = RiskService.getIndexBySortNo($scope.whichone);
+  $scope.item = RiskService.getSingleRisk($scope.index);
+   if(typeof($scope.item) != 'undefined') sortMlist();
+})
+
+  $scope.slideHasChanged = function($index){
+    var ii = $index;
+    console.log(ii);
+    // console.log($scope.item.M1show);
+    // var status = 0;
+    // if(M1show && M2Show && M3show) 
+    // switch(ii){
+    //   case 0: if($scope.item.M1show == false){
+    //             if($scope.item.M2show == false){
+    //               $scope.myslide.slide(2,500);
+    //             }
+    //             else $scope.myslide.slide(1,500);                 
+    //           }
+    //           else break;
+    //   case 1: if($scope.item.M2show == false){                
+    //           }
+    //           else break;
+    //   case 2:if($scope.item.M3show == false){
+    //             if($scope.item.M2show == false){
+    //               $scope.myslide.slide(1,500);break;
+    //             }
+    //             else $scope.myslide.slide(0,500); break;                
+    //           }
+    //           else break;
+    //   }
+
+    // switch(ii){
+    //   case 0: if($scope.item.M1show == true){
+    //             $scope.isHiding = false;
+    //             $scope.chartData    = RiskService.getGraphData('M1',$scope.index);
+    //             AmCharts.makeChart('riskchart', $scope.chartData); break;        
+    //           }
+    //           else {
+    //               $scope.isHiding = true; break;
+    //           }
+    //           // $scope.chart.validateData();
+    //           // $scope.chart.validateNow(true,false);
+    //   case 1: if($scope.item.M2show == true){
+    //             $scope.isHiding = false;
+    //             $scope.chartData    = RiskService.getGraphData('M2',$scope.index);
+    //             AmCharts.makeChart('riskchart', $scope.chartData);break;        
+    //           }
+    //           else {
+    //               $scope.isHiding = true; break;
+    //           }
+    //           // $scope.chart.dataProvider  = $scope.chartData.dataProvider;
+    //           // $scope.chart.validateData();
+    //           // $scope.chart.validateNow(true,false);
+    //   case 2: if($scope.item.M3show == true){
+    //             $scope.isHiding = false;
+    //             $scope.chartData     = RiskService.getGraphData('M3',$scope.index);
+    //             AmCharts.makeChart('riskchart', $scope.chartData); 
+    //           }
+    //           else {
+    //               $scope.isHiding = true; break;
+    //           }
+    //           // $scope.chart.validateData();
+    //           // $scope.chart.validateNow(true,false);
+    // }
+
+    switch($scope.Mlist[ii].AssessmentType){
+      case 'M1' : $scope.chartData     = RiskService.getGraphData('M1',$scope.index);
+                        AmCharts.makeChart('riskchart', $scope.chartData); break;
+      case 'M2' : $scope.chartData     = RiskService.getGraphData('M2',$scope.index);
+                        AmCharts.makeChart('riskchart', $scope.chartData); break;
+      case 'M3' : $scope.chartData     = RiskService.getGraphData('M3',$scope.index);
+                        AmCharts.makeChart('riskchart', $scope.chartData); break;
+    }
+  }
+
+}])
+
 //----------------侧边栏----------------
 //个人信息
-.controller('personalInfocontroller',['$scope','$ionicHistory','$state','$ionicPopup','$resource','Storage','Data','CONFIG','$ionicLoading','$ionicPopover','Camera',
-   function($scope, $ionicHistory, $state, $ionicPopup, $resource, Storage, Data,CONFIG, $ionicLoading, $ionicPopover, Camera) {             
+.controller('personalInfocontroller',['$scope','$ionicHistory','$state','$ionicPopup','$resource','Storage','Data','CONFIG','$ionicLoading','$ionicPopover','Camera', 'extraInfo',
+   function($scope, $ionicHistory, $state, $ionicPopup, $resource, Storage, Data,CONFIG, $ionicLoading, $ionicPopover, Camera, extraInfo) {             
       // 返回键
       $scope.nvGoback = function() {
         $ionicHistory.goBack();
        }
       // 收缩框
-      var show1 = false;
-      $scope.toggle1 = function() {
-        show1 = !show1;
-      };
+      var show1 = true;
       $scope.isShown1 = function() {
         return show1;
       };
@@ -3102,17 +5276,27 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
       $scope.isShown4 = function() {
         return show4;
       };   
-      // // 获取医保类型
-      // $scope.InsuranceTypes = {}; // 初始化
-      // Data.Dict.GetInsuranceType({}, 
-      //       function (success) {
-      //         // console.log(success);
-      //         $scope.InsuranceTypes = success;  
-      //         // console.log($scope.InsuranceTypes); 
-      //       }, 
-      //       function (err) {
-      //         // 目前好像不存在userid不对的情况，都会返回一个结果
-      //       }); 
+      // 获取医保类型
+      $scope.InsuranceTypes = {}; // 初始化
+      Data.Dict.GetInsuranceType({}, 
+            function (success) {
+              $scope.InsuranceTypes = success;  
+              // console.log(success[1].Name); 
+      }); 
+      // 获取血型类型
+      $scope.BloodTypes = {}; // 初始化
+      Data.Dict.GetTypeList({Category:"AboBloodType"}, 
+            function (success) {
+              $scope.BloodTypes = success;  
+              // console.log($scope.BloodTypes); 
+      }); 
+      // 获取性别类型
+      $scope.Genders = {}; // 初始化
+      Data.Dict.GetTypeList({Category:"SexType"}, 
+            function (success) {
+              $scope.Genders = success;  
+              // console.log($scope.Genders); 
+      }); 
       // 首先定义基本/详细信息数组    
       $scope.BasicInfo ={};
       $scope.BasicDtlInfo ={};
@@ -3131,15 +5315,24 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
                           Data.Users.GetPatientDetailInfo({route:urltemp2}, 
                             function (success, headers) {
                               $scope.BasicDtlInfo = success;
-                              //console.log(success);
-                              //console.log($scope.BasicDtlInfo.PhotoAddress);
-                              // console.log($scope.BasicDtlInfo); 
+                              // console.log(success.Birthday);
+                              // 将string转化成number(Int型数据)
+                              $scope.BasicDtlInfo.Height = parseInt(success.Height);
+                              $scope.BasicDtlInfo.Weight = parseInt(success.Weight);
+                              $scope.BasicDtlInfo.IDNo = parseInt(success.IDNo);
+                              $scope.BasicDtlInfo.PhoneNumber = parseInt(success.PhoneNumber);
+                              $scope.BasicDtlInfo.EmergencyContactPhoneNumber = parseInt(success.EmergencyContactPhoneNumber);
+                              // 读入头像
                               if( ($scope.BasicDtlInfo.PhotoAddress=="") || ($scope.BasicDtlInfo.PhotoAddress==null)){
                                 $scope.imgurl = "img/DefaultAvatar.jpg";
                               } 
-                                else{
-                                  $scope.imgurl = CONFIG.ImageAddressIP + CONFIG.ImageAddressFile + "/" + $scope.BasicDtlInfo.PhotoAddress;
-                                };
+                              else{
+                                $scope.imgurl = CONFIG.ImageAddressIP + CONFIG.ImageAddressFile + "/" + $scope.BasicDtlInfo.PhotoAddress;
+                              };
+                              // 防止生日在注册时服务器挂掉？？？这次怎么不管用了？？
+                              // if ((success.Birthday == null) || (success.Birthday == "")) {
+                              //   $scope.BasicInfo.Birthday = "请输入您的出生日期";
+                              // };
                           }); // 详细信息读入完成 
           }); // 基本信息读入完成
        setTimeout(function(){$ionicLoading.hide();},400);
@@ -3188,152 +5381,185 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
           datePickerCallback(val);
         }
       };  
+       //////////////////////////////////////////////////////////////////////////
+      $scope.change = function(d)
+      {
+        console.log(d);
+      }
+      //////////////////////////////////////////////////////////////////////////
       // 修改信息后的保存
-      $scope.refresh = function(){
-        // 基本信息的修改
-        Data.Users.SetPatBasicInfo({UserId:$scope.BasicInfo.UserId,
-                                    UserName:$scope.BasicInfo.UserName,
-                                    Birthday:$scope.BasicInfo.Birthday,
-                                    Gender:$scope.BasicInfo.Gender,
-                                    BloodType:$scope.BasicInfo.BloodType,
-                                    IDNo:$scope.BasicInfo.IDNo,
-                                    DoctorId:$scope.BasicInfo.DoctorId,
-                                    InsuranceType:$scope.BasicInfo.InsuranceType,
-                                    InvalidFlag:"9",
-                                    piUserId:"sample string 10",
-                                    piTerminalName:"sample string 11",
-                                    piTerminalIP:"sample string 12",
-                                    piDeviceType:"13"}, 
-            function (success, headers) {
-              if (success.result="数据插入成功") {
-                  // 详细信息的修改
-                  Data.Users.PostPatBasicInfoDetail([{Patient: $scope.BasicDtlInfo.UserId,
-                                                      CategoryCode: "BodySigns",
-                                                      ItemCode: "Height",
-                                                      ItemSeq: "1",
-                                                      Value: $scope.BasicDtlInfo.Height,
-                                                      Description: "",
-                                                      SortNo:"1",
-                                                      revUserId: $scope.BasicDtlInfo.UserId,
-                                                      TerminalName: "sample string 9",
-                                                      TerminalIP: "sample string 10",
-                                                      DeviceType: "11"
-                                                    },
-                                                    { Patient: $scope.BasicDtlInfo.UserId,
-                                                      CategoryCode: "BodySigns",
-                                                      ItemCode: "Weight",
-                                                      ItemSeq: "1",
-                                                      Value: $scope.BasicDtlInfo.Weight,
-                                                      Description: "",
-                                                      SortNo:"1",
-                                                      revUserId: $scope.BasicDtlInfo.UserId,
-                                                      TerminalName: "sample string 9",
-                                                      TerminalIP: "sample string 10",
-                                                      DeviceType: "11"
-                                                    },
-                                                    { Patient:  $scope.BasicDtlInfo.UserId,
-                                                      CategoryCode: "Contact",
-                                                      ItemCode: "Contact001_1",
-                                                      ItemSeq: "1",
-                                                      Value: $scope.BasicDtlInfo.IDNo,
-                                                      Description: "",
-                                                      SortNo:"1",
-                                                      revUserId: $scope.BasicDtlInfo.UserId,
-                                                      TerminalName: "sample string 9",
-                                                      TerminalIP: "sample string 10",
-                                                      DeviceType: "11"
-                                                    },
-                                                    { Patient:  $scope.BasicDtlInfo.UserId,
-                                                      CategoryCode: "Contact",
-                                                      ItemCode: "Contact001_3",
-                                                      ItemSeq: "1",
-                                                      Value:$scope.BasicDtlInfo.Nationality,
-                                                      Description: "",
-                                                      SortNo:"1",
-                                                      revUserId: $scope.BasicDtlInfo.UserId,
-                                                      TerminalName: "sample string 9",
-                                                      TerminalIP: "sample string 10",
-                                                      DeviceType: "11"
-                                                    },
-                                                    { Patient:  $scope.BasicDtlInfo.UserId,
-                                                      CategoryCode: "Contact",
-                                                      ItemCode: "Contact001_2",
-                                                      ItemSeq: "1",
-                                                      Value:$scope.BasicDtlInfo.Occupation,
-                                                      Description: "",
-                                                      SortNo:"1",
-                                                      revUserId: $scope.BasicDtlInfo.UserId,
-                                                      TerminalName: "sample string 9",
-                                                      TerminalIP: "sample string 10",
-                                                      DeviceType: "11"
-                                                    },
-                                                    { Patient: $scope.BasicDtlInfo.UserId,
-                                                      CategoryCode: "Contact",
-                                                      ItemCode: "Contact002_1",
-                                                      ItemSeq: "1",
-                                                      Value: $scope.BasicDtlInfo.PhoneNumber,
-                                                      Description: "",
-                                                      SortNo:"1",
-                                                      revUserId: $scope.BasicDtlInfo.UserId,
-                                                      TerminalName: "sample string 9",
-                                                      TerminalIP: "sample string 10",
-                                                      DeviceType: "11"
-                                                    },
-                                                    { Patient: $scope.BasicDtlInfo.UserId,
-                                                      CategoryCode: "Contact",
-                                                      ItemCode: "Contact002_2",
-                                                      ItemSeq: "1",
-                                                      Value: $scope.BasicDtlInfo.HomeAddress,
-                                                      Description: "",
-                                                      SortNo:"1",
-                                                      revUserId: $scope.BasicDtlInfo.UserId,
-                                                      TerminalName: "sample string 9",
-                                                      TerminalIP: "sample string 10",
-                                                      DeviceType: "11"
-                                                    },
-                                                    { Patient: $scope.BasicDtlInfo.UserId,
-                                                      CategoryCode: "Contact",
-                                                      ItemCode: "Contact002_3",
-                                                      ItemSeq: "1",
-                                                      Value: $scope.BasicDtlInfo.EmergencyContact,
-                                                      Description: "",
-                                                      SortNo:"1",
-                                                      revUserId: $scope.BasicDtlInfo.UserId,
-                                                      TerminalName: "sample string 9",
-                                                      TerminalIP: "sample string 10",
-                                                      DeviceType: "11"
-                                                    },
-                                                    { Patient: $scope.BasicDtlInfo.UserId,
-                                                      CategoryCode: "Contact",
-                                                      ItemCode: "Contact002_4",
-                                                      ItemSeq: "1",
-                                                      Value: $scope.BasicDtlInfo.EmergencyContactPhoneNumber,
-                                                      Description: "",
-                                                      SortNo:"1",
-                                                      revUserId: $scope.BasicDtlInfo.UserId,
-                                                      TerminalName: "sample string 9",
-                                                      TerminalIP: "sample string 10",
-                                                      DeviceType: "11"
-                                                    }],
-                                                  function (success, headers) {
-                                                    if (success.result="数据插入成功") {
-                                                      console.log("数据插入成功");
-                                                      // state.go和再次调用函数都可以
-                                                      // $state.go('sideMenu.personalInfo');
-                                                      init_personalInfo();
-                                                      // location.reload(); 这种刷新方法会使返回键失效
-                                                      $ionicLoading.show({
-                                                         template: '保存成功',
-                                                         duration:1000
-                                                        });
-                                                    };
-                                                  });
-              }// if语句结束，即详细信息的修改结束
-        });// 基本信息的修改结束
-
+      $scope.SaveInfo = function(a,b,c){
+        // console.log(a);
+        if (a == true){
+          $ionicLoading.show({
+           template: '保存失败,请输入正确的身份证号',
+           duration:1000
+          });
+        }
+        else if(b == true){
+          $ionicLoading.show({
+           template: '保存失败,请输入正确的联系电话',
+           duration:1000
+          });
+        }
+        else if(c == true){
+          $ionicLoading.show({
+           template: '保存失败,请输入正确的紧急联系人电话',
+           duration:1000
+          });
+        }
+        else{
+          // 考虑到时序的问题，中间值必须在SaveInfo内赋值
+          var temp_SetPatBasicInfo = {UserId:$scope.BasicInfo.UserId,
+                                      UserName:$scope.BasicInfo.UserName,
+                                      Birthday:$scope.BasicInfo.Birthday,
+                                      Gender:$scope.BasicInfo.Gender,
+                                      BloodType:$scope.BasicInfo.BloodType,
+                                      IDNo:$scope.BasicInfo.IDNo,
+                                      DoctorId:$scope.BasicInfo.DoctorId,
+                                      InsuranceType:$scope.BasicInfo.InsuranceType,
+                                      InvalidFlag:"0",
+                                      piUserId:extraInfo.postInformation().revUserId,
+                                      piTerminalName:extraInfo.postInformation().TerminalName,
+                                      piTerminalIP:extraInfo.postInformation().TerminalIP,
+                                      piDeviceType:extraInfo.postInformation().DeviceType};
+          var temp_PostPatBasicInfoDetail = [{Patient: $scope.BasicDtlInfo.UserId,
+                                            CategoryCode: "BodySigns",
+                                            ItemCode: "Height",
+                                            ItemSeq: "1",
+                                            Value: $scope.BasicDtlInfo.Height,
+                                            Description: "",
+                                            SortNo:"1",
+                                            revUserId: extraInfo.postInformation().revUserId,
+                                            TerminalName: extraInfo.postInformation().TerminalName,
+                                            TerminalIP: extraInfo.postInformation().TerminalIP,
+                                            DeviceType: extraInfo.postInformation().DeviceType
+                                          },
+                                          { Patient: $scope.BasicDtlInfo.UserId,
+                                            CategoryCode: "BodySigns",
+                                            ItemCode: "Weight",
+                                            ItemSeq: "1",
+                                            Value: $scope.BasicDtlInfo.Weight,
+                                            Description: "",
+                                            SortNo:"1",
+                                            revUserId: extraInfo.postInformation().revUserId,
+                                            TerminalName: extraInfo.postInformation().TerminalName,
+                                            TerminalIP: extraInfo.postInformation().TerminalIP,
+                                            DeviceType: extraInfo.postInformation().DeviceType
+                                          },
+                                          { Patient:  $scope.BasicDtlInfo.UserId,
+                                            CategoryCode: "Contact",
+                                            ItemCode: "Contact001_1",
+                                            ItemSeq: "1",
+                                            Value: $scope.BasicDtlInfo.IDNo,
+                                            Description: "",
+                                            SortNo:"1",
+                                            revUserId: extraInfo.postInformation().revUserId,
+                                            TerminalName: extraInfo.postInformation().TerminalName,
+                                            TerminalIP: extraInfo.postInformation().TerminalIP,
+                                            DeviceType: extraInfo.postInformation().DeviceType
+                                          },
+                                          { Patient:  $scope.BasicDtlInfo.UserId,
+                                            CategoryCode: "Contact",
+                                            ItemCode: "Contact001_3",
+                                            ItemSeq: "1",
+                                            Value:$scope.BasicDtlInfo.Nationality,
+                                            Description: "",
+                                            SortNo:"1",
+                                            revUserId: extraInfo.postInformation().revUserId,
+                                            TerminalName: extraInfo.postInformation().TerminalName,
+                                            TerminalIP: extraInfo.postInformation().TerminalIP,
+                                            DeviceType: extraInfo.postInformation().DeviceType
+                                          },
+                                          { Patient:  $scope.BasicDtlInfo.UserId,
+                                            CategoryCode: "Contact",
+                                            ItemCode: "Contact001_2",
+                                            ItemSeq: "1",
+                                            Value:$scope.BasicDtlInfo.Occupation,
+                                            Description: "",
+                                            SortNo:"1",
+                                            revUserId: extraInfo.postInformation().revUserId,
+                                            TerminalName: extraInfo.postInformation().TerminalName,
+                                            TerminalIP: extraInfo.postInformation().TerminalIP,
+                                            DeviceType: extraInfo.postInformation().DeviceType
+                                          },
+                                          { Patient: $scope.BasicDtlInfo.UserId,
+                                            CategoryCode: "Contact",
+                                            ItemCode: "Contact002_1",
+                                            ItemSeq: "1",
+                                            Value: $scope.BasicDtlInfo.PhoneNumber,
+                                            Description: "",
+                                            SortNo:"1",
+                                            revUserId: extraInfo.postInformation().revUserId,
+                                            TerminalName: extraInfo.postInformation().TerminalName,
+                                            TerminalIP: extraInfo.postInformation().TerminalIP,
+                                            DeviceType: extraInfo.postInformation().DeviceType
+                                          },
+                                          { Patient: $scope.BasicDtlInfo.UserId,
+                                            CategoryCode: "Contact",
+                                            ItemCode: "Contact002_2",
+                                            ItemSeq: "1",
+                                            Value: $scope.BasicDtlInfo.HomeAddress,
+                                            Description: "",
+                                            SortNo:"1",
+                                            revUserId: extraInfo.postInformation().revUserId,
+                                            TerminalName: extraInfo.postInformation().TerminalName,
+                                            TerminalIP: extraInfo.postInformation().TerminalIP,
+                                            DeviceType: extraInfo.postInformation().DeviceType
+                                          },
+                                          { Patient: $scope.BasicDtlInfo.UserId,
+                                            CategoryCode: "Contact",
+                                            ItemCode: "Contact002_3",
+                                            ItemSeq: "1",
+                                            Value: $scope.BasicDtlInfo.EmergencyContact,
+                                            Description: "",
+                                            SortNo:"1",
+                                            revUserId: extraInfo.postInformation().revUserId,
+                                            TerminalName: extraInfo.postInformation().TerminalName,
+                                            TerminalIP: extraInfo.postInformation().TerminalIP,
+                                            DeviceType: extraInfo.postInformation().DeviceType
+                                          },
+                                          { Patient: $scope.BasicDtlInfo.UserId,
+                                            CategoryCode: "Contact",
+                                            ItemCode: "Contact002_4",
+                                            ItemSeq: "1",
+                                            Value: $scope.BasicDtlInfo.EmergencyContactPhoneNumber,
+                                            Description: "",
+                                            SortNo:"1",
+                                            revUserId: extraInfo.postInformation().revUserId,
+                                            TerminalName: extraInfo.postInformation().TerminalName,
+                                            TerminalIP: extraInfo.postInformation().TerminalIP,
+                                            DeviceType: extraInfo.postInformation().DeviceType
+                                          }];
+          // 基本信息的修改
+          Data.Users.SetPatBasicInfo(temp_SetPatBasicInfo, 
+              function (success, headers) {
+                if (success.result="数据插入成功") {
+                    // 详细信息的修改
+                    Data.Users.PostPatBasicInfoDetail(temp_PostPatBasicInfoDetail,
+                                                    function (success, headers) {
+                                                      if (success.result="数据插入成功") {
+                                                        console.log("数据插入成功");
+                                                        // state.go和再次调用函数都可以
+                                                        // $state.go('sideMenu.personalInfo');
+                                                        init_personalInfo();
+                                                        // location.reload(); 这种刷新方法会使返回键失效
+                                                        $ionicLoading.show({
+                                                           template: '保存成功',
+                                                           duration:1000
+                                                          });
+                                                      };
+                                                    });
+                }// if语句结束，即详细信息的修改结束
+              },// 数据插入成功的function结束
+              function (err) {
+                    console.log(err);
+              }// 数据插入失败的function结束
+          );// 基本信息的修改结束
+        };// if语句结束
       };// 点击事件的定义结束
 
-      //-----------------上传头像----------------
+      //-----------------------上传头像---------------------
       // ionicPopover functions 弹出框的预定义
         //--------------------------------------------
         // .fromTemplateUrl() method
@@ -3369,46 +5595,49 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
       $scope.onClickCameraCancel = function(){
         $scope.closePopover();
       };
+      // 上传照片并将照片读入页面-------------------------
+      var photo_upload_display = function(imgURI){
+        // 给照片的名字加上时间戳
+        var temp_photoaddress = UserId + "_" + new Date().getTime() + ".jpg";
+        // 存入服务器
+        Camera.uploadPicture(imgURI, temp_photoaddress).then(function(r){
+            // 将图片的名字（UserId）插入详细信息中的PhotoAddress
+            Data.Users.PostPatBasicInfoDetail([{Patient: UserId,
+                                                CategoryCode: "Contact",
+                                                ItemCode: "Contact001_4",
+                                                ItemSeq: "1",
+                                                Value: temp_photoaddress,
+                                                Description: "",
+                                                SortNo:"1",
+                                                revUserId: extraInfo.postInformation().revUserId,
+                                                TerminalName: extraInfo.postInformation().TerminalName,
+                                                TerminalIP: extraInfo.postInformation().TerminalIP,
+                                                DeviceType: extraInfo.postInformation().DeviceType
+                                              }],
+                                              function (success, headers) {
+                                                if (success.result="数据插入成功") { 
+                                                  // Camera.downloadPicture();
+                                                  init_personalInfo();
+                                                };
+                                              });// 重新读入照片结束
+        }) // 上传照片结束
+      };
+
       // 相册键的点击事件---------------------------------
       $scope.onClickCameraPhotos = function(){        
        // console.log("选个照片"); 
        $scope.choosePhotos();
        $scope.closePopover();
-      };
-
+      };      
       $scope.choosePhotos = function() {
        Camera.getPictureFromPhotos().then(function(data) {
           // data里存的是图像的地址
           // console.log(data);
-          $scope.imgURI = data; 
-          // 存入服务器
-          var temp_photoaddress = UserId + "_" + new Date().getTime() + ".jpg";
-          Camera.uploadPicture($scope.imgURI, temp_photoaddress).then(function(r){
-              // 将图片的名字（UserId）插入详细信息中的PhotoAddress
-              // 给照片的名字加上时间戳
-              console.log(temp_photoaddress);
-              Data.Users.PostPatBasicInfoDetail([{Patient: UserId,
-                                                  CategoryCode: "Contact",
-                                                  ItemCode: "Contact001_4",
-                                                  ItemSeq: "1",
-                                                  Value: temp_photoaddress,
-                                                  Description: "",
-                                                  SortNo:"1",
-                                                  revUserId: UserId,
-                                                  TerminalName: "sample string 9",
-                                                  TerminalIP: "sample string 10",
-                                                  DeviceType: "11"
-                                                }],
-                                                function (success, headers) {
-                                                  if (success.result="数据插入成功") { 
-                                                    // Camera.downloadPicture();
-                                                    init_personalInfo();
-                                                  };
-                                                });
-          }) // 上传照片结束
+          var imgURI = data; 
+          photo_upload_display(imgURI);
         }, function(err) {
           // console.err(err);
-          $scope.imgURI = undefined;
+          var imgURI = undefined;
         });// 从相册获取照片结束
       }; // function结束
       // 照相机的点击事件----------------------------------
@@ -3421,36 +5650,11 @@ function($scope, $timeout, $ionicModal,$ionicHistory, $cordovaDatePicker,$cordov
        Camera.getPicture().then(function(data) {
           // data里存的是图像的地址
           // console.log(data);
-          $scope.imgURI = data;
-          var temp_photoaddress = UserId + "_" + new Date().getTime() + ".jpg";
-          // 存入服务器
-          Camera.uploadPicture($scope.imgURI, temp_photoaddress).then(function(r){
-              // 将图片的名字（UserId）插入详细信息中的PhotoAddress
-              
-              // 给照片的名字加上时间戳
-              console.log(temp_photoaddress);
-              Data.Users.PostPatBasicInfoDetail([{Patient: UserId,
-                                                  CategoryCode: "Contact",
-                                                  ItemCode: "Contact001_4",
-                                                  ItemSeq: "1",
-                                                  Value: temp_photoaddress,
-                                                  Description: "",
-                                                  SortNo:"1",
-                                                  revUserId: UserId,
-                                                  TerminalName: "sample string 9",
-                                                  TerminalIP: "sample string 10",
-                                                  DeviceType: "11"
-                                                }],
-                                                function (success, headers) {
-                                                  if (success.result="数据插入成功") { 
-                                                    // Camera.downloadPicture();
-                                                    init_personalInfo();
-                                                  };
-                                                });
-          }) // 上传照片结束 
+          var imgURI = data;
+          photo_upload_display(imgURI);
         }, function(err) {
             // console.err(err);
-            $scope.imgURI = undefined;
+            var imgURI = undefined;
         })// 照相结束
       }; // function结束
 

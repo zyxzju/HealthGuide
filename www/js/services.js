@@ -133,19 +133,29 @@ angular.module('zjubme.services', ['ionic','ngResource'])
         UID:{method:'GET',params:{route:'UID',Type:'@Type',Name:'@Name'},timeout:10000},
         Activition:{method:'POST',params:{route:'Activition'},timeout:10000},
         Roles:{method:'GET',params:{route:'Roles',UserId:'@UserId'},timeout:10000,isArray:true},
-        GetHealthCoachListByPatient: {method:'Get', isArray: true, params:{route: 'GetHealthCoachListByPatient'},timeout: 10000},
+        HealthCoaches: {method:'Get', isArray: true, params:{route: 'HealthCoaches'},timeout: 10000},
         GetPatBasicInfo: {method:'GET', params:{route:'@UserId'}, timeout:10000},
         GetPatientDetailInfo: {method:'GET', params:{route:'@UserId'}, timeout:10000},
         SetPatBasicInfo: {method:'POST', params:{route:'BasicInfo'}, timeout:10000},
-        PostPatBasicInfoDetail: {method:'POST', params:{route:'BasicDtlInfo'}, timeout:10000}
+        PostPatBasicInfoDetail: {method:'POST', params:{route:'BasicDtlInfo'}, timeout:10000},
+        GetHealthCoaches: {method:'GET',isArray: true,params:{route: 'HealthCoaches'}, timeout:100000},
+        GetHealthCoachInfo: {method:'GET',params:{route: 'GetHealthCoachInfo', HealthCoachID:'@HealthCoachID'}, timeout:1000},
+        GetCommentList: {method:'GET',isArray: true,params:{route: 'GetCommentList'}, timeout:100000},
+        SetComment: {method:'POST', params:{route:'SetComment'}, timeout:10000},
+        ReserveHealthCoach: {method:'POST', params:{route:'ReserveHealthCoach'}, timeout:10000},
+        BasicDtlValue: {method:'GET', params:{route:'BasicDtlValue'}, timeout:10000},
+        RemoveHealthCoach: {method:'GET', params:{route:'RemoveHealthCoach'}, timeout:10000},
+        HModulesByID: {method:'GET', params:{route:'HModulesByID'}, isArray:true, timeout:10000}
       });
     };
     var Service = function(){
       return $resource(CONFIG.baseUrl + ':path/:route',{
         path:'Service',
       },{
-              sendSMS:{method:'POST',headers:{token:getToken()}, params:{route: 'sendSMS',phoneNo:'@phoneNo',smsType:'@smsType'}, timeout: 10000},
+              sendSMS:{method:'POST',headers:{token:getToken()}, params:{route: 'sendSMS',mobile:'@mobile',smsType:'@smsType',content:'{content}'}, timeout: 10000},
               checkverification:{method:'POST',headers:{token:getToken()}, params:{route: 'checkverification', mobile:'@mobile',smsType: '@smsType', verification:'@verification'},timeout: 10000},
+              BindMeasureDevice:{method:'GET',params:{route:'GetPatientInfo',PatientId:'@PatientId'},timeout:10000},
+              PushNotification: {method:'GET', params:{route:'PushNotification'}, timeout:10000}
       })
     };
     var VitalInfo = function () {
@@ -162,8 +172,13 @@ angular.module('zjubme.services', ['ionic','ngResource'])
     var MessageInfo = function () {
         return $resource(CONFIG.baseUrl + ':path/:route', {path:'MessageInfo'},
               {
+                PostNotification: {method:'POST', params:{route: 'PostNotification'},timeout: 10000},
+                ChangeStatus: {method:'POST', params:{route: 'ChangeStatus'},timeout: 10000},
+                GetDataByStatus: {method:'GET', params:{route: 'GetDataByStatus'},timeout: 10000, isArray:true},
                 submitSMS: {method:'POST', params:{route: 'message'},timeout: 10000},
-                GetSMSDialogue:{method:'GET', isArray:true, params:{route: 'messages'},timeout: 10000}
+                GetSMSDialogue:{method:'GET', isArray:true, params:{route: 'messages'},timeout: 10000},
+                GetSMSCount:{method:'GET', params:{route: 'messageNum'},timeout: 10000},
+                SetSMSRead:{method:'PUT', params:{route: 'message'},timeout: 10000}
         
         });
     };
@@ -172,10 +187,13 @@ angular.module('zjubme.services', ['ionic','ngResource'])
         return $resource(CONFIG.baseUrl + ':path/:route', {path:'PlanInfo'},
           {
               Plan: {method:'GET', params:{route: 'Plan'},timeout: 10000, isArray:true},
-              PlanInfoChart: {method:'GET', params:{route: 'PlanInfoChart', $top:"7", $orderby:"Date"},timeout: 10000, isArray:true},                
+              PlanInfoChart: {method:'GET', params:{route: 'PlanInfoChart'},timeout: 10000, isArray:true},                
               Target: {method:'GET', params:{route: 'Target'},timeout: 10000},
               PlanInfoChartDtl: {method:'GET', params:{route: 'PlanInfoChartDtl'},timeout: 10000, isArray:true},
-              GetExecutingPlan: {method:'GET', isArray:true ,params:{route: 'Plan'},timeout: 10000}        
+              GetExecutingPlan: {method:'GET', isArray:true ,params:{route: 'Plan'},timeout: 10000},
+              GetComplianceListInC:{method:'GET', isArray:true ,params:{route: 'GetComplianceListInC'},timeout: 10000},
+              getDTaskByPlanNo: {method:'GET',isArray:true, params:{route:'GetDTaskByPlanNo'},timeout: 10000},
+              TaskCompliances: {method:'GET', isArray:true, params:{route:'TaskCompliances'}, timeout:100000000}
         });
     };
 
@@ -211,6 +229,13 @@ angular.module('zjubme.services', ['ionic','ngResource'])
           getMaxSortNo:{method:'GET',params:{route:'GetMaxSortNo',UserId:'@UserId'},timeout:10000} 
       })
     };
+    var Dict = function () {
+    return $resource(CONFIG.baseUrl + ':path/:route', {path:'Dict'},
+      {
+        GetInsuranceType: {method:'GET', isArray:true, params:{route: 'GetInsuranceType'}, timeout: 10000},
+        GetTypeList:{method:'GET', isArray:true, params:{route: 'Type/Category'}, timeout: 10000}
+       });
+    };
     
     serve.abort = function ($scope) {
     abort.resolve();
@@ -223,6 +248,7 @@ angular.module('zjubme.services', ['ionic','ngResource'])
       serve.TaskInfo = TaskInfo();
       serve.PlanInfo = PlanInfo();
       serve.RiskInfo = RiskInfo();
+      serve.Dict = Dict();
       }, 0, 1);
     };
     serve.Users = Users();
@@ -232,17 +258,639 @@ angular.module('zjubme.services', ['ionic','ngResource'])
     serve.TaskInfo = TaskInfo();
     serve.PlanInfo = PlanInfo();
     serve.RiskInfo = RiskInfo();
+    serve.Dict = Dict();
     return serve;
+}])
+
+//LRZ20151113 风险评估service
+.factory('RiskService',['Patients','Data','Storage','$rootScope',function(Patients, Data, Storage,$rootScope){
+  var self = this;
+  // 风险评估列表
+  var riskList = [];
+  //高血压风险的画图数据   
+  var graphData_hy = {
+        "type": "serial",
+        "theme": "light",
+          "dataProvider": [{
+              "type": "收缩压 (mmHg)",
+              "state1": 40+80,
+              "state2": 20,
+              "state3": 20,
+              "state4": 20,
+              "state5": 20,
+              "now": 0, //params
+              "target": 120               //params
+
+          }, {
+              "type": "舒张压 (mmHg)",
+              "state1": 20+80,
+              "state2": 20,
+              "state3": 20,
+              "state4": 20,
+              "state5": 20,
+              "now":  0,         //params
+              "target": 100             //params
+          }],
+          "valueAxes": [{
+              "stackType": "regular",
+              "axisAlpha": 0.3,
+              "gridAlpha": 0,
+              "minimum" :80
+          }],
+          "startDuration": 0.1,
+          "graphs": [{
+              "balloonText": "<b>[[title]]</b><br><span style='font-size:14px'>[[category]]: <b><120 mmHg</b></span>",
+              "fillAlphas": 0.8,
+              //"labelText": "[[value]]",
+              "lineAlpha": 0.3,
+              "title": "很安全",
+              "type": "column",
+              "color": "#000000",
+              "columnWidth": 0.618,
+              "valueField": "state1"
+          }, {
+              "balloonText": "<b>[[title]]</b><br><span style='font-size:14px'>[[category]]: <b>120-140mmHg</b></span>",
+              "fillAlphas": 0.8,
+             // "labelText": "[[value]]",
+              "lineAlpha": 0.3,
+              "title": "正常",
+              "type": "column",
+              "color": "#000000",
+              "columnWidth": 0.618,
+              "valueField": "state2"
+          }, {
+              "balloonText": "<b>[[title]]</b><br><span style='font-size:14px'>[[category]]: <b>140-160mmHg</b></span>",
+              "fillAlphas": 0.8,
+              //"labelText": "[[value]]",
+              "lineAlpha": 0.3,
+              "title": "良好",
+              "type": "column",
+              "color": "#000000",
+              "columnWidth": 0.618,
+              "valueField": "state3"
+          }, {
+              "balloonText": "<b>[[title]]</b><br><span style='font-size:14px'>[[category]]: <b>160-180mmHg</b></span>",
+              "fillAlphas": 0.8,
+              //"labelText": "[[value]]",
+              "lineAlpha": 0.3,
+              "title": "很危险",
+              "type": "column",
+              "color": "#000000",
+              "columnWidth": 0.618,
+              "valueField": "state4"
+          }, {
+              "balloonText": "<b>[[title]]</b><br><span style='font-size:14px'>[[category]]: <b>>180mmHg</b></span>",
+              "fillAlphas": 0.8,
+              //"labelText": "[[value]]",
+              "lineAlpha": 0.3,
+              "title": "极度危险",
+              "type": "column",
+              "color": "#000000",
+              "columnWidth": 0.618,
+              "valueField": "state5"
+          }, {
+              "balloonText": "<b>[[title]]</b><br><span style='font-size:40px'>[[category]]: <b>[[value]]</b></span>",
+              "fillAlphas": 0,
+              "columnWidth": 0.5,
+              "lineThickness": 5,
+              "labelText": "[[value]]"+" 当前",
+              "clustered": false,
+              "lineAlpha": 1.5,
+              "stackable": false,
+              "columnWidth": 0.618,
+              "noStepRisers": true,
+              "title": "当前",
+              "type": "step",
+              "color": "#000000",
+              "valueField": "now"      
+          }, {
+              "balloonText": "<b>[[title]]</b><br><span style='font-size:14px'>[[category]]: <b>[[value]]</b></span>",
+              "fillAlphas": 0,
+              "columnWidth": 0.5,
+              "lineThickness": 0,
+              "columnWidth": 0.618,
+              // "labelText": "[[value]]"+"目标",
+              "clustered": false,
+              "lineAlpha": 0.3,
+              "stackable": false,
+              "noStepRisers": true,
+              "title": "目标",
+              "type": "step",
+              "color": "#00FFCC",
+              "valueField": "target"      
+          }],
+          "categoryField": "type",
+          "categoryAxis": {
+              "gridPosition": "start",
+              "axisAlpha": 80,
+              "gridAlpha": 0,
+              "position": "left"
+          },
+          "export": {
+            "enabled": true
+           }
+      };
+  //糖尿病风险的画图数据
+  var graphData_diab = {
+          "type": "serial",
+          "theme": "light",
+          
+          "autoMargins": true,
+          "marginTop": 30,
+          "marginLeft": 80,
+          "marginBottom": 30,
+          "marginRight": 50,
+          "dataProvider": [{
+              "category": "血糖浓度  (mmol/L)",
+              "excelent": 4.6,
+              "good": 6.1-4.6,
+              "average": 7.2-6.1,
+              "poor": 8.8-7.2,
+              "bad": 13.1-8.8,
+              "verybad": 20 - 13.1,
+              "bullet": 0
+          }],
+          "valueAxes": [{
+              "maximum": 20,
+              "stackType": "regular",
+              "gridAlpha": 0,
+              "offset":10,
+              "minimum" :3
+
+          }],
+          "startDuration": 0.13,
+          "graphs": [ {
+              "balloonText": "<b>[[title]]</b><br><span style='font-size:14px'>[[category]]: <b>4.6 mmol/L</b></span>",
+              "fillAlphas": 0.8,
+              "lineColor": "#4ede39",
+              "showBalloon": true,
+              "type": "column",
+              "valueField": "excelent"
+          }, {
+            "balloonText": "<b>[[title]]</b><br><span style='font-size:14px'>[[category]]: <b>4.6 -6.1 mmol/L</b></span>",
+              "fillAlphas": 0.8,
+              "lineColor": "#60b95d",
+              "showBalloon": true,
+              "type": "column",
+              "valueField": "good"
+          }, {
+            "balloonText": "<b>[[title]]</b><br><span style='font-size:14px'>[[category]]: <b>6.1-7.2 mmol/L</b></span>",
+              "fillAlphas": 0.8,
+              "lineColor": "#f9c80e",
+              "showBalloon": true,
+              "type": "column",
+              "valueField": "average"
+          }, {
+            "balloonText": "<b>[[title]]</b><br><span style='font-size:14px'>[[category]]: <b>7.2-8.8 mmol/L</b></span>",
+              "fillAlphas": 0.8,
+              "lineColor": "#f88624",
+              "showBalloon": true,
+              "type": "column",
+              "valueField": "poor"
+          }, {
+            "balloonText": "<b>[[title]]</b><br><span style='font-size:14px'>[[category]]: <b>8.8-9 mmol/L</b></span>",
+              "fillAlphas": 0.8,
+              "lineColor": "#e76b74",
+              "showBalloon": true,
+              "type": "column",
+              "valueField": "bad"
+          },{
+            "balloonText": "<b>[[title]]</b><br><span style='font-size:14px'>[[category]]: <b>8.8-9 mmol/L</b></span>",
+              "fillAlphas": 0.8,
+              "lineColor": "#ea526f",
+              "showBalloon": true,
+              "type": "column",
+              "valueField": "verybad"
+          }, {
+              "balloonText": "<b>[[title]]</b><br><span style='font-size:14px'>[[category]]: <b>>9 mmol/L</b></span>",
+              "clustered": false,
+              "columnWidth": 0.5,
+              "noStepRisers": true,
+              "lineThickness": 5,
+              "fillAlphas": 0,
+              "labelText": "[[value]]"+" 当前",
+              "lineColor": "#000000", 
+              "stackable": false,
+              "showBalloon": true,
+              "type": "step",
+              "valueField": "bullet"
+          }],
+          "rotate": false,
+          "columnWidth": 1,
+          "categoryField": "category",
+          "categoryAxis": {
+              "gridAlpha": 0,
+              "position": "left",
+             
+          }
+      };
+      
+  //心衰风险的画图数据
+  var graphData_hf = {
+        "type": "serial",
+        "theme": "light",
+          "dataProvider": [{
+              "type": "一年死亡风险 (%)",
+              "state1": 4.8,
+              "state2": 17.5-4.8,
+              "state3": 42.7-17.5,
+              "state4": 62.5-42.7,
+              "state5": 84.2-62.5,
+              "now": 0, //params
+              "target": 0               //params
+
+          }, {
+              "type": "三年死亡风险 (%)",
+              "state1": 12.2,
+              "state2": 39.7-12.2,
+              "state3": 75.6-39.7,
+              "state4": 90.8-75.6,
+              "state5": 98.5-90.8,
+              "now":  0,         //params
+              "target": 0             //params
+          }],
+          "valueAxes": [{
+              "stackType": "regular",
+              "axisAlpha": 0.3,
+              "gridAlpha": 0,
+              "minimum" :0
+          }],
+          "startDuration": 0.1,
+          "graphs": [{
+              "balloonText": "<span style='font-size:14px'>[[category]]: <b>很安全</b></span>",
+              "fillAlphas": 0.8,
+              "labelText": "",
+              "lineAlpha": 0.3,
+              "title": "很安全",
+              "type": "column",
+              "color": "#000000",
+              "columnWidth": 0.618,
+              "valueField": "state1"
+          }, {
+              "balloonText": "<span style='font-size:14px'>[[category]]: <b>正常</b></span>",
+              "fillAlphas": 0.8,
+              "labelText": " ",
+              "lineAlpha": 0.3,
+              "title": "",
+              "type": "column",
+              "color": "#000000",
+              "columnWidth": 0.618,
+              "valueField": "state2"
+          }, {
+              "balloonText": "<span style='font-size:14px'>[[category]]: <b>良好</b></span>",
+              "fillAlphas": 0.8,
+              "labelText": "",
+              "lineAlpha": 0.3,
+              "title": "",
+              "type": "column",
+              "color": "#000000",
+              "columnWidth": 0.618,
+              "valueField": "state3"
+          }, {
+             "balloonText": "<span style='font-size:14px'>[[category]]: <b>危险</b></span>",
+              "fillAlphas": 0.8,
+              "labelText": "",
+              "lineAlpha": 0.3,
+              "title": "",
+              "type": "column",
+              "color": "#000000",
+              "columnWidth": 0.618,
+              "valueField": "state4"
+          }, {
+              "balloonText": "<br><span style='font-size:14px'>[[category]]: <b>极度危险</b></span>",
+              "fillAlphas": 0.8,
+              "labelText": "",
+              "lineAlpha": 0.3,
+              "title": "",
+              "type": "column",
+              "color": "#000000",
+              "columnWidth": 0.618,
+              "valueField": "state5"
+          }, {
+              // "balloonText": "<b>[[title]]</b><br><span style='font-size:40px'>[[category]]: <b>[[value]]</b></span>",
+              "fillAlphas": 0,
+              "columnWidth": 0.5,
+              "lineThickness": 5,
+              "labelText": "[[value]]"+"  %  当前",
+              "clustered": false,
+              "lineAlpha": 1.5,
+              "stackable": false,
+              "columnWidth": 0.618,
+              "noStepRisers": true,
+              "title": "当前",
+              "type": "step",
+              "color": "#000000",
+              "valueField": "now"      
+          }, {
+              //"balloonText": "<b>[[title]]</b><br><span style='font-size:14px'>[[category]]: <b>[[value]]</b></span>",
+              "fillAlphas": 0,
+              "columnWidth": 0.5,
+              "lineThickness": 0,
+              "columnWidth": 0.618,
+              // "labelText": "[[value]]"+"目标",
+              "clustered": false,
+              "lineAlpha": 0.3,
+              "stackable": false,
+              "noStepRisers": true,
+              "title": "目标",
+              "type": "step",
+              "color": "#00FFCC",
+              "valueField": "target"      
+          }],
+          "categoryField": "type",
+          "categoryAxis": {
+              "gridPosition": "start",
+              "axisAlpha": 80,
+              "gridAlpha": 0,
+              "position": "left"
+          },
+          "export": {
+            "enabled": true
+           }
+    };
+
+  self.getGraphData = function(module,index){
+    // console.log("1");
+    var temp = {};
+
+    switch(module){
+      case 'M1': temp = graphData_hy;
+                 // console.log(temp); 
+                 temp.dataProvider[0].now = riskList[index].M1.SBP;
+                 temp.dataProvider[1].now = riskList[index].M1.DBP;
+                 temp.valueAxes[0].minimum = (riskList[index].M1.DBP < 80) ? parseInt(riskList[index].M1.DBP) - 10 : 80;
+                 // temp.valueAxes[0].maximum = parseInt(riskList[index].M1.SBP) + 20;
+                 break;
+      case 'M2': temp = graphData_diab; 
+                 temp.dataProvider[0].bullet = riskList[index].M2.Glucose;
+                 temp.valueAxes[0].maximum = parseInt(riskList[index].M2.Glucose) + 1.3;
+                 break;
+      case 'M3': temp = graphData_hf;
+                 temp.dataProvider[0].now = riskList[index].M3.f1;
+                 temp.dataProvider[1].now = riskList[index].M3.f2;
+                 temp.valueAxes[0].maximum = (riskList[index].M3.f2 > riskList[index].M3.f1)  ? riskList[index].M3.f2 *4:riskList[index].M3.f1 *4 ;
+    };
+    return temp;
+  }
+
+  self.getIndexBySortNo = function(sortno){
+      for (var i = riskList.length - 1; i >= 0; i--) {
+        if(riskList[i].num == sortno) {
+          var temp = i;
+          // console.log("得到了这一条数据");
+          // console.log(riskList[temp]);
+          break;
+        }
+      };
+      return temp;
+  }
+  self.getRiskList = function(){
+    // console.log("riskList");
+    return riskList;
+  }
+ self.getSingleRisk = function(no){
+    return riskList[no];
+  }
+  var sortList = function(risks){
+    console.log("start sorting lists");
+    //先整理列表的模块名
+    for (var i = risks.length - 1; i >= 0; i--) {
+          switch (risks[i].AssessmentType){
+            case 'M1' : risks[i].AssessmentName = "高血压模块";       
+                        var temp = risks[i].Result.split("||",8);
+                        //分割字符串 获得血压数据 SBP||DBP||5 factors
+                        risks[i].Result = temp[0];
+                        risks[i].SBP = temp[1];
+                        risks[i].DBP = temp[2];
+                        risks[i].f1 = temp[3];
+                        risks[i].f2 = temp[4];
+                        risks[i].f3 = temp[5];
+                        risks[i].f4 = temp[6];
+                        risks[i].f5 = temp[7];
+                        break;
+            case 'M2' : risks[i].AssessmentName = "糖尿病模块";
+                        //分割字符串 获得血糖数据 结果||测量时间||血糖值
+                        var temp = risks[i].Result.split("||",3);
+                        risks[i].Result = temp[0];
+                        risks[i].Period = temp[1];
+                        risks[i].Glucose = temp[2];
+                        break;
+            case 'M3' : risks[i].AssessmentName = "心衰模块"; 
+                      //分割字符串 获得血糖数据 分级||填表结果||blablabla
+                        var temp = risks[i].Result.split("||",3);
+                        risks[i].Result = temp[0];
+                        risks[i].f1 = temp[1];
+                        risks[i].f2 = temp[2];                   
+          } 
+      };
+      //将同一个number 的整合到 一个对象中
+      var newRisks = [];
+      for (var i = 0; i <= risks.length - 1; i++) {
+          if(i == 0) {
+            switch(risks[i].AssessmentType){
+                case 'M1' : var temp = {num: risks[i].SortNo, M1:risks[i],M2:undefined,M3:undefined};break;
+                case 'M2' : var temp = {num: risks[i].SortNo, M2:risks[i],M1:undefined,M3:undefined};break;
+                case 'M3' : var temp = {num: risks[i].SortNo, M3:risks[i],M2:undefined,M1:undefined};
+            }
+            newRisks.push(temp);
+          }
+          else{
+            if(risks[i].SortNo == newRisks[newRisks.length-1].num){
+                switch(risks[i].AssessmentType){
+                  case 'M1' : newRisks[newRisks.length-1].M1 = risks[i];break;
+                  case 'M2' : newRisks[newRisks.length-1].M2 = risks[i];break;
+                  case 'M3' : newRisks[newRisks.length-1].M3 = risks[i];
+                }
+            }
+            else{
+                switch(risks[i].AssessmentType){
+                  case 'M1' : var temp = {num: risks[i].SortNo, M1:risks[i]};break;
+                  case 'M2' : var temp = {num: risks[i].SortNo, M2:risks[i]};break;
+                  case 'M3' : var temp = {num: risks[i].SortNo, M3:risks[i]};
+                }
+                newRisks.push(temp);            
+            }
+          }        
+      };
+      //不显示没填写的项目&& 异常项目 
+      for (var i = newRisks.length - 1; i >= 0; i--) {
+        if(typeof(newRisks[i].M1) == 'undefined' 
+          || typeof(newRisks[i].M1.SBP) == 'undefined' 
+          || typeof(newRisks[i].M1.DBP) == 'undefined')
+          {
+            newRisks[i].M1show = false;
+            newRisks[i].M1 = {Result: "您本次没有进行高血压的风险评估"};
+          }
+        else  {
+          newRisks[i].M1show = true;
+          newRisks[i].AssessmentTime = newRisks[i].M1.AssessmentTime;
+        }
+        if(typeof(newRisks[i].M2) == 'undefined' || 
+           typeof(newRisks[i].M2.AssessmentTime) == 'undefined' ||
+           typeof(newRisks[i].M2.Period) == 'undefined' ||
+           typeof(newRisks[i].M2.Glucose) == 'undefined')
+          {
+            newRisks[i].M2show = false;
+            newRisks[i].M2 = {Result :"您本次没有进行糖尿病的风险评估"};
+          }
+        else{
+          newRisks[i].M2show = true;
+          newRisks[i].AssessmentTime = newRisks[i].M2.AssessmentTime;
+        } 
+          
+
+        if(typeof(newRisks[i].M3) == 'undefined' || 
+           typeof(newRisks[i].M3.AssessmentTime) == 'undefined' ||
+           typeof(newRisks[i].M3.f1) == 'undefined' ||
+           typeof(newRisks[i].M3.f2) == 'undefined')
+          {
+            newRisks[i].M3show = false;
+            newRisks[i].M3 = {Result :"您本次没有进行心衰的风险评估"};
+          }
+        else{
+          newRisks[i].M3show = true;
+          newRisks[i].AssessmentTime = newRisks[i].M3.AssessmentTime;
+        } 
+      };
+      // console.log(newRisks);
+      console.log("finished sorting lists");    
+      return newRisks;
+  }
+
+  self.initial = function(){
+    console.log("service初始化");
+    var pid = Storage.get('UID');
+    // var pid = "PID201506170002";
+    console.log("service从LS取出了pid" + pid);
+    //得到所有的数据
+    Patients.getEvalutionResults(pid).then(function(data){
+      //没有数据或者取失败广播告诉controller取不出来了
+      // console.log(data);
+      if(data == [] || data == null ){
+        console.log("service从WS取数据失败----broadcasting");
+        $rootScope.$broadcast("RisksGetFail");
+        return ;
+      }
+      else{
+        console.log("service从WS取数据成功----broadcasting");
+        //整理列表 按照 什么 排好
+        riskList = sortList(data);
+        // console.log(riskList);
+        //广播告诉controller 可以取了
+        $rootScope.$broadcast("RisksGet");        
+      }
+
+    });
+  }
+
+  
+  return self;
+
 }])
 
 
 // 用户操作函数
+
+.factory('Service', ['$q', '$http', 'Data',function ( $q,$http, Data) {
+  var self = this;
+  self.PushNotification = function (platform, Alias, notification, title, id) {
+    var deferred = $q.defer();
+    Data.Service.PushNotification({platform:platform, Alias:Alias, notification:notification, title:title, id:id}, function (data, headers) {
+      deferred.resolve(data);
+    }, function (err) {
+      deferred.reject(err);
+    });
+    return deferred.promise;
+  };
+  return self;
+}])
+
 .factory('Users', ['$q', '$http', 'Data',function ( $q,$http, Data) {
   var self = this;
 
+  self.HModulesByID = function (PatientId, DoctorId) {
+      var deferred = $q.defer();
+      Data.Users.HModulesByID({PatientId:PatientId, DoctorId:DoctorId}, function (data, headers) {
+        deferred.resolve(data);
+      }, function (err) {
+      deferred.reject(err);
+      });
+      return deferred.promise;
+  };
+
+  self.RemoveHealthCoach = function (PatientId, DoctorId, CategoryCode) {
+      var deferred = $q.defer();
+      Data.Users.RemoveHealthCoach({PatientId:PatientId, DoctorId:DoctorId, CategoryCode:CategoryCode}, function (data, headers) {
+        deferred.resolve(data);
+      }, function (err) {
+      deferred.reject(err);
+      });
+      return deferred.promise;
+  };
+
+  self.BasicDtlValue = function (UserId, CategoryCode, ItemCode, ItemSeq) {//U201511120002 HM1 Doctor 1
+      var deferred = $q.defer();
+      Data.Users.BasicDtlValue({UserId:UserId, CategoryCode:CategoryCode, ItemCode:ItemCode, ItemSeq:ItemSeq}, function (data, headers) {
+        deferred.resolve(data);
+      }, function (err) {
+      deferred.reject(err);
+      });
+      return deferred.promise;
+  };
+
   self.GetHealthCoachListByPatient = function (PatientId, CategoryCode) {
       var deferred = $q.defer();
-      Data.Users.GetHealthCoachListByPatient({PatientId:PatientId, CategoryCode:CategoryCode}, function (data, headers) {
+      Data.Users.HealthCoaches({PatientId:PatientId}, function (data, headers) {
+        deferred.resolve(data);
+      }, function (err) {
+      deferred.reject(err);
+      });
+      return deferred.promise;
+  };
+
+self.GetHealthCoaches = function (top, skip, filter) {
+      var deferred = $q.defer();
+      Data.Users.GetHealthCoaches({$top:top, $skip:skip, $filter:filter},function (data, headers) {
+        deferred.resolve(data);
+      }, function (err) {
+      deferred.reject(err);
+      });
+      return deferred.promise;
+  };
+ 
+  self.GetHealthCoachInfo = function (HealthCoachID) {
+      var deferred = $q.defer();
+      Data.Users.GetHealthCoachInfo({HealthCoachID:HealthCoachID}, function (data, headers) {
+        deferred.resolve(data);
+      }, function (err) {
+      deferred.reject(err);
+      });
+      return deferred.promise;
+  };
+
+   self.GetCommentList = function (DoctorId ,CategoryCode, num, skip) {
+      var deferred = $q.defer();
+      Data.Users.GetCommentList({DoctorId:DoctorId,CategoryCode:CategoryCode, $orderby:"CommentTime desc", $top:num, $skip:skip}, function (data, headers) {
+        deferred.resolve(data);
+      }, function (err) {
+      deferred.reject(err);
+      });
+      return deferred.promise;
+  };
+
+   self.SetComment = function (sendData) {
+      var deferred = $q.defer();
+      Data.Users.SetComment(sendData, function (data, headers) {
+        deferred.resolve(data);
+      }, function (err) {
+      deferred.reject(err);
+      });
+      return deferred.promise;
+  };
+
+  self.ReserveHealthCoach = function (sendData) {
+      var deferred = $q.defer();
+      Data.Users.ReserveHealthCoach(sendData, function (data, headers) {
         deferred.resolve(data);
       }, function (err) {
       deferred.reject(err);
@@ -297,7 +945,7 @@ angular.module('zjubme.services', ['ionic','ngResource'])
 
 
 // --------登录注册-熊佳臻----------------
-.factory('userservice',['$http','$q' , 'Storage','Data', function($http,$q,Storage,Data){  //XJZ
+.factory('userservice',['$http','$q' , 'Storage','Data', 'extraInfo', function($http,$q,Storage, Data, extraInfo){  //XJZ
   var serve = {};
     var phoneReg=/^(13[0-9]|15[012356789]|17[678]|18[0-9]|14[57])[0-9]{8}$/;
     
@@ -350,7 +998,7 @@ angular.module('zjubme.services', ['ionic','ngResource'])
         }
         
         var deferred = $q.defer();
-        Data.Service.sendSMS({phoneNo: _phoneNo, smsType:_smsType},
+        Data.Service.sendSMS({mobile: _phoneNo, smsType:_smsType},
         function(data,status){
           deferred.resolve(data,status);
         },
@@ -373,7 +1021,8 @@ angular.module('zjubme.services', ['ionic','ngResource'])
 
     serve.changePassword = function(_OldPassword,_NewPassword,_UserId){
       var deferred = $q.defer();
-        Data.Users.ChangePassword({OldPassword:_OldPassword, NewPassword: _NewPassword, UserId:_UserId,  "revUserId": "sample string 4","TerminalName": "sample string 5", "TerminalIP": "sample string 6","DeviceType": 1},
+        Data.Users.ChangePassword({OldPassword:_OldPassword, NewPassword: _NewPassword, UserId:_UserId,  "revUserId": extraInfo.postInformation().revUserId, "TerminalName": extraInfo.postInformation().TerminalName, "TerminalIP": extraInfo.postInformation().TerminalIP,"DeviceType": extraInfo.postInformation().DeviceType},
+         //Data.Users.ChangePassword({OldPassword:_OldPassword, NewPassword: _NewPassword, UserId:_UserId,  "revUserId": "sample string 4","TerminalName": "sample string 5", "TerminalIP": "sample string 6","DeviceType": 1}, 
           function(data,headers,status){
             deferred.resolve(data);
           },
@@ -385,7 +1034,7 @@ angular.module('zjubme.services', ['ionic','ngResource'])
 
     serve.userRegister = function(_PwType, _userId, _UserName, _Password,_role){
       var deferred = $q.defer();
-      Data.Users.Register({"PwType":_PwType,"userId":_userId,"Username":_UserName,"Password":_Password,role:_role,"revUserId": "sample string 6","TerminalName": "sample string 7","TerminalIP": "sample string 8","DeviceType": 1},
+      Data.Users.Register({"PwType":_PwType,"userId":_userId,"Username":_UserName,"Password":_Password,role:_role,"revUserId": extraInfo.postInformation().revUserId, "TerminalName": extraInfo.postInformation().TerminalName,"TerminalIP": extraInfo.postInformation().TerminalIP,"DeviceType": extraInfo.postInformation().DeviceType},
         function(data,headers,status){
               deferred.resolve(data);
         },
@@ -395,6 +1044,16 @@ angular.module('zjubme.services', ['ionic','ngResource'])
       return deferred.promise;
     }
 
+    serve.BindMeasureDevice = function(uid){
+      var deferred = $q.defer();
+      Data.Service.BindMeasureDevice({"PatientId":uid},
+        function(s){
+          deferred.resolve(s);
+        },function(e){
+          deferred.reject(e);
+        })
+      return deferred.promise;
+    }
 
     //var passReg1=/([a-zA-Z]+[0-9]+|[0-9]+[a-zA-Z]+)/;
     //var passReg2=/^.[A-Za-z0-9]+$/;
@@ -467,11 +1126,32 @@ angular.module('zjubme.services', ['ionic','ngResource'])
 }])
 
 // --------交流-苟玲----------------
-.factory('MessageInfo', ['$q', '$http', 'Data',function ( $q,$http, Data) {
+.factory('MessageInfo', ['$q', '$http', 'Data','extraInfo',function ( $q,$http, Data, extraInfo) {
     var self = this;
+
+    self.ChangeStatus = function (AccepterID, NotificationType, SortNo, Status, revUserId, TerminalName, TerminalIP, DeviceType) {
+      var deferred = $q.defer();
+      Data.MessageInfo.ChangeStatus({AccepterID:AccepterID, NotificationType:NotificationType, SortNo:SortNo, Status:Status, revUserId:extraInfo.postInformation().revUserId, TerminalName:extraInfo.postInformation().TerminalName, TerminalIP:extraInfo.postInformation().TerminalIP, DeviceType:extraInfo.postInformation().DeviceType}, function (data, headers) {
+        deferred.resolve(data);
+      }, function (err) {
+      deferred.reject(err);
+      });
+      return deferred.promise;
+    };
+
+    self.GetDataByStatus = function (AccepterID, NotificationType, Status, top, skip) {
+      var deferred = $q.defer();
+      Data.MessageInfo.GetDataByStatus({AccepterID:AccepterID, NotificationType:NotificationType, Status:Status, $orderby:"SendTime desc", $top:top, $skip:skip}, function (data, headers) {
+        deferred.resolve(data);
+      }, function (err) {
+      deferred.reject(err);
+      });
+      return deferred.promise;
+    };
+
     self.submitSMS = function (SendBy,Content,Receiver,piUserId,piTerminalName,piTerminalIP,piDeviceType) {
       var deferred = $q.defer();
-      Data.MessageInfo.submitSMS({SendBy:SendBy,Content:Content,Receiver:Receiver,piUserId:piUserId,piTerminalName:piTerminalName,piTerminalIP:piTerminalIP,piDeviceType:piDeviceType}, function (data, headers) {
+      Data.MessageInfo.submitSMS({SendBy:SendBy,Content:Content,Receiver:Receiver,piUserId:extraInfo.postInformation().revUserId,piTerminalName:extraInfo.postInformation().TerminalName,piTerminalIP:extraInfo.postInformation().TerminalIP,piDeviceType:extraInfo.postInformation().DeviceType}, function (data, headers) {
         deferred.resolve(data);
       }, function (err) {
       deferred.reject(err);
@@ -489,6 +1169,26 @@ angular.module('zjubme.services', ['ionic','ngResource'])
       return deferred.promise;
     };
 
+    self.GetSMSCount = function (Reciever,SendBy) {
+      var deferred = $q.defer();
+      Data.MessageInfo.GetSMSCount({Reciever:Reciever,SendBy:SendBy}, function (data, headers) {
+        deferred.resolve(data);
+      }, function (err) {
+        deferred.reject(err);
+      });
+      return deferred.promise;
+    };
+
+    self.SetSMSRead = function (data) {
+      var deferred = $q.defer();
+      Data.MessageInfo.SetSMSRead(data, function (data, headers) {
+        deferred.resolve(data);
+      }, function (err) {
+        deferred.reject(err);
+      });
+      return deferred.promise;
+    };
+    
     return self;
 }])
 
@@ -497,6 +1197,25 @@ angular.module('zjubme.services', ['ionic','ngResource'])
 
 .factory('extraInfo',function(CONFIG){
   return{
+    postInformation:function(){
+      var postInformation={};
+      if(window.localStorage['UID']==null){
+        postInformation.revUserId = 'who'
+      }
+      else{
+        postInformation.revUserId = window.localStorage['UID'];
+      }
+      
+      postInformation.TerminalIP = 'IP';
+      if(window.localStorage['TerminalName']==null){
+        postInformation.TerminalName = 'which';
+      }
+      else{
+        postInformation.TerminalName = window.localStorage['TerminalName'];
+      }
+      postInformation.DeviceType = 2;
+      return postInformation;
+    },
     PatientId:function(data){
       if(data==null)
       {
@@ -504,6 +1223,7 @@ angular.module('zjubme.services', ['ionic','ngResource'])
       }else {
         window.localStorage['PatientId'] = angular.toJson(data);
       }},
+
     PlanNo:function(data){
       if(data==null)
       {
@@ -525,13 +1245,13 @@ angular.module('zjubme.services', ['ionic','ngResource'])
       }else {
         window.localStorage['TerminalName'] = angular.toJson(data);
       }},
-    DeviceType:function(data){
-      if(data==null)
+    DeviceParams:function(key){
+      switch(key)
       {
-        return angular.fromJson(window.localStorage['DeviceType']);
-      }else {
-        window.localStorage['DeviceType'] = angular.toJson(data);
-      }},
+        case 'DeviceType':return window.localStorage['DeviceType'];break; //数据库 移动设备默认写‘2’
+        case 'DeviceClientHeight':return window.localStorage['DeviceClientHeight'];break;
+      }
+    },
     revUserId:function(data){
       if(data==null)
       {
@@ -557,7 +1277,8 @@ angular.module('zjubme.services', ['ionic','ngResource'])
       dt.fulldate=dt.year+dt.month+dt.day;
       //dt.fulltime=dt.hour+dt.minute+dt.second;
       dt.fulltime=dt.hour+dt.minute;
-      dt.full=dt.year+dt.month+dt.dat+dt.hour+dt.minute+dt.second;
+      dt.full=dt.year+dt.month+dt.day+dt.hour+dt.minute+dt.second;
+      dt.zyxTime=dt.year+'-'+dt.month+'-'+dt.day+' '+dt.hour+':'+dt.minute+':'+dt.second;
       // console.log(dt);
       return dt;
     },
@@ -568,7 +1289,8 @@ angular.module('zjubme.services', ['ionic','ngResource'])
         "TF0002":"#/tab/task/bpm",
         "TF0003":"#/tab/task/bloodglucose",
         "TA0001":"#/tab/task/measureweight",
-        "TG0001":"#/tab/task/riskinfo"
+        "TG0001":"#/tab/task/riskinfo",
+        "TF0004":"#/tab/task/temperature"
       }
       var r='';
       angular.forEach(dictionary,function(value,key){
@@ -615,6 +1337,123 @@ angular.module('zjubme.services', ['ionic','ngResource'])
       }else {
         window.localStorage['refreshstatus'] = angular.toJson(status);
       }
+    },
+    TransformChangeMarks:function(data){
+      var marklength = data.length;
+      var statistics = {};
+      var classification=[];
+      classification[0] =new Array();//新增
+      classification[1] =new Array();//删除
+      classification[2] =new Array();//修改
+      for(var i=0;i<marklength;i++)
+      {
+        if(data[i].Code!=null)
+        {
+          if(data[i].Code.charAt(5)!='0')//排除诸如 TA0000 TB0000这类外层数据
+          {
+            if(statistics[data[i].Code]!=null)//判断该类型数据是否已经在结果中出现
+            {//出现两次的数据进行排序
+              if(statistics[data[i].Code][0].Edition<data[i].Edition)//以Edition排序，Edition大的为修改后的数据
+              {
+                statistics[data[i].Code][1]=statistics[data[i].Code][0];//修改后的数据放在前边
+                statistics[data[i].Code][0]=data[i];
+              }else
+              {
+                statistics[data[i].Code][1]=data[i];//修改前的数据放在后边
+              }
+            }else
+            {
+              statistics[data[i].Code]=new Array();//单词出现的数据
+              statistics[data[i].Code][0]=data[i];
+            }
+          }
+        }
+      }
+      // console.log(statistics);
+      angular.forEach(statistics,function(value,key){
+        if(value.length==1)//新增或删除的项目
+        {
+          if(value[0].Edition==1)
+          {
+            classification[1].push(value[0]);//删除
+          }else
+          {
+            classification[0].push(value[0]);//新增
+          }
+        }else if(value.length==2)//修改的项目
+        {
+          classification[2].push(value[0]);
+        }
+      });
+      // console.log(classification);
+      return classification;
+    },
+    InsertChangeMarks2tasklist:function(arr,markstatistics)//根据获得的任务变更情况，在相应的任务中添加标志位，用来在显示时进行提示
+    {
+      var ms = markstatistics[0];
+      for(var i=0;i<markstatistics[2].length;i++)
+      {
+        ms.push(markstatistics[2][i]);
+      }
+      // console.log(ms);
+      if(arr[0].Code.charAt(5)=="0")
+      {
+        var Typestatistics = {};//第一层任务列表
+        for(var i=0;i<ms.length;i++)
+        {
+          if(Typestatistics[ms[i].Type]==null)
+          {
+            Typestatistics[ms[i].Type]='1';
+          }
+        }
+        // console.log(Typestatistics);
+        for (var i=0;i<arr.length;i++)
+        {
+          if(Typestatistics[arr[i].Type]=='1')
+          {
+            // console.log(Typestatistics[arr[i].Type]);
+            arr[i].markstatistics = '1';
+          }
+        }
+      }else{
+        var Typestatistics = {};//第二层任务列表
+        for(var i=0;i<ms.length;i++)
+        {
+          if(Typestatistics[ms[i].Code]==null)
+          {
+            Typestatistics[ms[i].Code]='1';
+          }
+        }
+        // console.log(Typestatistics);
+        for (var i=0;i<arr.length;i++)
+        {
+          if(Typestatistics[arr[i].Code]=='1')
+          {
+            // console.log(Typestatistics[arr[i].Code]);
+            arr[i].markstatistics = '1';
+          }
+        }
+      }
+      return arr;
+    },
+    TransformCode2Name:function(code)
+    {
+      var codelist = {
+        TA0000:'体重管理',
+        TB0000:'合理饮食',
+        TC0000:'锻炼',
+        TD0000:'健康教育',
+        TE0000:'药物治疗',
+        TF0000:'体征测量',
+        TG0000:'风险评估'
+      }
+      if(codelist[code]!=null)
+      {
+        return codelist[code];
+      }else
+      {
+        return '详细';
+      }
     }
   }
 })
@@ -624,9 +1463,12 @@ angular.module('zjubme.services', ['ionic','ngResource'])
     BPConclusion:function(h,l){
       if(parseInt(h)<130&&parseInt(l)<85)
       {
-        return '您的血压属于正常\n范围，请继续保持';
+        if(parseInt(h)==0)
+          return '设备异常，请重新测量';
+        else
+          return '您的血压属于正常\n范围，请继续保持';
       }else {
-        return '您的血压偏高，请注意降压';
+        return '您的血压不正常，请注意控制！';
       }
     },
     FindCommand: function() {
@@ -711,12 +1553,14 @@ angular.module('zjubme.services', ['ionic','ngResource'])
             {
               "text": "",
               "bold": true,
-              "align":"center"
+              "align":"center",
+              "color":"white"
             }
           ],
           "export": {
             "enabled": true
-          }
+          },
+          "panEventsEnabled":false
       }
       console.log(bpc);
       return bpc;
@@ -729,17 +1573,17 @@ angular.module('zjubme.services', ['ionic','ngResource'])
   self.InsertServerData = function()
   {
     var insertserverdata={};
-    insertserverdata.UserId=extraInfo.PatientId();
+    insertserverdata.UserId=window.localStorage['UID'];
     insertserverdata.RecordDate=extraInfo.DateTimeNow().year+extraInfo.DateTimeNow().month+extraInfo.DateTimeNow().day;
     insertserverdata.RecordTime=extraInfo.DateTimeNow().hour+extraInfo.DateTimeNow().minute+extraInfo.DateTimeNow().second;
     insertserverdata.ItemType='';
     insertserverdata.ItemCode='';
     insertserverdata.Value='';
     insertserverdata.Unit='';
-    insertserverdata.revUserId=extraInfo.revUserId();
-    insertserverdata.TerminalName=extraInfo.TerminalName();
-    insertserverdata.TerminalIP=extraInfo.TerminalIP();
-    insertserverdata.DeviceType=parseInt(extraInfo.DeviceType());
+    insertserverdata.revUserId=extraInfo.postInformation().revUserId;
+    insertserverdata.TerminalName=extraInfo.postInformation().TerminalName;
+    insertserverdata.TerminalIP=extraInfo.postInformation().TerminalIP;
+    insertserverdata.DeviceType=extraInfo.postInformation().DeviceType;
     return insertserverdata;
   };
 
@@ -754,9 +1598,9 @@ angular.module('zjubme.services', ['ionic','ngResource'])
     return deferred.promise;
   };
 
-  self.VitalSigns = function (UserId,StartDate,EndDate) {
+  self.VitalSigns = function (UserId,StartDate,EndDate,top,skip) {
     var deferred = $q.defer();
-    Data.VitalInfo.VitalSigns({UserId:UserId,StartDate:StartDate,EndDate:EndDate}, function (data, headers) {
+    Data.VitalInfo.VitalSigns({UserId:UserId,StartDate:StartDate,EndDate:EndDate,$top:top,$skip:skip}, function (data, headers) {
       deferred.resolve(data);
       }, function (err) {
       deferred.reject(err);
@@ -821,10 +1665,19 @@ angular.module('zjubme.services', ['ionic','ngResource'])
     });
     return deferred.promise;
   }
+  self.GetDTaskByPlanNo = function(planno){
+    var deferred = $q.defer();
+      Data.PlanInfo.getDTaskByPlanNo({PlanNo:planno},function(s){
+        deferred.resolve(s);
+      },function(e){
+        deferred.reject(e);
+    });
+    return deferred.promise;
+  }
   return self;
 }])
 
-.factory('NotificationService',['$cordovaLocalNotification',function($cordovaLocalNotification){
+.factory('NotificationService',['$cordovaLocalNotification','extraInfo',function($cordovaLocalNotification,extraInfo){
   return{
     save:function(arr){
       var a=[];
@@ -848,7 +1701,11 @@ angular.module('zjubme.services', ['ionic','ngResource'])
         sound: "file://sources/Nokia.mp3",
         icon: "file://img/ionic.png"
       };
-      $cordovaLocalNotification.schedule(n);
+      if(extraInfo.DeviceParams('DeviceType')!='win32')
+        {
+          $cordovaLocalNotification.schedule(n);
+          // console.log("call cordovaLocalNotification")
+        }
     },
     get:function(){
       var alert = window.localStorage['alertlist'];
@@ -856,7 +1713,7 @@ angular.module('zjubme.services', ['ionic','ngResource'])
     },
     remove:function(index){
       var t= angular.fromJson(window.localStorage['alertlist']);
-      $cordovaLocalNotification.cancel(t[index].ID);
+      if(extraInfo.DeviceParams('DeviceType')!='win32')$cordovaLocalNotification.cancel(t[index].ID);
       t.splice(index,1);
       if(t)
       {
@@ -880,8 +1737,8 @@ angular.module('zjubme.services', ['ionic','ngResource'])
   var self = this;
   self.PlanInfoChart = function (UserId,PlanNo,StartDate,EndDate,ItemType,ItemCode) {
     var deferred = $q.defer();
-    Data.PlanInfo.PlanInfoChart({UserId:UserId,PlanNo:PlanNo,StartDate:StartDate, EndDate:EndDate, ItemType:ItemType, ItemCode:ItemCode}, function (data, headers) {
-      deferred.resolve(data);
+    Data.PlanInfo.PlanInfoChart({UserId:UserId,PlanNo:PlanNo,StartDate:StartDate, EndDate:EndDate, ItemType:ItemType, ItemCode:ItemCode, $orderby:"Date desc", $top:7}, function (data, headers) {
+      deferred.resolve(data.reverse());
     }, function (err) {
       deferred.reject(err);
     });
@@ -905,9 +1762,9 @@ angular.module('zjubme.services', ['ionic','ngResource'])
     });
     return deferred.promise;
   };
-  self.PlanInfoChartDtl = function (PlanNo,ParentCode,Date) {
+  self.PlanInfoChartDtl = function (option) {
     var deferred = $q.defer();
-    Data.PlanInfo.PlanInfoChartDtl({PlanNo:PlanNo,ParentCode:ParentCode,Date:Date}, function (data, headers) {
+    Data.PlanInfo.PlanInfoChartDtl(option, function (data, headers) {
       deferred.resolve(data);
     }, function (err) {
       deferred.reject(err);
@@ -921,6 +1778,26 @@ angular.module('zjubme.services', ['ionic','ngResource'])
       deferred.resolve(s);
     },function(e){
       deferred.reject(e);
+    })
+    return deferred.promise;
+  }
+  self.GetComplianceListInC = function(data)
+  {
+    var deferred = $q.defer();
+    Data.PlanInfo.GetComplianceListInC(data,function(s){
+      deferred.resolve(s);
+    },function(e){
+      deferred.reject(e);
+    })
+    return deferred.promise;
+  }
+  
+  self.TaskCompliances = function(PlanNo){
+    var deferred = $q.defer();
+    Data.PlanInfo.TaskCompliances({PlanNo:PlanNo}, function(data){
+      deferred.resolve(data);
+    },function(error){
+      deferred.reject(error);
     })
     return deferred.promise;
   }
@@ -1096,7 +1973,7 @@ angular.module('zjubme.services', ['ionic','ngResource'])
             mimeType : "image/jpeg"
           };
           var q = $q.defer();
-          // console.log("jinlaile");
+          //console.log("jinlaile");
           $cordovaFileTransfer.upload(uri,imgURI,options)
             .then( function(r){
               console.log("Code = " + r.responseCode);
@@ -1104,7 +1981,8 @@ angular.module('zjubme.services', ['ionic','ngResource'])
               console.log("Sent = " + r.bytesSent);
               var result = "上传成功";
               q.resolve(result);        
-            }, function(err){
+            }, function(error){
+              console.log(error);
               alert("An error has occurred: Code = " + error.code);
               console.log("upload error source " + error.source);
               console.log("upload error target " + error.target);

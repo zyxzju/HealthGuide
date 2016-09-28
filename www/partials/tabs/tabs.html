@@ -17,7 +17,7 @@
         <ion-nav-view name="tab-target"></ion-nav-view>
       </ion-tab>
 
-      <ion-tab title="我的专员" icon-off="ion-ios-chatboxes" icon-on="ion-ios-chatboxes" href="#/tab/chats/contactList">
+      <ion-tab title="我的专员" icon-off="ion-ios-chatboxes" icon-on="ion-ios-chatboxes" href="#/tab/chats/contactList" ><!-- badge=unreadMessageSum badge-style="tabs-calm" -->
         <ion-nav-view name="tab-chats"></ion-nav-view>
       </ion-tab>
 
@@ -38,7 +38,7 @@
         <div class="list">
         <a class="item item-avatar" href='#/catalog/{{ct.catalogID}}'  ng-repeat="ct in catalog" ng-click="signoutConfirm(ct.catalogID)">
             <img ng-src="{{ct.url}}">
-            <h2>{{ct.catalog}}</h2>
+            <h2 style="margin :5%">{{ct.catalog}}</h2>
         </a>
         </div>
       </ion-content>
@@ -46,8 +46,5 @@
 
   </ion-side-menus>
 </ion-view>
-
-
-
 
 

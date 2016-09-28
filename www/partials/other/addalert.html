@@ -1,6 +1,6 @@
 <!-- /////添加提醒的模板页面////// -->
 <ion-modal-view>
-	<ion-header-bar align-title="center" class="bar-light">
+	<ion-header-bar align-title="center" class="bar-calm">
 		<button class="button button-clear button-icon ion-chevron-left" ng-click="closeModal()"></button>
 		<h1 class="title">添加提醒</h1>
 	</ion-header-bar>
@@ -8,8 +8,10 @@
 		<form name="myForm">
 			<div class="list list-inset">
 				<label class="item item-input item-stacked-label">
-					<span class="input-label">名称:</span>
-					<input type="text" placeholder="待提醒时间的名称" ng-model="alertcontent.title">
+					<span class="input-label">名称:
+						<span class="error" ng-show=(checkalert=='required') style="color:red;">*必填项目</span>
+					</span>
+					<input type="text" name='alert' placeholder="待提醒事件的名称" ng-model="alertcontent.title" required ng-change="alerttitlecheck(myForm.alert.$error.required)">
 				</label>
 				<label class="item item-input item-stacked-label">
 					<span class="input-label">详细:</span>
@@ -25,7 +27,7 @@
 				</label>
 				<div class="item item-divider item-light">
 					<div class="button-bar">
-						<a class="button icon ion-checkmark-round button-outline button-small button-positive" ng-click='save()'></a>
+						<a class="button icon ion-checkmark-round button-outline button-small button-positive" ng-click='save(myForm.$valid)'></a>
 						<a class="button icon ion-close-round button-outline button-small button-positive" ng-click='closeModal()'></a>
 					</div>
 				</div>

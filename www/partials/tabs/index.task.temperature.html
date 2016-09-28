@@ -1,0 +1,52 @@
+<ion-view view-title="体温测量">
+	<ion-content>
+	   <div class="row">
+	   	
+	   	<div class="col-50">
+        	<div id="temperaturechartdiv" style="width: 160px; height: 400px;"></div>
+        </div>
+        <div class="col-50" style="padding:auto;">    
+           <!--  <form name="myForm" style="width:100%">
+				
+					<div class="row" style="margin-top:60px">
+						<div class="col-33"style="height:100%;font-size:20px;">
+							<span class="error" ng-show=twcheck=='required' style="height:100%;margin:20px;color:red;text-align:center;font-size:600px;"  >*</span>体温:
+						</div>
+
+						<div class="col-67" style="padding:0px;border-style: solid;border-width: 2px;border-color: blue;">
+							<input class="myinput" type="number"  name='twcl' required max='42' required min='35' ng-model='Temp.Temperature' ng-change="check(myForm.twcl.$error.required)" style="width: 100%">
+						</div>
+					</div>		
+			   <div class="col">
+					<button  class=" button button-positive button-full" ng-click="saveTemp(myForm.$valid)" style="color:white;margin:12px;" >提交</button>	
+			   </div>
+			  <div class="col">{{Temp.result}}</div>
+		   
+		   </form>	  -->
+		 
+         <div class="icon-iconfont-tiwenji2 "style="margin-top:40px;vertical-align:center;">
+	     <span  style= 'color:green;font-size:18px; font-weight:bold;height:25px;line-height:25px; overflow:hidden;vertical-align:60%;'>测体温</span>
+	    </div>
+	    
+       <form name="myForm" style="width:100% ">
+	     <div class="list" style="margin-top:10px">
+           <label class="item item-input" >
+             <span class="error" ng-show=twcheck=='required' style="color:red">*{{label}}</span>体温：&nbsp;
+              <input class="myinput" type="number" placeholder="{{status}}"   name='twcl' required max='42' required min='35'  ng-model='Temp.Temperature' ng-change="check(myForm.twcl.$error.required)">
+           </label>
+         </div>
+          <div class="padding" name="myForm">
+            <!-- <button class="button button-block button-positive" ng-click="saveTemp(myForm.$valid)">提交</button> -->
+            <button class="button button-block button-positive" ng-click="showConfirm(myForm.$valid)">
+             提交
+            </button>
+          </div>
+          <ion-scroll zooming="true" direction="y" style="width: 100%; height: 120px ;overflow:hidden;">
+           <div class="col" >{{Temp.result}}</div>
+          </ion-scroll>
+      </form>
+	</div>	
+   </div>
+ </ion-content>
+</ion-view>
+ 

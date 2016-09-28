@@ -1,38 +1,81 @@
  
 <ion-view view-title="选择专员" hide-nav-bar="true">
     <ion-content>
+      <style>
+      .item-input-wrapper input[type="search"]::-webkit-search-cancel-button {
+         -webkit-appearance: searchfield-cancel-button;
+       }
+      </style>
     <div class="bar bar-calm item-input-inset">
      <button class="button button-icon icon ion-ios-arrow-left" ng-click="nvGoback()">返回</button> 
      <h1 class="title">选择专员</h1>
     </div>
-    <!-- <div class="bar bar-calm item-input-inset"> hide-nav-bar="true"
-      <button class="button button-icon icon ion-navicon" style="text-align:left;padding-right:20px" ng-click="toggleLeftMenu()"></button> 
-      <h1 class="title">选择专员</h1>
-    </div> -->
 
     <div class="bar item-input-inset">
-       <button class="button icon-left ion-ios-eye button-clear button-dark" ng-click="openModal()">排序/筛选</button>&nbsp;
+      <button class="button button-icon icon-iconfont-filter button-clear button-calm" ng-click="popover1.show($event)">
+      </button>&nbsp; 
       <label class="item-input-wrapper">
         <i class="icon ion-search placeholder-icon"></i>
         <input type="search" placeholder="健康专员ID/姓名" ng-model="query"> 
       </label>
-       <button class="button button-clear button-dark" ng-click="openPopover($event)">搜索</button>
+      <button class="button icon-left icon-iconfont-order button-clear button-positive" ng-click="popover.show($event)"></button>
     </div>
-
-    <ion-refresher pulling-text="下拉刷新" on-refresh="doRefresh()"></ion-refresher>
+    <ion-refresher pulling-text="下拉刷新" on-refresh="refreshHealthCoachList()"></ion-refresher>
     <ion-list>
-        <ion-item href='#/healthCoach/{{healthCoach.healthCoachId}}' ng-repeat="healthCoach in healthCoachList | filter:query | orderBy:orderProp:reverseSort" class="item-avatar">
+        <ion-item href='#/healthCoach/{{healthCoach.healthCoachID}}' ng-repeat="healthCoach in healthCoachList | filter:query | orderBy:orderProp" ng-click ="setCurrent(healthCoach)"  class="item-avatar item-icon-right">
             <img src="{{healthCoach.imageURL}}">
             <span class="item-note">
               评分：{{healthCoach.score}}
             </span>
-            <h2>{{healthCoach.name}}&nbsp;{{healthCoach.sex}}/{{healthCoach.age}}</h2>
-            <p>负责：{{healthCoach.modoule}}</p>
-            <div class="item-button-right">
-              <button class="button button-clear"><i class="icon ion-ios-arrow-right"></i>
-              </button>
-            </div>
+            <h2>{{healthCoach.name}}</h2>
+            <h2>{{healthCoach.sex|sex}}/{{healthCoach.age}}</h2>
+           <!--  <p>负责：{{healthCoach.module}}</p> -->
+            <p>负责：{{healthCoach.module}}高血压模块/糖尿病模块/心力衰竭模块</p>
+            <i class="icon ion-chevron-right icon-accessory"></i>
         </ion-item> 
     </ion-list>
+
+    <ion-infinite-scroll on-infinite="loadMoreHealthCoach()" distance="1%" ng-if="moreHealthCoach">
+    </ion-infinite-scroll>
+
+    <div ng-if="!moreHealthCoach" style="text-align:center;margin-top:20px;margin-bottom:20px;">
+      <p style="color:#2894FF;font-size:16px;">{{alertText}}</p>
+     </div>
+    
   </ion-content>
 </ion-view>
+
+<script id="templates/popover-sort.html" type="text/ng-template">
+  <ion-popover-view>
+    <ion-content>
+      <div class="list">
+        <div class="item item-divider" style="background-color:#11c1f3"> 排序</div>
+        <ion-radio ng-repeat="item in sideList"
+                   ng-value="item.value"
+                   ng-model="orderProp"
+                  ng-change="sideChange(item)">
+          {{ item.text }}
+        </ion-radio>
+      </div>
+    </ion-content>
+  </ion-popover-view>
+</script>
+
+
+<script id="templates/popover-select.html" type="text/ng-template">
+  <ion-popover-view>
+    <ion-content>
+      <div class="list">
+        <div class="item item-divider" style="background-color:#11c1f3">筛选</div>   
+        <ion-radio ng-repeat="item in sexList"
+                   ng-value="item.value"
+                   ng-model="selectMenu.selectedSex"
+                   ng-change="selectFunction(item.value)">
+          {{ item.text }}
+        </ion-radio>
+     
+      </div>
+     
+    </ion-content>
+  </ion-popover-view>
+</script>

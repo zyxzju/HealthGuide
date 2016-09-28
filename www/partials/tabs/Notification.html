@@ -1,0 +1,47 @@
+<ion-view view-title="通知列表" cache-view="false">
+  <ion-content on-scroll="getScrollPosition()">
+  <ion-refresher pulling-text="下拉刷新" on-refresh="refreshNotificationList()">
+  </ion-refresher>
+   
+	<ion-list>
+	   <ion-item class="item-avatar item-icon-right" ng-repeat="notification in NotificationList " href="#/tab/chats/NotificationDetail" ng-click="NotificationClick(notification)">
+	        <img src="{{notificationSetting.imageURL}}">
+	        <div class="circle" ng-if="notification.Status=='0'?true:false"></div>
+	        <h2>{{notification.Title}} <p style="float:right;font-size:10px;">{{notification.SendTime}}</p></h2>
+	        <p>{{notification.Description}}</p>
+	        <i class="icon ion-chevron-right icon-accessory"></i>
+	    </ion-item>
+	</ion-list>
+
+     <ion-infinite-scroll on-infinite="loadMoreNotification()" distance="1%" ng-if="notificationSetting.moreNotification"></ion-infinite-scroll>
+
+     <div ng-if="!notificationSetting.moreNotification" style="text-align:center;margin-top:20px;margin-bottom:20px;">
+      <p style="color:#2894FF;font-size:16px;">{{notificationSetting.alertText}}</p>
+     </div>
+
+  </ion-content>
+
+ <style>
+.circle { 
+  float:right;
+  margin-left:10px;
+  background-color:#F00; 
+  width: 10px;  
+  height: 10px;  
+  border: 1px F00 solid;  
+  -webkit-border-radius: 5px; 
+}
+.scrollToTop{
+  height: 48px;
+  width: 48px;
+  position: fixed;
+  bottom: 3%;
+  right: 3%; 
+  z-index: 1000;
+  display:block;
+  background:url('img/back-to-top.png') no-repeat;
+}</style>
+
+   <div class="scrollToTop" ng-click="scrollTop()" ng-show='scrollToTop'></div>
+
+</ion-view>

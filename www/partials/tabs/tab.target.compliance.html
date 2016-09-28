@@ -1,0 +1,31 @@
+<!-- 因为放到index里面会对其他页面的样式有影响，所以单独放在本页面内 -->
+<head>
+<link rel="stylesheet" href="lib/bootstrap-3.3.5.min.css">
+<script src="lib/bootstrap-3.3.5.min.js"></script>
+</head>
+
+<ion-view view-title="依从率统计情况">
+	<ion-content>
+
+
+		<ion-item ng-repeat="Compliance in Compliances">
+		    <b><h2>{{Compliance.Name}}</h2></b>
+		    <p>{{Compliance.Instruction}}</p>
+		    <p>共安排{{Compliance.AllDays}}天任务，完成{{Compliance.DoDays}}天，未完成{{Compliance.UndoDays}}天</p>
+			<div class="progress" style="margin-bottom: 0px;text-align:center;">
+			    <div class="progress-bar progress-bar-info" role="progressbar" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100" style="width:{{Compliance.percents_cplt}}%">
+			    <p style="text-align:center;">完成{{Compliance.percents_cplt}}%</p>
+			    </div>
+			    <p style="text-align:center;">未完成{{Compliance.percents_uncplt}}%</p>
+			</div>
+		</ion-item>
+
+
+		<!-- 如果不存在当前计划，那么进行文字提醒 -->
+		<div ng-if="showGraph==false">
+	   		<div style="text-align:center;margin-top:50px;">    
+	      		<p style="color:#2894FF;font-size:16px;">{{graphText}}</p>
+	    	</div>
+		</div>
+	</ion-content>  
+</ion-view>
